@@ -21,12 +21,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import QrCodeIcon from '@mui/icons-material/QrCode2';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import PageHeader from '../components/PageHeader';
 import config from '../config';
+import { REQUEST_TYPES } from '../config/constants';
 
 const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
@@ -37,17 +39,18 @@ export default function RequestPage() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [requestType, setRequestType] = useState('softcopy');
+  const [requestType, setRequestType] = useState(REQUEST_TYPES.SOFTCOPY);
   const [paymentProof, setPaymentProof] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [processing, setProcessing] = useState(false);
+  const [successDialog, setSuccessDialog] = useState(false);
   
   const selectedImages = location.state?.selectedImages || [];
 
   const handleRequestTypeChange = (event, newType) => {
     if (newType !== null) {
-      setRequestType(newType);
+      setRequestType(parseInt(newType));
     }
   };
 
@@ -73,16 +76,11 @@ export default function RequestPage() {
     });
   };
 
-  const handleSubmit = async () => {
-    if (requestType === 'hardcopy' && !paymentProof) {
-      setSnackbar({
-        open: true,
-        message: 'Please upload payment proof',
-        severity: 'error'
-      });
-      return;
-    }
+  const handleSuccessDialogClose = () => {
+    setSuccessDialog(false);
+  };
 
+  const handleSubmit = async () => {
     try {
       setProcessing(true);
       setIsSubmitting(true);
@@ -92,13 +90,19 @@ export default function RequestPage() {
         throw new Error('User data not found. Please log in again.');
       }
 
+      // Basic request data
       const requestData = {
         userdata,
         requestedImages: selectedImages.map(img => img.name),
         requestType,
       };
 
-      if (requestType === 'hardcopy') {
+      // Only add payment proof for hardcopy requests
+      if (requestType == REQUEST_TYPES.HARDCOPY) {
+        if (!paymentProof) {
+          throw new Error('Payment proof is required for hard copy requests');
+        }
+
         if (paymentProof.size > MAX_FILE_SIZE) {
           throw new Error('File size exceeds 250KB limit');
         }
@@ -125,14 +129,7 @@ export default function RequestPage() {
       const result = await response.json();
       
       if (result.success) {
-        setSnackbar({
-          open: true,
-          message: requestType === 'softcopy' 
-            ? 'Images have been sent to your email'
-            : 'Request submitted successfully',
-          severity: 'success'
-        });
-        navigate(`/courses/${courseId}`);
+        setSuccessDialog(true);
       } else {
         throw new Error(result.message);
       }
@@ -199,15 +196,15 @@ export default function RequestPage() {
               }}
               orientation={isMobile ? 'vertical' : 'horizontal'}
             >
-              <ToggleButton value="softcopy" sx={{ py: { xs: 1.5, sm: 1 } }}>
+              <ToggleButton value={REQUEST_TYPES.SOFTCOPY} sx={{ py: { xs: 1.5, sm: 1 } }}>
                 Soft Copy
               </ToggleButton>
-              <ToggleButton value="hardcopy" sx={{ py: { xs: 1.5, sm: 1 } }}>
+              <ToggleButton value={REQUEST_TYPES.HARDCOPY} sx={{ py: { xs: 1.5, sm: 1 } }}>
                 Hard Copy
               </ToggleButton>
             </ToggleButtonGroup>
 
-            {requestType === 'hardcopy' && (
+            {requestType == REQUEST_TYPES.HARDCOPY && (
               <Stack spacing={2}>
                 <Card sx={{ p: { xs: 1.5, sm: 2 }, bgcolor: 'grey.100' }}>
                   <Typography variant="subtitle1" sx={{ mb: 2 }}>Payment Details</Typography>
@@ -274,7 +271,7 @@ export default function RequestPage() {
             size="large"
             fullWidth={isMobile}
             onClick={handleSubmit}
-            disabled={requestType === 'hardcopy' && !paymentProof || isSubmitting}
+            disabled={requestType == REQUEST_TYPES.HARDCOPY && !paymentProof || isSubmitting}
             sx={{ py: { xs: 1.5, sm: 1 } }}
           >
             {isSubmitting ? (
@@ -299,6 +296,29 @@ export default function RequestPage() {
             </DialogContentText>
           </Stack>
         </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={successDialog}
+        onClose={handleSuccessDialogClose}
+        aria-labelledby="success-dialog-title"
+        aria-describedby="success-dialog-description"
+      >
+        <DialogTitle id="success-dialog-title">
+          Request Submitted Successfully
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="success-dialog-description">
+            {requestType === REQUEST_TYPES.SOFTCOPY
+              ? "The requested images have been sent to your registered email address."
+              : "Your request for hard copies has been received. Our team will contact you within 24 hours regarding the collection process."}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSuccessDialogClose} variant="contained">
+            OK
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Backdrop

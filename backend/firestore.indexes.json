@@ -1,0 +1,12 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "2024",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requestType", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "timestamp", "order": "DESC" }
+      ]
+    }
+  ]
+}

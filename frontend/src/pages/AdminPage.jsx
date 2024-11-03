@@ -1,16 +1,391 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Stack,
+  Card,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  Tab,
+  Tabs,
+  ButtonGroup,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  useTheme
+} from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
+import { 
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
+  RemoveRedEye as ViewIcon,
+  Download as DownloadIcon,
+  Person as UserIcon
+} from '@mui/icons-material';
+import { useNavigate } from "react-router-dom";
 import PageHeader from '../components/PageHeader';
+import config from '../config';
+import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../config/constants';
 
-function AdminPage() {
+const formatDate = (timestamp) => {
+  if (!timestamp) return 'N/A';
+  try {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleString('en-US', {
+        dateStyle: 'short',
+        timeStyle: 'medium'
+      });
+    }
+    return 'Invalid Date';
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid Date';
+  }
+};
+
+const AdminPage = () => {
+  const theme = useTheme();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/admin/requests`);
+      const data = await response.json();
+      setRequests(data.map(req => ({
+        ...req,
+        id: req.username,
+        requestDate: formatDate(req.timestamp),
+      })));
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (requestId, newStatus) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${config.API_BASE_URL}/admin/requests/${requestId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      // Refresh the requests list
+      fetchRequests();
+      
+      setSnackbar({
+        open: true,
+        message: `Request ${newStatus} successfully`,
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setSnackbar({
+        open: true,
+        message: error.message || 'Error updating request status',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusChip = (status) => {
+    const statusConfig = {
+      pending: { color: 'warning', label: 'Pending' },
+      approved: { color: 'success', label: 'Approved' },
+      rejected: { color: 'error', label: 'Rejected' },
+      completed: { color: 'info', label: 'Completed' }
+    };
+    const config = statusConfig[status.toLowerCase()] || statusConfig.pending;
+    return <Chip label={config.label} color={config.color} size="small" />;
+  };
+
+  const columns = [
+    {
+      field: 'requestDate',
+      headerName: 'Date',
+      width: 180,
+    },
+    {
+      field: 'username',
+      headerName: 'Student ID',
+      width: 130,
+    },
+    {
+      field: 'name',
+      headerName: 'Name',
+      width: 200,
+    },
+    {
+      field: 'course',
+      headerName: 'Course',
+      width: 150,
+    },
+    {
+      field: 'requestType',
+      headerName: 'Type',
+      width: 120,
+      renderCell: (params) => {
+        let chipColor = 'secondary';
+        if (params.value == REQUEST_TYPES.HARDCOPY) {
+          chipColor = 'primary';
+        } else if (params.value == REQUEST_TYPES.BOTH) {
+          chipColor = 'error';
+        }
+        return (
+          <Chip 
+            label={REQUEST_TYPE_LABELS[params.value] || 'Unknown'} 
+            color={chipColor}
+            size="small"
+          />
+        );
+      },
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => getStatusChip(params.value),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 200,
+      sortable: false,
+      renderCell: (params) => (
+        <ButtonGroup size="small">
+          <Tooltip title="View Details">
+            <IconButton
+              onClick={() => setSelectedRequest(params.row)}
+              size="small"
+            >
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {params.row.requestType !== REQUEST_TYPES.SOFTCOPY && params.row.status == 'pending' && (
+            <>
+              <Tooltip title="Approve">
+                <IconButton
+                  onClick={() => handleStatusChange(params.row.username, 'approved')}
+                  color="success"
+                  size="small"
+                >
+                  <ApproveIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Reject">
+                <IconButton
+                  onClick={() => handleStatusChange(params.row.username, 'rejected')}
+                  color="error"
+                  size="small"
+                >
+                  <RejectIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+          {params.row.paymentProof && (
+            <Tooltip title="View Payment Proof">
+              <IconButton
+                onClick={() => {
+                  setSelectedRequest(params.row);
+                  setImagePreviewOpen(true);
+                }}
+                size="small"
+              >
+                <DownloadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </ButtonGroup>
+      ),
+    },
+  ];
+
+  const filteredRequests = requests.filter(req => {
+    if (selectedTab == 'all') return true;
+    if (selectedTab == 'pending') return req.status == 'pending';
+    if (selectedTab == 'hardcopy') return req.requestType == REQUEST_TYPES.HARDCOPY || req.requestType == REQUEST_TYPES.BOTH;
+    if (selectedTab == 'softcopy') return req.requestType == REQUEST_TYPES.SOFTCOPY || req.requestType == REQUEST_TYPES.BOTH;
+    return true;
+  });
+
   return (
     <>
-    <PageHeader
-      pageTitle="Admin Dashboard"
-      pageSubtitle="Manage student requests"
-      breadcrumbs={['Admin']}
-    />
+      <PageHeader
+        pageTitle="Admin Dashboard"
+        pageSubtitle="Manage student requests"
+        breadcrumbs={['Admin']}
+        actionButtons={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<UserIcon />}
+            onClick={() => navigate('/admin/manage')}
+            sx={{
+              boxShadow: 2,
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 4,
+              },
+              transition: 'all 0.2s ease-in-out'
+            }}
+          >
+            Manage Users
+          </Button>
+        }
+      />
+
+      <Box sx={{ p: 3 }}>
+        <Stack spacing={3}>
+          {/* Stats Cards */}
+          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+            {[
+              { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
+              { label: 'Pending Requests', value: requests.filter(r => r.status == 'pending').length, color: theme.palette.warning.main },
+              { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType == 1 || r.requestType == 3).length, color: theme.palette.secondary.main },
+              { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType == 2 || r.requestType == 3).length, color: theme.palette.info.main },
+            ].map((stat) => (
+              <Card key={stat.label} sx={{ p: 2 }}>
+                <Typography variant="h3" sx={{ color: stat.color, fontWeight: 'bold' }}>
+                  {stat.value}
+                </Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {stat.label}
+                </Typography>
+              </Card>
+            ))}
+          </Box>
+
+          {/* Request Table */}
+          <Card>
+            <Tabs
+              value={selectedTab}
+              onChange={(e, v) => setSelectedTab(v)}
+              sx={{ px: 2, pt: 2 }}
+            >
+              <Tab label="All Requests" value="all" />
+              <Tab label="Pending" value="pending" />
+              <Tab label="Hard Copy" value="hardcopy" />
+              <Tab label="Soft Copy" value="softcopy" />
+            </Tabs>
+            <Box sx={{ height: 600, width: '100%', p: 2 }}>
+              <DataGrid
+                rows={filteredRequests}
+                columns={columns}
+                loading={loading}
+                disableRowSelectionOnClick
+                density="comfortable"
+                initialState={{
+                  pagination: {
+                    paginationModel: { page: 0, pageSize: 10 },
+                  },
+                  sorting: {
+                    sortModel: [{ field: 'requestDate', sort: 'desc' }],
+                  },
+                }}
+                pageSizeOptions={[10, 25, 50]}
+              />
+            </Box>
+          </Card>
+        </Stack>
+      </Box>
+
+      {/* Details Dialog */}
+      <Dialog
+        open={Boolean(selectedRequest) && !imagePreviewOpen}
+        onClose={() => setSelectedRequest(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Request Details</DialogTitle>
+        <DialogContent dividers>
+          {selectedRequest && (
+            <Stack spacing={2}>
+              <Typography variant="subtitle2">
+                Student Details
+              </Typography>
+              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'auto 1fr' }}>
+                {[
+                  ['Student ID', selectedRequest.username],
+                  ['Name', selectedRequest.name],
+                  ['Email', selectedRequest.email],
+                  ['Course', selectedRequest.course],
+                  ['Request Type', selectedRequest.requestType],
+                  ['Status', selectedRequest.status],
+                  ['Date', selectedRequest.requestDate],
+                ].map(([label, value]) => (
+                  <React.Fragment key={label}>
+                    <Typography color="text.secondary">{label}:</Typography>
+                    <Typography>{value}</Typography>
+                  </React.Fragment>
+                ))}
+              </Box>
+              
+              <Typography variant="subtitle2" sx={{ mt: 2 }}>
+                Requested Images
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {selectedRequest.requestedImages?.map((img) => (
+                  <Chip key={img} label={img} size="small" />
+                ))}
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedRequest(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog
+        open={imagePreviewOpen}
+        onClose={() => setImagePreviewOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Payment Proof</DialogTitle>
+        <DialogContent>
+          {selectedRequest?.paymentProof && (
+            <Box
+              component="img"
+              src={selectedRequest.paymentProof}
+              sx={{
+                width: '100%',
+                height: 'auto',
+                maxHeight: '70vh',
+                objectFit: 'contain'
+              }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImagePreviewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
-}
+};
 
 export default AdminPage;
