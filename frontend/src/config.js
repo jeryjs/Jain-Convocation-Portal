@@ -1,5 +1,5 @@
 const config = {
-  API_BASE_URL: 'https://jain-convocation-portal.vercel.app/api',
+  API_BASE_URL: location.origin + '/api',
   userdata: JSON.parse(localStorage.getItem('userdata'))
 };
   
