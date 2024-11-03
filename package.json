@@ -1,0 +1,17 @@
+{
+    "name": "jain-convocation-portal",
+    "version": "0.1.0",
+    "description": "A web portal for managing Jain University Convocation Images.",
+    "main": "index.js",
+    "scripts": {
+      "start:frontend": "cd frontend && npm run dev",
+      "start:backend": "cd backend && npm run dev",
+      "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+    },
+    "keywords": [],
+    "author": "Jery",
+    "license": "MIT",
+    "dependencies": {
+      "concurrently": "^8.2.2"
+    }
+  }
