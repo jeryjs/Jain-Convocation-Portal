@@ -16,12 +16,19 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Backdrop,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import QrCodeIcon from '@mui/icons-material/QrCode2';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import PageHeader from '../components/PageHeader';
 import config from '../config';
+
+const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
 export default function RequestPage() {
   const theme = useTheme();
@@ -34,6 +41,7 @@ export default function RequestPage() {
   const [paymentProof, setPaymentProof] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [processing, setProcessing] = useState(false);
   
   const selectedImages = location.state?.selectedImages || [];
 
@@ -45,10 +53,10 @@ export default function RequestPage() {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    if (file && file.size > 5 * 1024 * 1024) {
+    if (file && file.size > MAX_FILE_SIZE) {
       setSnackbar({
         open: true,
-        message: 'File size should be less than 5MB',
+        message: 'File size should be less than 250KB',
         severity: 'error'
       });
       return;
@@ -66,26 +74,77 @@ export default function RequestPage() {
   };
 
   const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      const userdata = config.userdata;
-      
-      
-      localStorage.removeItem(`selected_images`);
+    if (requestType === 'hardcopy' && !paymentProof) {
       setSnackbar({
         open: true,
-        message: 'Request submitted successfully',
-        severity: 'success'
+        message: 'Please upload payment proof',
+        severity: 'error'
       });
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setIsSubmitting(true);
+      const userdata = config.getUserData();
+
+      if (!userdata?.username) {
+        throw new Error('User data not found. Please log in again.');
+      }
+
+      const requestData = {
+        userdata,
+        requestedImages: selectedImages.map(img => img.name),
+        requestType,
+      };
+
+      if (requestType === 'hardcopy') {
+        if (paymentProof.size > MAX_FILE_SIZE) {
+          throw new Error('File size exceeds 250KB limit');
+        }
+
+        // Convert file to base64
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(paymentProof);
+        });
+        
+        requestData.paymentProof = base64;
+      }
+
+      const response = await fetch(`${config.API_BASE_URL}/request/${courseId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) throw new Error('Request failed');
+
+      const result = await response.json();
       
+      if (result.success) {
+        setSnackbar({
+          open: true,
+          message: requestType === 'softcopy' 
+            ? 'Images have been sent to your email'
+            : 'Request submitted successfully',
+          severity: 'success'
+        });
+        navigate(`/courses/${courseId}`);
+      } else {
+        throw new Error(result.message);
+      }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: 'Error submitting request. Please try again.',
+        message: error.message || 'Error submitting request',
         severity: 'error'
       });
     } finally {
       setIsSubmitting(false);
+      setProcessing(false);
     }
   };
 
@@ -226,6 +285,26 @@ export default function RequestPage() {
           </Button>
         </Stack>
       </Box>
+
+      <Dialog
+        open={processing}
+        aria-describedby="processing-dialog"
+      >
+        <DialogTitle>Processing Request</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} alignItems="center" sx={{ py: 2 }}>
+            <CircularProgress />
+            <DialogContentText id="processing-dialog">
+              Please wait while we process your request. Do not close this window or navigate away.
+            </DialogContentText>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={processing}
+      />
 
       <Snackbar
         open={snackbar.open}

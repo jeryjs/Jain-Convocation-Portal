@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { getCourseFolders, getCourseImages, getImageLink } = require('../services/onedrive');
-const db = require('../config/firebase');
 
 // Route to get list of courses (OneDrive folders)
 router.get('/courses', async (req, res) => {
-  console.log('courses requested');
-
+  console.log('📚 Fetching all courses...');
+  
   try {
     const courses = await getCourseFolders();
+    console.log(`✅ Found ${courses.length} courses`);
     res.json(courses);
   } catch (error) {
-    console.error(error);
+    console.error('❌ Failed to fetch courses:', error);
     res.status(500).send('Failed to retrieve courses');
   }
 });
@@ -19,54 +19,30 @@ router.get('/courses', async (req, res) => {
 // Route to get all images in a course folder
 router.get('/courses/:course', async (req, res) => {
   const course = req.params.course;
-
-  console.log(`images requested: ${course}`);
+  console.log(`📸 Fetching images for course: ${course}`);
 
   try {
     const images = await getCourseImages(course);
+    console.log(`✅ Found ${Object.keys(images).length} images in ${course}`);
     res.json(images);
   } catch (error) {
-    console.error(error);
+    console.error(`❌ Failed to fetch images for ${course}:`, error);
     res.status(500).send('Failed to retrieve images');
   }
 });
 
 // Route to get image download link
 router.get('/courses/:course/:image', async (req, res) => {
-  const course = req.params.course;
-  const image = req.params.image;
-
-  console.log(`content requested: ${course}/${image}`);
+  const { course, image } = req.params;
+  console.log(`🔗 Fetching link for ${image} in ${course}`);
 
   try {
     const link = await getImageLink(course, image);
+    console.log(`✅ Link generated for ${image}`);
     res.json({ link });
   } catch (error) {
-    console.error(error);
+    console.error(`❌ Failed to get link for ${image}:`, error);
     res.status(500).send('Failed to retrieve image link');
-  }
-});
-
-// Route to submit a request for images
-router.post('/courses/:course/request', async (req, res) => {
-  const { username, requestedImages, requestType, paymentProof } = req.body;
-  const course = req.params.course;
-
-  console.log(`request submitted: ${course}`);
-
-  try {
-    await db.collection('requests').add({
-      username,
-      course,
-      requestedImages,
-      requestType,
-      paymentProof,
-      status: 'pending',
-    });
-    res.send('Request submitted successfully');
-  } catch (error) {
-    console.error('Request submission error:', error);
-    res.status(500).send('Failed to submit request');
   }
 });
 

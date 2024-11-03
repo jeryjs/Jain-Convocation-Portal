@@ -14,11 +14,22 @@ const getCourseImages = async (course) => {
   return data.children.filter(item => item.image).map(item => ({ [item.name]: item.thumbnails[0].large.url }));
 };
 
-const getImageLink = async (course, image) => {
-  const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${process.env.ONEDRIVE_SHAREID}/root:/${course}/${image}`);
-  const data = response.data;
-
-  return data['@content.downloadUrl'];
+const getImageLinks = async (course, images) => {
+  try {
+    const links = await Promise.all(
+      images.map(async (image) => {
+        const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${process.env.ONEDRIVE_SHAREID}/root:/${course}/${image}`);
+        return {
+          name: image,
+          url: response.data['@content.downloadUrl']
+        };
+      })
+    );
+    return links;
+  } catch (error) {
+    console.error('Error getting image links:', error);
+    throw error;
+  }
 };
 
-module.exports = { getCourseFolders, getCourseImages, getImageLink };
+module.exports = { getCourseFolders, getCourseImages, getImageLinks };

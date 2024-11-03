@@ -35,7 +35,7 @@ function PageHeader({
   sx
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
-  const userdata = config.userdata;
+  const userdata = config.getUserData();
 
   const handleProfileClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -46,7 +46,7 @@ function PageHeader({
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('userdata');
+    config.clearUserData();
     window.location.reload();
   };
 

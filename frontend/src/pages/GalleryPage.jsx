@@ -71,7 +71,7 @@ export default function GalleryPage() {
         pageTitle="Image Gallery"
         pageSubtitle="Manage your images"
         breadcrumbs={['Courses', courseId, 'Gallery']}
-        onBack={() => navigate(-1)}
+        onBack={() => navigate('/courses')}
         sx={{ mb: 2 }}
       />
       <Box sx={{ height: 'calc(100vh - 112px)', width: {xs:'100vw', md:'90vw'}, overflow: 'hidden' }}>
