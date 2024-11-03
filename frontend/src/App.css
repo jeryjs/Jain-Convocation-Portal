@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: #f3f4f6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#root {
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  height: 100vh;
+  place-items: center;
+}
+
+.row {
+  display: flex;
+  margin-top: 1rem;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  margin: 0 1rem;
+}
