@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, Typography, CircularProgress, Grid } from '@mui/material';
-import Header from '../components/Header';
 import config from '../config';
 import PageHeader from '../components/PageHeader';
 
-function CourseListPage() {
+function CoursesPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -33,7 +32,7 @@ function CourseListPage() {
     <>
     <PageHeader 
       pageTitle="Courses"
-      pageSubtitle="Select a course to view images"
+      pageSubtitle="Select your course from the options below"
       breadcrumbs={['Courses']}
     />
     <Grid container spacing={2} padding={3}>
@@ -53,4 +52,4 @@ function CourseListPage() {
   );
 }
 
-export default CourseListPage;
+export default CoursesPage;

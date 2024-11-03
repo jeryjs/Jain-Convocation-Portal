@@ -12,17 +12,18 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Paper,
   Breadcrumbs,
-  Divider,
+  Stack,
 } from '@mui/material';
 import {
   ArrowBack,
   KeyboardArrowDown,
   Logout as LogoutIcon,
+  Home,
   NavigateNext
 } from '@mui/icons-material';
 import JGIBanner from '../assets/jain.png';
+import JGILogo from '../assets/jain1.png'
 import config from '../config';
 
 function PageHeader({
@@ -31,6 +32,7 @@ function PageHeader({
   breadcrumbs = [],
   onBack,
   actionButtons,
+  sx
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const userdata = config.userdata;
@@ -52,8 +54,9 @@ function PageHeader({
     <>
       {/* Main Header */}
       <AppBar position="fixed" elevation={0} sx={{ backgroundColor: '#2a3042' }}>
-        <Toolbar sx={{ justifyContent: 'space-between', px: 4, width: '100%' }}>
-          <img src={JGIBanner} alt="JGI Banner" style={{ height: '50px' }} />
+        <Toolbar sx={{ justifyContent: 'space-between', pl: 2, pr: 4, width: '100%' }}>
+          <Box component="img" src={JGILogo} sx={{ display: { xs: 'block', md: 'none' }, height: '40px' }} />
+          <Box component="img" src={JGIBanner} sx={{ display: { xs: 'none', md: 'block' }, height: '50px' }} />
 
           <Box
             onClick={handleProfileClick}
@@ -133,54 +136,40 @@ function PageHeader({
       </Popover>
 
       {/* Page Header */}
-      <Box
-        sx={{
-          mt: '24px',
-          px: 4,
-          py: 3,
-          backgroundColor: '#f8f9fa',
-          borderBottom: '1px solid #e9ecef',
-          width: '90vw'
-        }}
-      >
+      <Stack variant='elevation' elevation='2' sx={{ mt: '48px', px: 4, py: 3, backgroundColor: 'white', width: {xs:'100vw', md:'90vw'}, ...sx }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <Box>
-            {onBack && (
-              <IconButton
-                onClick={onBack}
-                sx={{ mr: 2, backgroundColor: 'white', boxShadow: 1 }}
-              >
-                <ArrowBack />
-              </IconButton>
+            {breadcrumbs.length > 0 && (
+              <Breadcrumbs separator={<NavigateNext fontSize="small" />} sx={{ mb: 1 }}>
+                {breadcrumbs.map((item, index) => (
+                  <Typography
+                    key={index}
+                    color={index === breadcrumbs.length - 1 ? 'text.primary' : 'text.secondary'}
+                    variant="body2"
+                  >
+                    {item}
+                  </Typography>
+                ))}
+              </Breadcrumbs>
             )}
 
-            <Box sx={{ display: 'inline-block' }}>
-              {breadcrumbs.length > 0 && (
-                <Breadcrumbs
-                  separator={<NavigateNext fontSize="small" />}
-                  sx={{ mb: 1 }}
-                >
-                  {breadcrumbs.map((item, index) => (
-                    <Typography
-                      key={index}
-                      color={index === breadcrumbs.length - 1 ? 'text.primary' : 'text.secondary'}
-                      variant="body2"
-                    >
-                      {item}
-                    </Typography>
-                  ))}
-                </Breadcrumbs>
-              )}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <IconButton
+                onClick={onBack}
+                sx={{ mr: 2, height: '100%', backgroundColor: 'white', boxShadow: 1 }}
+              >
+                {onBack ? <ArrowBack /> : <Home />}
+              </IconButton>
 
-              <Typography variant="h5" sx={{ color: '#2a3042', fontWeight: 600 }}>
-                {pageTitle}
-              </Typography>
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="h5" sx={{ color: '#2a3042', fontWeight: 600 }}>
+                  {pageTitle}
+                </Typography>
 
-              {pageSubtitle && (
                 <Typography variant="subtitle1" color="text.secondary">
                   {pageSubtitle}
                 </Typography>
-              )}
+              </Box>
             </Box>
           </Box>
 
@@ -190,7 +179,7 @@ function PageHeader({
             </Box>
           )}
         </Box>
-      </Box>
+      </Stack>
     </>
   );
 }

@@ -47,4 +47,27 @@ router.get('/courses/:course/:image', async (req, res) => {
   }
 });
 
+// Route to submit a request for images
+router.post('/courses/:course/request', async (req, res) => {
+  const { username, requestedImages, requestType, paymentProof } = req.body;
+  const course = req.params.course;
+
+  console.log(`request submitted: ${course}`);
+
+  try {
+    await db.collection('requests').add({
+      username,
+      course,
+      requestedImages,
+      requestType,
+      paymentProof,
+      status: 'pending',
+    });
+    res.send('Request submitted successfully');
+  } catch (error) {
+    console.error('Request submission error:', error);
+    res.status(500).send('Failed to submit request');
+  }
+});
+
 module.exports = router;

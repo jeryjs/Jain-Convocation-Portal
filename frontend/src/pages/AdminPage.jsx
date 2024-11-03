@@ -1,13 +1,14 @@
 import React from 'react';
-import Header from '../components/Header';
+import PageHeader from '../components/PageHeader';
 
 function AdminPage() {
   return (
     <>
-    <Header />
-    <div>
-      <h1>Admin Page</h1>
-    </div>
+    <PageHeader
+      pageTitle="Admin Dashboard"
+      pageSubtitle="Manage student requests"
+      breadcrumbs={['Admin']}
+    />
     </>
   );
 }

@@ -54,11 +54,9 @@ function LoginPage() {
     setSnackbarOpen(false);
   };
 
-  // if (loading) return <CircularProgress style={{ </div>margin: 'auto', display: 'block' }} />;
-
   return (
     <div className='login-container'>
-      <Card variant='outlined' elevation={4} style={{ borderRadius: '12px', padding: '20px', maxWidth: '600px' }}>
+      <Card variant='outlined' sx={{ borderRadius: '12px', p: { xs: 0, md: 3 }, maxWidth: '600px' }}>
         <CardContent>
           <div style={{ backgroundColor: '#556ee640', padding: '20px', borderRadius: '8px', marginBottom: '40px' }}>
             <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -97,7 +95,7 @@ function LoginPage() {
               error={!validatePassword(password) && password.length > 0}
               helperText={!validatePassword(password) && password.length > 0 ? "Your date of birth in DDMMYYYY format is your password" : ""}
             />
-            <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} style={{ marginTop: '20px', borderRadius: '25px', fontSize: '1.2rem' }}>
+            <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} sx={{ mt: 2, borderRadius: '25px', fontSize: '1.2rem' }}>
               {loading ? <CircularProgress size={24} /> : "Login"}
             </Button>
           </form>
