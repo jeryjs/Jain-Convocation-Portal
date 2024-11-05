@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, Typography, CircularProgress, Grid } from '@mui/material';
 import config from '../config';
@@ -7,9 +7,13 @@ import PageHeader from '../components/PageHeader';
 function CoursesPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+
     const fetchCourses = async () => {
       setLoading(true);
       try {
@@ -35,7 +39,7 @@ function CoursesPage() {
       pageSubtitle="Select your course from the options below"
       breadcrumbs={['Courses']}
     />
-    <Grid container spacing={2} padding={3}>
+    <Grid container spacing={2} padding={3} sx={{ width: {md:'90vw'} }}>
       {courses.map((course) => (
         <Grid item xs={12} sm={6} md={4} key={course}>
           <Card onClick={() => navigate(`/courses/${course}`)} style={{ cursor: 'pointer', transition: '0.3s' }}>

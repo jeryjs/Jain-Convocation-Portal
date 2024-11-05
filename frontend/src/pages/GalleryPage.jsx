@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import config from '../config';
 import ImageGrid from '../components/ImageGrid';
@@ -8,23 +8,24 @@ import {
   Stack,
   Typography,
   Card,
-  CardMedia,
   Button,
+  Alert
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
-
+import { useAuth } from '../config/AuthContext';
 
 export default function GalleryPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImages, setSelectedImages] = useState(() => {
-    const savedImages = JSON.parse(localStorage.getItem(`selected_images`)) || [];
-    return savedImages;
-  });
+  const mounted = useRef(false);
+  const { userData, selectedImages, updateSelectedImages, getAvailableSlots, updateUserData } = useAuth();
 
   useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    
     const fetchImages = async () => {
       setLoading(true);
       try {
@@ -42,24 +43,27 @@ export default function GalleryPage() {
     fetchImages();
   }, [courseId]);
 
-  const handleSelectImage = (imgName) => {
-    if (selectedImages.includes(imgName)) {
-      const newSelected = selectedImages.filter((img) => img !== imgName);
-      setSelectedImages(newSelected);
-      localStorage.setItem(`selected_images`, JSON.stringify(newSelected));
-    } else if (selectedImages.length < 3) {
-      const newSelected = [...selectedImages, imgName];
-      setSelectedImages(newSelected);
-      localStorage.setItem(`selected_images`, JSON.stringify(newSelected));
+  const handleSelectImage = (imgName, thumbUrl) => {
+    if (selectedImages[imgName]) {
+      // Remove image if already selected
+      const { [imgName]: removed, ...rest } = selectedImages;
+      updateSelectedImages(rest);
+    } else if (getAvailableSlots() > 0) {
+      // Add new image if slots available
+      updateSelectedImages({
+        ...selectedImages,
+        [imgName]: thumbUrl
+      });
     }
   };
 
   const handleRequestPressed = () => {
+    // Just pass the newly selected images
     navigate(`/courses/${courseId}/request`, {
       state: { 
-        selectedImages: selectedImages.map(imgName => ({
-          name: imgName,
-          url: images.find(([name]) => name === imgName)?.[1]
+        selectedImages: Object.entries(selectedImages).map(([name, url]) => ({
+          name,
+          url
         }))
       }
     });
@@ -74,25 +78,29 @@ export default function GalleryPage() {
         onBack={() => navigate('/courses')}
         sx={{ mb: 2 }}
       />
-      <Box sx={{ height: 'calc(100vh - 112px)', width: {xs:'100vw', md:'90vw'}, overflow: 'hidden' }}>
+      <Box sx={{ width: {xs:'100vw', md:'90vw'} }}>
         <Stack 
           direction={{ xs: "column", md: "row" }} 
           spacing={2}
-          sx={{ height: '100%' }}
+          sx={{ height: {md: '80vh'} }}
         >
           <ImageGrid
             loading={loading}
             images={images}
-            selectedImages={selectedImages}
+            selectedImages={Object.keys(selectedImages)}
+            lockedImages={Object.keys(userData?.requestedImages || {})}
             onSelectImage={handleSelectImage}
-            sx={{ p:2, flex: 4, display: 'flex', flexDirection: 'column' }}
+            availableSlots={getAvailableSlots()}
+            sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
           />
 
           <SelectedImagesPanel
             selectedImages={selectedImages}
+            existingImages={userData?.requestedImages || {}}
             images={images}
             onRequestPressed={handleRequestPressed}
-            sx={{ flex: 1 }}
+            availableSlots={getAvailableSlots()}
+            sx={{ flex: {md: '1'}  }}
           />
         </Stack>
       </Box>
@@ -101,67 +109,52 @@ export default function GalleryPage() {
 }
 
 
-function SelectedImagesPanel({ selectedImages, images, onRequestPressed, sx }) {
+function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx }) {
+  const { updateSelectedImages } = useAuth();
+
   return (
-    <Card 
-      elevation={2} 
-      sx={{ 
-        width: { xs: '100%', md: '300px' },
-        height: { xs: '170px', md: '100%' },
-        minHeight: '150px',
-        position: 'relative',
-        ...sx
-      }}
-    >
-      <Box
-        sx={{
-          padding: 2,
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+    <Card elevation={2} sx={{ ...sx }}>
+      <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">
-            Selected Images ({selectedImages.length}/3)
+            Selected Images ({Object.entries(selectedImages).length}/3)
           </Typography>
         </Box>
         
-        <Box 
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            mb: 2,
-            display: {xs:"none", md:'flex'},
-            flexDirection: 'column',
-            gap: 1
-          }}
-        >
-          {selectedImages.map((imgName, index) => (
-            <Card key={imgName} sx={{ flexShrink: 0 }}>
-              <CardMedia
-                component="img"
-                height="120"
-                image={images.find(([name]) => name === imgName)?.[1]}
-                alt={imgName}
-                sx={{ objectFit: 'cover' }}
-              />
-            </Card>
-          ))}
+        {availableSlots > 0 && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            You can select {availableSlots} more image{availableSlots !== 1 ? 's' : ''}
+          </Alert>
+        )}
+
+        <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
+          <ImageGrid
+            images={Object.entries(selectedImages).map(([name, url]) => [name, url])}
+            selectedImages={Object.keys(selectedImages)}
+            lockedImages={Object.keys(existingImages)}
+            onSelectImage={(imgName, thumbUrl) => {
+              // Deselect images from selected panel
+              const { [imgName]: removed, ...rest } = selectedImages;
+              updateSelectedImages(rest);
+            }}
+            availableSlots={availableSlots}
+            columns={window.innerHeight/window.innerWidth > 0.95 ? "3" : "1"}
+            showColumnControls={false}
+          />
         </Box>
 
         <Stack spacing={1} sx={{ mt: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <WarningIcon color="warning" sx={{ fontSize: 20 }} />
             <Typography variant="caption" sx={{ color: 'warning.main' }}>
-              You will not be able to select other images after request.
+              You will not be able to change selections after making request.
             </Typography>
           </Box>
 
           <Button
             variant="contained"
             onClick={onRequestPressed}
-            disabled={selectedImages.length === 0}
+            disabled={selectedImages.length == 0}
             sx={{ 
               flex: 1,
               height: { xs: '32px', md: '36px' },

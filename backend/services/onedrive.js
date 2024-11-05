@@ -4,7 +4,9 @@ const getCourseFolders = async () => {
   const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${process.env.ONEDRIVE_SHAREID}/root/children`);
   const data = response.data;
 
-  return data.value.map(folder => folder.name);
+  return data.value
+    .filter(folder => folder.folder && folder.folder.childCount > 0)
+    .map(folder => folder.name);
 };
 
 const getCourseImages = async (course) => {

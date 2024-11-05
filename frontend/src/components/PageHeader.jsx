@@ -23,8 +23,9 @@ import {
   NavigateNext
 } from '@mui/icons-material';
 import JGIBanner from '../assets/jain.png';
-import JGILogo from '../assets/jain1.png'
-import config from '../config';
+import JGILogo from '../assets/jain1.png';
+import { useAuth } from '../config/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 function PageHeader({
   pageTitle,
@@ -35,7 +36,8 @@ function PageHeader({
   sx
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
-  const userdata = config.getUserData();
+  const { userData, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleProfileClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -46,8 +48,8 @@ function PageHeader({
   };
 
   const handleLogout = () => {
-    config.clearUserData();
-    window.location.reload();
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -78,10 +80,10 @@ function PageHeader({
                 marginRight: 1
               }}
             >
-              {(userdata?.name || userdata?.username)?.[0]?.toUpperCase()}
+              {(userData?.name || userData?.username)?.[0]?.toUpperCase()}
             </Avatar>
             <Typography variant="subtitle2" color="white" sx={{ mr: 1 }}>
-              {userdata?.name || userdata?.username}
+              {userData?.name || userData?.username}
             </Typography>
             <KeyboardArrowDown sx={{ color: 'white', fontSize: 20 }} />
           </Box>

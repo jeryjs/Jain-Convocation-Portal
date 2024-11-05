@@ -15,7 +15,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  useTheme
+  useTheme,
+  CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { 
@@ -23,12 +24,16 @@ import {
   Cancel as RejectIcon,
   RemoveRedEye as ViewIcon,
   Download as DownloadIcon,
-  Person as UserIcon
+  Person as UserIcon,
+  Refresh as RefreshIcon,
+  Settings as SettingsIcon,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useNavigate } from "react-router-dom";
-import PageHeader from '../components/PageHeader';
-import config from '../config';
-import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../config/constants';
+import PageHeader from '../../components/PageHeader';
+import config from '../../config';
+import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../../config/constants';
+import ImageGrid from '../../components/ImageGrid';
 
 const formatDate = (timestamp) => {
   if (!timestamp) return 'N/A';
@@ -54,6 +59,7 @@ const AdminPage = () => {
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,7 +96,7 @@ const AdminPage = () => {
       }
 
       // Refresh the requests list
-      fetchRequests();
+      handleRefresh();
       
       setSnackbar({
         open: true,
@@ -107,6 +113,12 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchRequests();
+    setIsRefreshing(false);
   };
 
   const getStatusChip = (status) => {
@@ -204,6 +216,17 @@ const AdminPage = () => {
               </Tooltip>
             </>
           )}
+          {params.row.status === 'approved' && (
+            <Tooltip title="Mark as Completed">
+              <IconButton
+                onClick={() => handleStatusChange(params.row.username, 'completed')}
+                color="info"
+                size="small"
+              >
+                <CheckCircle fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           {params.row.paymentProof && (
             <Tooltip title="View Payment Proof">
               <IconButton
@@ -237,22 +260,40 @@ const AdminPage = () => {
         pageSubtitle="Manage student requests"
         breadcrumbs={['Admin']}
         actionButtons={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<UserIcon />}
-            onClick={() => navigate('/admin/manage')}
-            sx={{
-              boxShadow: 2,
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: 4,
-              },
-              transition: 'all 0.2s ease-in-out'
-            }}
-          >
-            Manage Users
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<UserIcon />}
+              onClick={() => navigate('/admin/manage')}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4,
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Manage Users
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate('/admin/settings')}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4,
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Settings
+            </Button>
+          </Stack>
         }
       />
 
@@ -279,16 +320,40 @@ const AdminPage = () => {
 
           {/* Request Table */}
           <Card>
-            <Tabs
-              value={selectedTab}
-              onChange={(e, v) => setSelectedTab(v)}
-              sx={{ px: 2, pt: 2 }}
-            >
-              <Tab label="All Requests" value="all" />
-              <Tab label="Pending" value="pending" />
-              <Tab label="Hard Copy" value="hardcopy" />
-              <Tab label="Soft Copy" value="softcopy" />
-            </Tabs>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2 }}>
+              <Tabs
+                value={selectedTab}
+                onChange={(e, v) => setSelectedTab(v)}
+                sx={{ px: 2, pt: 2 }}
+              >
+                <Tab label="All Requests" value="all" />
+                <Tab label="Pending" value="pending" />
+                <Tab label="Hard Copy" value="hardcopy" />
+                <Tab label="Soft Copy" value="softcopy" />
+              </Tabs>
+              
+              <Tooltip title="Refresh">
+                <IconButton 
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    boxShadow: 1,
+                    '&:hover': {
+                      bgcolor: 'background.paper',
+                      transform: 'rotate(180deg)',
+                    },
+                    transition: 'transform 0.5s',
+                  }}
+                >
+                  {isRefreshing ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <RefreshIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </Stack>
             <Box sx={{ height: 600, width: '100%', p: 2 }}>
               <DataGrid
                 rows={filteredRequests}
@@ -327,11 +392,13 @@ const AdminPage = () => {
               </Typography>
               <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'auto 1fr' }}>
                 {[
-                  ['Student ID', selectedRequest.username],
+                  ['USN', selectedRequest.username],
                   ['Name', selectedRequest.name],
                   ['Email', selectedRequest.email],
+                  ['Phone', selectedRequest.phone],
                   ['Course', selectedRequest.course],
-                  ['Request Type', selectedRequest.requestType],
+                  ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
+                  ['Hard Copy Img', selectedRequest.hardcopyImg],
                   ['Status', selectedRequest.status],
                   ['Date', selectedRequest.requestDate],
                 ].map(([label, value]) => (
@@ -346,9 +413,13 @@ const AdminPage = () => {
                 Requested Images
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {selectedRequest.requestedImages?.map((img) => (
-                  <Chip key={img} label={img} size="small" />
-                ))}
+                <ImageGrid
+                  images={Object.entries(selectedRequest.requestedImages || {})}
+                  loading={false}
+                  columns={3}
+                  showColumnControls={false}
+                  sx={{ width: '100%' }}
+                />
               </Box>
             </Stack>
           )}

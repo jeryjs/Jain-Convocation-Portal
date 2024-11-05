@@ -14,12 +14,12 @@ import {
   Alert,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { REQUEST_TYPE_LABELS } from '../config/constants';
-import PageHeader from '../components/PageHeader';
-import config from '../config';
+import { REQUEST_TYPE_LABELS } from '../../config/constants';
+import PageHeader from '../../components/PageHeader';
+import config from '../../config';
 import { useNavigate } from "react-router-dom";
 
-export default function ManageUsersPage() {
+export default function ManagePage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -80,9 +80,10 @@ export default function ManageUsersPage() {
   };
 
   const columns = [
-    { field: 'username', headerName: 'Student ID', width: 130 },
+    { field: 'username', headerName: 'USN', width: 130 },
     { field: 'name', headerName: 'Name', width: 200 },
-    { field: 'email', headerName: 'Email', width: 250 },
+    { field: 'email', headerName: 'Email', width: 230 },
+    { field: 'password', headerName: 'Password', width: 150 },
     { field: 'course', headerName: 'Course', width: 150 },
     { field: 'requestTypeLabel', headerName: 'Request Type', width: 150 },
     { 
@@ -90,6 +91,7 @@ export default function ManageUsersPage() {
       headerName: 'Last Updated', 
       width: 200,
       valueFormatter: (params) => {
+        console.log(params._seconds);
         if (!params?.value) return 'Never';
         // Handle both timestamp and Firestore timestamp objects
         const timestamp = params.value?.seconds 
@@ -105,7 +107,7 @@ export default function ManageUsersPage() {
       <PageHeader
         pageTitle="Students"
         pageSubtitle="Manage student registrations"
-        breadcrumbs={['Admin', 'Students']}
+        breadcrumbs={['Admin', 'Manage']}
         onBack={() => navigate('/admin')}
       />
 

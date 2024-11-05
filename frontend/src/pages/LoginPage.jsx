@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import JGILogo from "../assets/JGI.png";
 import ProfileImg from "../assets/ProfileImg.png";
 import config from "../config";
+import { useAuth } from '../config/AuthContext';
 
 function LoginPage() {
   const [username, setUsername] = useState("");
@@ -12,6 +13,7 @@ function LoginPage() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,7 +28,7 @@ function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem('userdata', JSON.stringify(data.userdata));
+        login(data.userdata);
         if (data.userdata.role === "admin") {
           navigate("/admin");
         } else {

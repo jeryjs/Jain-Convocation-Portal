@@ -22,7 +22,6 @@ const authenticateUser = async (username, password) => {
       return {
         ...userDataWithoutPassword,
         username, // Include username explicitly
-        role: username.endsWith('admin') ? 'admin' : 'student' // Simple role logic
       };
     }
     return null;
@@ -32,10 +31,17 @@ const authenticateUser = async (username, password) => {
   }
 };
 
-// Function to retrieve user data
+// Update the getUserData function to handle new image format
 const getUserData = async (username) => {
   const snapshot = await db.collection(COLLECTION_NAME).doc(username).get();
-  return snapshot.exists ? snapshot.data() : null;
+  if (!snapshot.exists) return null;
+  
+  const data = snapshot.data();
+  return {
+    ...data,
+    username,
+    requestedImages: data.requestedImages || {} // Ensure requestedImages is always an object
+  };
 };
 
 // Add new function for student management
@@ -76,72 +82,94 @@ const updateRequest = async (username, requestedImages, type, paymentProof = nul
   return 'Request updated successfully';
 };
 
-const handleImageRequest = async (userdata, course, requestedImages, requestType, paymentProof = '') => {
+const handleImageRequest = async (userdata, course, requestedImages, requestType, paymentProof = null) => {
   try {
-    const userRef = db.collection(COLLECTION_NAME).doc(userdata.username);
-    const userSnap = await userRef.get();
-    
-    if (!userSnap.exists) {
-      throw new Error('User not found');
-    }
+    return await db.runTransaction(async (transaction) => {
+      const userRef = db.collection(COLLECTION_NAME).doc(userdata.username);
+      const userSnap = await transaction.get(userRef);
 
-    const userData = userSnap.data();
-    const currentRequestType = userData?.requestType || REQUEST_TYPES.NONE;
+      if (!userSnap.exists) {
+        throw new Error('User not found');
+      }
 
-    // Determine the new request type
-    let newRequestType = requestType;
-    
-    // If there's an existing different request type, make it BOTH
-    if (currentRequestType != REQUEST_TYPES.NONE && currentRequestType != requestType) {
-      newRequestType = REQUEST_TYPES.BOTH;
-    }
+      const userData = userSnap.data();
+      const currentRequestType = userData?.requestType || REQUEST_TYPES.NONE;
 
-    // If it's a hardcopy request, check if the current status is pending
-    if (requestType == REQUEST_TYPES.HARDCOPY && 
-        userData.status == 'pending' && 
-        (currentRequestType == REQUEST_TYPES.HARDCOPY || currentRequestType == REQUEST_TYPES.BOTH)) {
-      throw new Error('You already have an active hardcopy request');
-    }
+      // Validate request
+      if (requestType === REQUEST_TYPES.HARDCOPY && 
+          userData.status === 'pending' && 
+          (currentRequestType === REQUEST_TYPES.HARDCOPY || currentRequestType === REQUEST_TYPES.BOTH)) {
+        throw new Error('You already have an active hardcopy request');
+      }
 
-    // Update user document with new request details
-    await userRef.update({
-      requestType: newRequestType,
-      requestedImages,
-      course,
-      status: 'pending',
-      paymentProof: paymentProof || userData.paymentProof,
-      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+      // Determine new request type
+      const newRequestType = (currentRequestType !== REQUEST_TYPES.NONE && 
+                            currentRequestType !== requestType) 
+        ? REQUEST_TYPES.BOTH 
+        : requestType;
+
+      // Prepare update data in one go
+      const updateData = {
+        course,
+        requestType: newRequestType,
+        requestedImages,
+        status: userData.status == "approved" ? userData.status : newRequestType == REQUEST_TYPES.SOFTCOPY ? 'completed' : 'pending',
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        email: userdata.email,
+        phone: userdata.phone,
+      };
+
+      // Add hardcopy image if applicable
+      if (requestType === REQUEST_TYPES.HARDCOPY && userdata.hardcopyImg) {
+        updateData.hardcopyImg = userdata.hardcopyImg;
+      }
+
+      if (paymentProof) {
+        updateData.paymentProof = paymentProof;
+      }
+
+      // Single update operation
+      transaction.update(userRef, updateData);
+
+      // Handle notifications outside transaction to not slow it down
+      setImmediate(async () => {
+        try {
+          if (requestType === REQUEST_TYPES.SOFTCOPY) {
+            const imageNames = Object.keys(requestedImages);
+            const imageLinks = await getImageLinks(course, imageNames);
+            await sendEmail(
+              userdata.email,
+              'Your Requested Images',
+              'Please find your requested images attached.\n\nBest regards,\nJain Convocation Team',
+              imageLinks
+            );
+          } else if (requestType === REQUEST_TYPES.HARDCOPY) {
+            await sendEmail(
+              userdata.email,
+              'Hardcopy Request Confirmation',
+              `Dear ${userdata.name},\n\nYour request for hardcopies has been received. Our team will contact you within 24 hours regarding the collection process.\n\nBest regards,\nJain Convocation Team`
+            );
+          }
+        } catch (emailError) {
+          console.error('Error sending email:', emailError);
+          // Don't throw here as the main operation succeeded
+        }
+      });
+
+      return {
+        success: true,
+        requestType: newRequestType,
+        status: updateData.status
+      };
     });
 
-    // Handle email notifications based on request type
-    if (requestType == REQUEST_TYPES.SOFTCOPY) {
-      // Get image links and send softcopy email
-      const imageLinks = await getImageLinks(course, requestedImages);
-      await sendEmail(
-        userdata.email,
-        'Your Requested Images',
-        'Please find your requested images attached.\n\nBest regards,\nJain Convocation Team',
-        imageLinks
-      );
-    } else if (requestType == REQUEST_TYPES.HARDCOPY) {
-      // Send hardcopy confirmation email
-      await sendEmail(
-        userdata.email,
-        'Hardcopy Request Confirmation',
-        `Dear ${userdata.name},\n\nYour request for hardcopies has been received. Our team will contact you within 24 hours regarding the collection process.\n\nBest regards,\nJain Convocation Team`
-      );
-    }
-
-    return {
-      success: true,
-      requestType: newRequestType
-    };
   } catch (error) {
     console.error('Error handling image request:', error);
     throw error;
   }
 };
 
+// Update the getAllRequests function to handle new image format
 const getAllRequests = async () => {
   console.log(`🔍 [${new Date().toISOString()}] Getting all requests from Firestore...`);
   
@@ -195,28 +223,11 @@ const updateRequestStatus = async (username, status) => {
         throw new Error(`Request ${username} not found`);
       }
 
-      const requestData = requestDoc.data();
-      console.log(`📄 Current request data:`, {
-        id: username,
-        oldStatus: requestData.status,
-        newStatus: status,
-        username: requestData.username
-      });
-
       // Update request status
       transaction.update(requestRef, {
         status: status,
         lastUpdated: timestamp
       });
-
-      // Update user's request type if completed/rejected
-      if (status == 'completed' || status == 'rejected') {
-        const userRef = db.collection(COLLECTION_NAME).doc(requestData.username);
-        transaction.update(userRef, {
-          requestType: REQUEST_TYPES.NONE,
-          lastUpdated: timestamp
-        });
-      }
     });
 
     console.log(`✅ Successfully updated request ${username}`);
@@ -243,6 +254,45 @@ const getAllUsers = async () => {
   }
 };
 
+// Update these functions
+
+const getSettings = async (category = 'all') => {
+  try {
+    if (category === 'all') {
+      const snapshot = await db.collection('settings').get();
+      const settings = {};
+      snapshot.forEach(doc => {
+        settings[doc.id] = doc.data();
+      });
+      return settings;
+    } else {
+      const doc = await db.collection('settings').doc(category).get();
+      return { [category]: doc.exists ? doc.data() : {} };
+    }
+  } catch (error) {
+    console.error('Error getting settings:', error);
+    throw error;
+  }
+};
+
+const updateSettings = async (settings) => {
+  try {
+    const batch = db.batch();
+    
+    // Update each category
+    Object.entries(settings).forEach(([category, categorySettings]) => {
+      const docRef = db.collection('settings').doc(category);
+      batch.set(docRef, categorySettings);
+    });
+
+    await batch.commit();
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    throw error;
+  }
+};
+
 module.exports = { 
   authenticateUser, 
   getUserData, 
@@ -251,5 +301,7 @@ module.exports = {
   getAllRequests,
   updateRequestStatus,
   importUsers,
-  getAllUsers
+  getAllUsers,
+  getSettings,
+  updateSettings
 };

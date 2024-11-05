@@ -6,7 +6,9 @@ const {
   getAllRequests, 
   updateRequestStatus,
   getAllUsers,
-  importUsers
+  importUsers,
+  getSettings,
+  updateSettings
 } = require('../services/firestore');
 
 // Login route
@@ -52,7 +54,7 @@ router.post('/request/:course', async (req, res) => {
   console.log(`📸 [${new Date().toISOString()}] New image request:`);
   console.log(`   👤 User: ${userdata?.username || 'unknown'}`);
   console.log(`   📚 Course: ${course}`);
-  console.log(`   🖼️  Images: ${requestedImages?.length || 0}`);
+  console.log(`   🖼️  Images: ${Object.keys(requestedImages).length || 0}`);
   console.log(`   📝 Type: ${requestType}`);
 
   try {
@@ -146,6 +148,30 @@ router.post('/admin/manage/import', async (req, res) => {
       success: false, 
       message: error.message || 'Failed to import students'
     });
+  }
+});
+
+// Update these routes
+
+// Get all settings or specific category
+router.get('/admin/settings/:category?', async (req, res) => {
+  try {
+    const settings = await getSettings(req.params.category || 'all');
+    res.json(settings);
+  } catch (error) {
+    console.error('Failed to fetch settings:', error);
+    res.status(500).send('Error fetching settings');
+  }
+});
+
+// Update settings
+router.post('/admin/settings', async (req, res) => {
+  try {
+    await updateSettings(req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+    res.status(500).send('Error updating settings');
   }
 });
 
