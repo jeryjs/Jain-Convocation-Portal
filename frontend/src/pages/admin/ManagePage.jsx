@@ -88,6 +88,7 @@ export default function ManagePage() {
     { field: 'name', headerName: 'Name', width: 200 },
     { field: 'email', headerName: 'Email', width: 230 },
     { field: 'password', headerName: 'Password', width: 150 },
+    { field: 'role', headerName: 'Role', width: 150 },
     { field: 'course', headerName: 'Course', width: 150 },
     { field: 'requestTypeLabel', headerName: 'Request Type', width: 150 },
     { 
@@ -95,6 +96,7 @@ export default function ManagePage() {
       headerName: 'Last Updated', 
       width: 200,
       valueFormatter: (params) => {
+        try {
         console.log(params._seconds);
         if (!params?.value) return 'Never';
         // Handle both timestamp and Firestore timestamp objects
@@ -102,6 +104,10 @@ export default function ManagePage() {
           ? new Date(params.value.seconds * 1000)
           : new Date(params.value);
         return timestamp.toLocaleString();
+        } catch (error) {
+          console.error('Error formatting date:', error);
+          return 'Unknown';
+        }
       }
     }
   ];

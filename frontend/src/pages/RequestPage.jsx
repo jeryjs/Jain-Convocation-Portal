@@ -506,7 +506,7 @@ export default function RequestPage() {
         <DialogContent>
           <DialogContentText id="success-dialog-description">
             {requestType == REQUEST_TYPES.SOFTCOPY
-              ? "The requested images have been sent to your registered email address."
+              ? "The requested images will be sent to your registered email address within 15 minutes."
               : "Your request for hard copies has been received. Our team will contact you within 24 hours regarding the collection process."}
           </DialogContentText>
         </DialogContent>

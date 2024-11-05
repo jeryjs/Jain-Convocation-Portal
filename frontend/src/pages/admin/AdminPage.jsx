@@ -194,7 +194,7 @@ const StatsCards = ({ requests, theme }) => (
   <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
     {[
       { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
-      { label: 'Pending Requests', value: requests.filter(r => r.status === 'pending').length, color: theme.palette.warning.main },
+      { label: 'Pending Requests', value: requests.filter(r => r.status === 'pending' || r.status === 'approved').length, color: theme.palette.warning.main },
       { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.secondary.main },
       { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
     ].map((stat) => (
