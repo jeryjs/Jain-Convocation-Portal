@@ -115,8 +115,8 @@ const handleImageRequest = async (userdata, course, requestedImages, requestType
         requestedImages,
         status: userData.status == "approved" ? userData.status : newRequestType == REQUEST_TYPES.SOFTCOPY ? 'completed' : 'pending',
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        email: userdata.email,
-        phone: userdata.phone,
+        email: userdata.email??'',
+        phone: userdata.phone??'',
       };
 
       // Add hardcopy image if applicable
