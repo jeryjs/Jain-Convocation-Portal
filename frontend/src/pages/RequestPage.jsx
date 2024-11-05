@@ -73,6 +73,113 @@ const UserForm = React.memo(({ userData, userFormData, onFormChange, requestType
          prevProps.requestType == nextProps.requestType;
 });
 
+// Extracted PaymentDetails component
+const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSnackbar }) => (
+  <Card sx={{ p: 2, bgcolor: 'grey.100' }}>
+    <Typography variant="subtitle1" sx={{ mb: 2 }}>Payment Details</Typography>
+    <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper' }}>
+      <Stack 
+        direction={{ xs: 'column', sm: 'row' }} 
+        spacing={2} 
+        alignItems="center"
+      >
+        <Button
+          component="a"
+          href={paymentSettings.upiLink}
+          target="_blank"
+          sx={{ 
+            p: 2, 
+            bgcolor: 'white',
+            '&:hover': { bgcolor: 'white' }
+          }}
+        >
+          <QRCodeCanvas
+            value={paymentSettings.upiLink} 
+            size={128}
+            level="H"
+            includeMargin
+          />
+        </Button>
+        <Stack spacing={1} flex={1}>
+          <Typography variant="body1" fontWeight="medium">
+            Amount: ₹{paymentSettings.amount}
+          </Typography>
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            spacing={1} 
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              UPI: {paymentSettings.upiId}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ContentCopyIcon />}
+              onClick={() => {
+                navigator.clipboard.writeText(paymentSettings.upiId);
+                setSnackbar({
+                  open: true,
+                  message: 'UPI ID copied to clipboard',
+                  severity: 'success'
+                });
+              }}
+            >
+              Copy UPI ID
+            </Button>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Paper>
+    <Button
+      component="label"
+      variant="outlined"
+      startIcon={<CloudUploadIcon />}
+      sx={{ mt: 2 }}
+    >
+      Upload Payment Proof
+      <input
+        type="file"
+        hidden
+        accept="image/*"
+        onChange={handleFileUpload}
+      />
+    </Button>
+    {paymentProof && (
+      <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+        File selected: {paymentProof.name}
+      </Typography>
+    )}
+  </Card>
+);
+
+// Extracted ImagesSection component
+const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImage, handleImageSelection }) => (
+  <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
+    <Typography variant="h6" sx={{ mb: 2 }}>
+      {requestType === REQUEST_TYPES.HARDCOPY ? 
+        'Select ONE image for hardcopy (₹500 per print)' : 
+        'Selected Images'}
+    </Typography>
+    <ImageGrid
+      images={Object.entries(selectedImages)}
+      selectedImages={
+        requestType === REQUEST_TYPES.HARDCOPY ? 
+        (selectedHardcopyImage ? [selectedHardcopyImage] : []) : 
+        []
+      }
+      onSelectImage={
+        requestType === REQUEST_TYPES.HARDCOPY ? 
+        handleImageSelection : 
+        null
+      }
+      availableSlots={requestType == REQUEST_TYPES.HARDCOPY ? 1 : 3}
+      columns={3}
+      showColumnControls={false}
+    />
+  </Card>
+);
+
 export default function RequestPage() {
   const navigate = useNavigate();
   const { courseId } = useParams();
@@ -287,27 +394,6 @@ export default function RequestPage() {
     }
   };
 
-  // Consolidated ImageGrid component
-  const ImagesSection = () => (
-    <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        {requestType == REQUEST_TYPES.HARDCOPY ? 
-          'Select ONE image for hardcopy (₹500 per print)' : 
-          'Selected Images'}
-      </Typography>
-      
-      <ImageGrid
-        images={Object.entries(selectedImages)}
-        selectedImages={requestType == REQUEST_TYPES.HARDCOPY ? (selectedHardcopyImage ? [selectedHardcopyImage] : []) : []}
-        lockedImages={[]}
-        onSelectImage={requestType == REQUEST_TYPES.HARDCOPY ? handleImageSelection:null}
-        availableSlots={requestType == REQUEST_TYPES.HARDCOPY ? 1 : 3}
-        columns={3}
-        showColumnControls={false}
-      />
-    </Card>
-  );
-
   return (
     <>
       <PageHeader
@@ -355,85 +441,20 @@ export default function RequestPage() {
             hasExistingHardcopy={requestType == REQUEST_TYPES.HARDCOPY || requestType == REQUEST_TYPES.BOTH}
           />
 
-          <ImagesSection />
+          <ImagesSection
+            requestType={requestType}
+            selectedImages={selectedImages}
+            selectedHardcopyImage={selectedHardcopyImage}
+            handleImageSelection={handleImageSelection}
+          />
 
           {requestType === REQUEST_TYPES.HARDCOPY && paymentSettings && (
-            <Card sx={{ p: 2, bgcolor: 'grey.100' }}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>Payment Details</Typography>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper' }}>
-                <Stack 
-                  direction={{ xs: 'column', sm: 'row' }} 
-                  spacing={2} 
-                  alignItems="center"
-                >
-                  <Button
-                    component="a"
-                    href={paymentSettings.upiLink}
-                    target="_blank"
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'white',
-                      '&:hover': { bgcolor: 'white' }
-                    }}
-                  >
-                    <QRCodeCanvas
-                      value={paymentSettings.upiLink} 
-                      size={128}
-                      level="H"
-                      includeMargin
-                    />
-                  </Button>
-                  <Stack spacing={1} flex={1}>
-                    <Typography variant="body1" fontWeight="medium">
-                      Amount: ₹{paymentSettings.amount}
-                    </Typography>
-                    <Stack 
-                      direction={{ xs: 'column', sm: 'row' }} 
-                      spacing={1} 
-                      alignItems={{ xs: 'stretch', sm: 'center' }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        UPI: {paymentSettings.upiId}
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<ContentCopyIcon />}
-                        onClick={() => {
-                          navigator.clipboard.writeText(paymentSettings.upiId);
-                          setSnackbar({
-                            open: true,
-                            message: 'UPI ID copied to clipboard',
-                            severity: 'success'
-                          });
-                        }}
-                      >
-                        Copy UPI ID
-                      </Button>
-                    </Stack>
-                  </Stack>
-                </Stack>
-              </Paper>
-              <Button
-                component="label"
-                variant="outlined"
-                startIcon={<CloudUploadIcon />}
-                sx={{ mt: 2 }}
-              >
-                Upload Payment Proof
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                />
-              </Button>
-              {paymentProof && (
-                <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-                  File selected: {paymentProof.name}
-                </Typography>
-              )}
-            </Card>
+            <PaymentDetails
+              paymentSettings={paymentSettings}
+              paymentProof={paymentProof}
+              handleFileUpload={handleFileUpload}
+              setSnackbar={setSnackbar}
+            />
           )}
 
           <Button

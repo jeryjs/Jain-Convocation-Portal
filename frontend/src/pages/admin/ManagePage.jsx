@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -25,9 +25,13 @@ export default function ManagePage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const mounted  = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    
     fetchUsers();
   }, []);
 

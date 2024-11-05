@@ -42,7 +42,7 @@ const sendEmail = async (to, subject, text, attachments = []) => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully with attachments');
+    console.log('Email sent successfully with attachments to:' + to);
   } catch (error) {
     console.error('Error sending email:', error);
     throw error;

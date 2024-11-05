@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -20,15 +20,21 @@ const SettingsPage = () => {
       upiId: '',
       amount: '',
       upiLink: ''
+    },
+    courses: {
+      folderId: ''
     }
-    // Add more categories here as needed
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const mounted = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    
     fetchSettings();
   }, []);
 
@@ -98,7 +104,7 @@ const SettingsPage = () => {
       />
 
       <Box sx={{ p: 3 }}>
-        <Stack spacing={3} maxWidth="md">
+        <Stack spacing={3} width={{ xs:"100vw", md:"60vw" }}>
           <Card sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ mb: 3 }}>Payment Settings</Typography>
             <Stack spacing={3}>
@@ -125,7 +131,23 @@ const SettingsPage = () => {
             </Stack>
           </Card>
 
-          {/* Add more settings categories here */}
+          <Card sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 3 }}>Course Settings</Typography>
+            <Stack spacing={3}>
+              <TextField
+                label="OneDrive Share ID"
+                value={settings.courses?.folderId || ''}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  const match = inputValue.match(/\/s!([^\/\?]+)/);
+                  const folderId = match ? match[1] : inputValue?.replace(/[^A-Za-z0-9_-]/g, '');
+                  handleCategoryChange('courses', 'folderId', folderId);
+                }}
+                helperText="The share ID from your OneDrive folder URL"
+                fullWidth
+              />
+            </Stack>
+          </Card>
 
           <Button
             variant="contained"

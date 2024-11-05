@@ -1,21 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from "react-router-dom";
 import { 
-  Box, 
-  Stack,
-  Card,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  Tab,
-  Tabs,
-  ButtonGroup,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  useTheme,
+  Box, Stack, Card, Typography, Chip,
+  IconButton, Tooltip, Tab, Tabs,
+  ButtonGroup, Button, Dialog, DialogTitle,
+  DialogContent, DialogActions, useTheme,
   CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
@@ -29,11 +18,10 @@ import {
   Settings as SettingsIcon,
   CheckCircle,
 } from '@mui/icons-material';
-import { useNavigate } from "react-router-dom";
+import ImageGrid from '../../components/ImageGrid';
 import PageHeader from '../../components/PageHeader';
 import config from '../../config';
 import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../../config/constants';
-import ImageGrid from '../../components/ImageGrid';
 
 const formatDate = (timestamp) => {
   if (!timestamp) return 'N/A';
@@ -60,10 +48,14 @@ const AdminPage = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const mounted = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchRequests();
+    if (mounted.current) return;
+    mounted.current = true;
+
+    handleRefresh();
   }, []);
 
   const fetchRequests = async () => {
@@ -121,17 +113,127 @@ const AdminPage = () => {
     setIsRefreshing(false);
   };
 
-  const getStatusChip = (status) => {
-    const statusConfig = {
-      pending: { color: 'warning', label: 'Pending' },
-      approved: { color: 'success', label: 'Approved' },
-      rejected: { color: 'error', label: 'Rejected' },
-      completed: { color: 'info', label: 'Completed' }
-    };
-    const config = statusConfig[status.toLowerCase()] || statusConfig.pending;
-    return <Chip label={config.label} color={config.color} size="small" />;
-  };
+  return (
+    <>
+      <PageHeader
+        pageTitle="Admin Dashboard"
+        pageSubtitle="Manage student requests"
+        breadcrumbs={['Admin']}
+        actionButtons={
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<UserIcon />}
+              onClick={() => navigate('/admin/manage')}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4,
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Manage Users
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<SettingsIcon />}
+              onClick={() => navigate('/admin/settings')}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4,
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Settings
+            </Button>
+          </Stack>
+        }
+      />
 
+      <Box sx={{ p: 3 }}>
+        <Stack spacing={3}>
+          <StatsCards requests={requests} theme={theme} />
+
+          <RequestsTable
+            requests={requests}
+            loading={loading}
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+            handleStatusChange={handleStatusChange}
+            setSelectedRequest={setSelectedRequest}
+            handleRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            setImagePreviewOpen={setImagePreviewOpen}
+          />
+        </Stack>
+      </Box>
+
+      <RequestDetailsDialog
+        selectedRequest={selectedRequest}
+        setSelectedRequest={setSelectedRequest}
+      />
+
+      <ImagePreviewDialog
+        imagePreviewOpen={imagePreviewOpen}
+        setImagePreviewOpen={setImagePreviewOpen}
+        selectedRequest={selectedRequest}
+      />
+    </>
+  );
+};
+
+// StatsCards component
+const StatsCards = ({ requests, theme }) => (
+  <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+    {[
+      { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
+      { label: 'Pending Requests', value: requests.filter(r => r.status === 'pending').length, color: theme.palette.warning.main },
+      { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.secondary.main },
+      { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
+    ].map((stat) => (
+      <Card key={stat.label} sx={{ p: 2 }}>
+        <Typography variant="h3" sx={{ color: stat.color, fontWeight: 'bold' }}>
+          {stat.value}
+        </Typography>
+        <Typography variant="subtitle2" color="text.secondary">
+          {stat.label}
+        </Typography>
+      </Card>
+    ))}
+  </Box>
+);
+
+// Move getStatusChip to be a standalone function or helper
+const getStatusChip = (status) => {
+  const statusConfig = {
+    pending: { color: 'warning', label: 'Pending' },
+    approved: { color: 'success', label: 'Approved' },
+    rejected: { color: 'error', label: 'Rejected' },
+    completed: { color: 'info', label: 'Completed' }
+  };
+  const config = statusConfig[status.toLowerCase()] || statusConfig.pending;
+  return <Chip label={config.label} color={config.color} size="small" />;
+};
+
+// Extracted RequestsTable component
+const RequestsTable = ({
+  requests,
+  loading,
+  selectedTab,
+  setSelectedTab,
+  handleStatusChange,
+  setSelectedRequest,
+  handleRefresh,
+  isRefreshing,
+  setImagePreviewOpen
+}) => {
   const columns = [
     {
       field: 'requestDate',
@@ -247,216 +349,151 @@ const AdminPage = () => {
 
   const filteredRequests = requests.filter(req => {
     if (selectedTab == 'all') return true;
-    if (selectedTab == 'pending') return req.status == 'pending';
+    if (selectedTab == 'pending') return (req.status == 'pending' || req.status == 'approved');
     if (selectedTab == 'hardcopy') return req.requestType == REQUEST_TYPES.HARDCOPY || req.requestType == REQUEST_TYPES.BOTH;
     if (selectedTab == 'softcopy') return req.requestType == REQUEST_TYPES.SOFTCOPY || req.requestType == REQUEST_TYPES.BOTH;
     return true;
   });
 
   return (
-    <>
-      <PageHeader
-        pageTitle="Admin Dashboard"
-        pageSubtitle="Manage student requests"
-        breadcrumbs={['Admin']}
-        actionButtons={
-          <Stack direction="row" spacing={2}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<UserIcon />}
-              onClick={() => navigate('/admin/manage')}
-              sx={{
-                boxShadow: 2,
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4,
-                },
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              Manage Users
-            </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate('/admin/settings')}
-              sx={{
-                boxShadow: 2,
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4,
-                },
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              Settings
-            </Button>
-          </Stack>
-        }
-      />
-
-      <Box sx={{ p: 3 }}>
-        <Stack spacing={3}>
-          {/* Stats Cards */}
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-            {[
-              { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
-              { label: 'Pending Requests', value: requests.filter(r => r.status == 'pending').length, color: theme.palette.warning.main },
-              { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType == 1 || r.requestType == 3).length, color: theme.palette.secondary.main },
-              { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType == 2 || r.requestType == 3).length, color: theme.palette.info.main },
-            ].map((stat) => (
-              <Card key={stat.label} sx={{ p: 2 }}>
-                <Typography variant="h3" sx={{ color: stat.color, fontWeight: 'bold' }}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="subtitle2" color="text.secondary">
-                  {stat.label}
-                </Typography>
-              </Card>
-            ))}
-          </Box>
-
-          {/* Request Table */}
-          <Card>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2 }}>
-              <Tabs
-                value={selectedTab}
-                onChange={(e, v) => setSelectedTab(v)}
-                sx={{ px: 2, pt: 2 }}
-              >
-                <Tab label="All Requests" value="all" />
-                <Tab label="Pending" value="pending" />
-                <Tab label="Hard Copy" value="hardcopy" />
-                <Tab label="Soft Copy" value="softcopy" />
-              </Tabs>
-              
-              <Tooltip title="Refresh">
-                <IconButton 
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    boxShadow: 1,
-                    '&:hover': {
-                      bgcolor: 'background.paper',
-                      transform: 'rotate(180deg)',
-                    },
-                    transition: 'transform 0.5s',
-                  }}
-                >
-                  {isRefreshing ? (
-                    <CircularProgress size={24} />
-                  ) : (
-                    <RefreshIcon />
-                  )}
-                </IconButton>
-              </Tooltip>
-            </Stack>
-            <Box sx={{ height: 600, width: '100%', p: 2 }}>
-              <DataGrid
-                rows={filteredRequests}
-                columns={columns}
-                loading={loading}
-                disableRowSelectionOnClick
-                density="comfortable"
-                initialState={{
-                  pagination: {
-                    paginationModel: { page: 0, pageSize: 10 },
-                  },
-                  sorting: {
-                    sortModel: [{ field: 'requestDate', sort: 'desc' }],
-                  },
-                }}
-                pageSizeOptions={[10, 25, 50]}
-              />
-            </Box>
-          </Card>
-        </Stack>
+    <Card>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2 }}>
+        <Tabs
+          value={selectedTab}
+          onChange={(e, v) => setSelectedTab(v)}
+          sx={{ px: 2, pt: 2 }}
+        >
+          <Tab label="All Requests" value="all" />
+          <Tab label="Pending" value="pending" />
+          <Tab label="Hard Copy" value="hardcopy" />
+          <Tab label="Soft Copy" value="softcopy" />
+        </Tabs>
+        <Tooltip title="Refresh">
+          <IconButton 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            sx={{
+              bgcolor: 'background.paper',
+              boxShadow: 1,
+              '&:hover': {
+                bgcolor: 'background.paper',
+                transform: 'rotate(180deg)',
+              },
+              transition: 'transform 0.5s',
+            }}
+          >
+            {isRefreshing ? (
+              <CircularProgress size={24} />
+            ) : (
+              <RefreshIcon />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Box sx={{ height: 600, width: '100%', p: 2 }}>
+        <DataGrid
+          rows={filteredRequests}
+          columns={columns}
+          loading={loading}
+          disableRowSelectionOnClick
+          density="comfortable"
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 10 },
+            },
+            sorting: {
+              sortModel: [{ field: 'requestDate', sort: 'desc' }],
+            },
+          }}
+          pageSizeOptions={[10, 25, 50]}
+        />
       </Box>
-
-      {/* Details Dialog */}
-      <Dialog
-        open={Boolean(selectedRequest) && !imagePreviewOpen}
-        onClose={() => setSelectedRequest(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Request Details</DialogTitle>
-        <DialogContent dividers>
-          {selectedRequest && (
-            <Stack spacing={2}>
-              <Typography variant="subtitle2">
-                Student Details
-              </Typography>
-              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'auto 1fr' }}>
-                {[
-                  ['USN', selectedRequest.username],
-                  ['Name', selectedRequest.name],
-                  ['Email', selectedRequest.email],
-                  ['Phone', selectedRequest.phone],
-                  ['Course', selectedRequest.course],
-                  ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
-                  ['Hard Copy Img', selectedRequest.hardcopyImg],
-                  ['Status', selectedRequest.status],
-                  ['Date', selectedRequest.requestDate],
-                ].map(([label, value]) => (
-                  <React.Fragment key={label}>
-                    <Typography color="text.secondary">{label}:</Typography>
-                    <Typography>{value}</Typography>
-                  </React.Fragment>
-                ))}
-              </Box>
-              
-              <Typography variant="subtitle2" sx={{ mt: 2 }}>
-                Requested Images
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <ImageGrid
-                  images={Object.entries(selectedRequest.requestedImages || {})}
-                  loading={false}
-                  columns={3}
-                  showColumnControls={false}
-                  sx={{ width: '100%' }}
-                />
-              </Box>
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedRequest(null)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Image Preview Dialog */}
-      <Dialog
-        open={imagePreviewOpen}
-        onClose={() => setImagePreviewOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Payment Proof</DialogTitle>
-        <DialogContent>
-          {selectedRequest?.paymentProof && (
-            <Box
-              component="img"
-              src={selectedRequest.paymentProof}
-              sx={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: '70vh',
-                objectFit: 'contain'
-              }}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setImagePreviewOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-    </>
+    </Card>
   );
 };
+
+// Extracted RequestDetailsDialog component
+const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
+  <Dialog
+    open={Boolean(selectedRequest)}
+    onClose={() => setSelectedRequest(null)}
+    maxWidth="sm"
+    fullWidth
+  >
+    <DialogTitle>Request Details</DialogTitle>
+    <DialogContent dividers>
+      {selectedRequest && (
+        <Stack spacing={2}>
+          <Typography variant="subtitle2">
+            Student Details
+          </Typography>
+          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'auto 1fr' }}>
+            {[
+              ['USN', selectedRequest.username],
+              ['Name', selectedRequest.name],
+              ['Email', selectedRequest.email],
+              ['Phone', selectedRequest.phone],
+              ['Course', selectedRequest.course],
+              ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
+              ['Hard Copy Img', selectedRequest.hardcopyImg],
+              ['Status', selectedRequest.status],
+              ['Date', selectedRequest.requestDate],
+            ].map(([label, value]) => (
+              <React.Fragment key={label}>
+                <Typography color="text.secondary">{label}:</Typography>
+                <Typography>{value}</Typography>
+              </React.Fragment>
+            ))}
+          </Box>
+          
+          <Typography variant="subtitle2" sx={{ mt: 2 }}>
+            Requested Images
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <ImageGrid
+              images={Object.entries(selectedRequest.requestedImages || {})}
+              loading={false}
+              columns={3}
+              showColumnControls={false}
+              sx={{ width: '100%' }}
+            />
+          </Box>
+        </Stack>
+      )}
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={() => setSelectedRequest(null)}>Close</Button>
+    </DialogActions>
+  </Dialog>
+);
+
+// Extracted ImagePreviewDialog component
+const ImagePreviewDialog = ({ imagePreviewOpen, setImagePreviewOpen, selectedRequest }) => (
+  <Dialog
+    open={imagePreviewOpen}
+    onClose={() => setImagePreviewOpen(false)}
+    maxWidth="md"
+    fullWidth
+  >
+    <DialogTitle>Payment Proof</DialogTitle>
+    <DialogContent>
+      {selectedRequest?.paymentProof && (
+        <Box
+          component="img"
+          src={selectedRequest.paymentProof}
+          sx={{
+            width: '100%',
+            height: 'auto',
+            maxHeight: '70vh',
+            objectFit: 'contain',
+          }}
+        />
+      )}
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={() => setImagePreviewOpen(false)}>Close</Button>
+    </DialogActions>
+  </Dialog>
+);
 
 export default AdminPage;

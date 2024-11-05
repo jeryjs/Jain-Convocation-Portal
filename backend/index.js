@@ -21,3 +21,18 @@ app.use('/api', emailRoutes);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+async function initializeSettings() {
+    const { getSettings } = require('./services/firestore');
+    const { updateSettingsCache } = require('./config/settings');
+
+    try {
+        const settings = await getSettings("courses");
+        updateSettingsCache(settings);
+        console.log("Settings cache initialized");
+    } catch (error) {
+        console.error("Error initializing settings:", error);
+    }
+}
+
+initializeSettings();

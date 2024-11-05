@@ -3,6 +3,7 @@ const db = require('../config/firebase');
 const { getImageLinks } = require('./onedrive');
 const { sendEmail } = require('./email');
 const { REQUEST_TYPES } = require('../constants');
+const { updateSettingsCache } = require('../config/settings');
 
 const COLLECTION_NAME = '2024';
 
@@ -286,6 +287,7 @@ const updateSettings = async (settings) => {
     });
 
     await batch.commit();
+    updateSettingsCache(settings); // Update cache after successful save
     return { success: true };
   } catch (error) {
     console.error('Error updating settings:', error);
