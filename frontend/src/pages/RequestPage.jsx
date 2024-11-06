@@ -28,6 +28,10 @@ import { REQUEST_TYPES } from '../config/constants';
 import { useAuth } from '../config/AuthContext';
 import ImageGrid from '../components/ImageGrid';
 import { QRCodeCanvas } from 'qrcode.react';
+import { LoadingButton } from '@mui/lab';
+import DownloadIcon from '@mui/icons-material/Download';
+import SendIcon from '@mui/icons-material/Send';
+import { downloadFile, compressImage, generateUPILink } from '../utils/utils';
 
 const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
@@ -42,12 +46,13 @@ export default function RequestPage() {
   const [processing, setProcessing] = useState(false);
   const [successDialog, setSuccessDialog] = useState(false);
   const [requestType, setRequestType] = useState(REQUEST_TYPES.SOFTCOPY);
-  const [selectedHardcopyImages, setSelectedHardcopyImages] = useState([]); // Change from single to array
+  const [selectedHardcopyImages, setSelectedHardcopyImages] = useState([]);
   const [userFormData, setUserFormData] = useState({
     email: '',
     phone: '',
   });
   const [paymentSettings, setPaymentSettings] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (userData) {
@@ -85,71 +90,11 @@ export default function RequestPage() {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     
-    // Function to compress image
-    const compressImage = (file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-            
-            // Calculate new dimensions while maintaining aspect ratio
-            if (width > height) {
-              if (width > 480) {
-                height = Math.round((height * 480) / width);
-                width = 480;
-              }
-            } else {
-              if (height > 480) {
-                width = Math.round((width * 480) / height);
-                height = 480;
-              }
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Try different quality values until file size is under MAX_FILE_SIZE
-            for (let quality = 0.9; quality >= 0.5; quality -= 0.1) {
-              const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-              const compressedBlob = dataURLtoBlob(compressedDataUrl);
-              if (compressedBlob.size <= MAX_FILE_SIZE) {
-                resolve(new File([compressedBlob], file.name, { type: 'image/jpeg' }));
-                return;
-              }
-            }
-            resolve(null); // Could not compress enough
-          };
-        };
-      });
-    };
-
-    // Helper function to convert data URL to Blob
-    const dataURLtoBlob = (dataURL) => {
-      const arr = dataURL.split(',');
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      return new Blob([u8arr], { type: mime });
-    };
-
     try {
       if (file.size <= MAX_FILE_SIZE) {
         setPaymentProof(file);
       } else {
-        const compressedFile = await compressImage(file);
+        const compressedFile = await compressImage(file, MAX_FILE_SIZE);
         if (compressedFile && compressedFile.size <= MAX_FILE_SIZE) {
           setPaymentProof(compressedFile);
         } else {
@@ -193,13 +138,35 @@ export default function RequestPage() {
     return selectedHardcopyImages.length * 500;
   };
 
-  // Helper function to generate UPI link
-  const generateUPILink = (baseLink, amount) => {
-    if (!baseLink) return '';
-    // Split the base link at 'am=' if it exists
-    const basePart = baseLink.split('am=')[0];
-    // Add the new amount
-    return `${basePart}am=${amount}`;
+  const canDownloadImages = () => {
+    if (!userData?.requestedImages || Object.keys(selectedImages).length === 0) return false;
+    return Object.keys(selectedImages).every(img => userData.requestedImages[img]);
+  };
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/images/${Object.keys(selectedImages).join(',')}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      if (!data.links || data.links.length === 0) {
+        throw new Error('No download links available');
+      }
+
+      // Download files sequentially with longer delays
+      for (const link of data.links) {
+        const filename = link.name.split('/').pop();
+        await downloadFile(link.url, filename, 100);
+      }
+
+      setSnackbar({ open: true, message: `Successfully downloaded ${data.links.length} images`, severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: error.message || 'Error downloading images', severity: 'error' });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -236,9 +203,9 @@ export default function RequestPage() {
 
       const result = await response.json();
       if (result.success) {
-        // Update both user data and selected images
-        updateUserAfterRequest(updatedUserData);
+        updateUserAfterRequest(updatedUserData);  // Update both user data and selected images
         setSuccessDialog(true);
+        handleDownload(); // Download images if request is successful
       } else {
         throw new Error(result.message);
       }
@@ -310,19 +277,51 @@ export default function RequestPage() {
             />
           )}
 
-          <Button variant="contained" size="large" onClick={handleSubmit} sx={{ py: { xs: 1.5, sm: 1 } }} disabled={
-              (requestType == REQUEST_TYPES.HARDCOPY && 
-                (!paymentProof || selectedHardcopyImages.length === 0 || !userFormData.phone)) || 
-              isSubmitting || 
-              (requestType == REQUEST_TYPES.SOFTCOPY && 
-                Object.keys(selectedImages).length == 0)
-            }>
-            {isSubmitting ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              'Submit Request'
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            spacing={2} 
+            sx={{ width: '100%' }}
+          >
+            <Button 
+              variant="contained" 
+              size="large" 
+              onClick={handleSubmit}
+              startIcon={<SendIcon />}
+              disabled={
+                (requestType === REQUEST_TYPES.HARDCOPY && 
+                  (!paymentProof || selectedHardcopyImages.length === 0 || !userFormData.phone)) || 
+                isSubmitting || 
+                (requestType === REQUEST_TYPES.SOFTCOPY && 
+                  Object.keys(selectedImages).length === 0)
+              }
+              sx={{ 
+                py: { xs: 1.5, sm: 1 },
+                flex: 1
+              }}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Submit Request'
+              )}
+            </Button>
+
+            {requestType === REQUEST_TYPES.SOFTCOPY && canDownloadImages() && (
+              <LoadingButton
+                loading={isDownloading}
+                variant="outlined"
+                size="large"
+                onClick={handleDownload}
+                startIcon={<DownloadIcon />}
+                sx={{ 
+                  py: { xs: 1.5, sm: 1 },
+                  flex: { sm: 1 }
+                }}
+              >
+                Download Images
+              </LoadingButton>
             )}
-          </Button>
+          </Stack>
         </Stack>
       </Box>
 

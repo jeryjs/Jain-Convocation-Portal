@@ -23,23 +23,7 @@ import PageHeader from '../../components/PageHeader';
 import config from '../../config';
 import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../../config/constants';
 import { useAuth } from '../../config/AuthContext';
-
-const formatDate = (timestamp) => {
-  if (!timestamp) return 'N/A';
-  try {
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleString('en-US', {
-        dateStyle: 'short',
-        timeStyle: 'medium'
-      });
-    }
-    return 'Invalid Date';
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return 'Invalid Date';
-  }
-};
+import { formatDate } from '../../utils/utils';
 
 const AdminPage = () => {
   const theme = useTheme();

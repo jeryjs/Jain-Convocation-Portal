@@ -43,29 +43,20 @@ export default function GalleryPage() {
     fetchImages();
   }, [courseId]);
 
-  const handleSelectImage = (imgName, thumbUrl) => {
-    // imgName is now full path (course/image.jpg)
-    if (selectedImages[imgName]) {
-      const { [imgName]: removed, ...rest } = selectedImages;
+  const handleSelectImage = (imgPath, thumbUrl) => {
+    if (selectedImages[imgPath]) {
+      const { [imgPath]: removed, ...rest } = selectedImages;
       updateSelectedImages(rest);
     } else if (getAvailableSlots() > 0) {
       updateSelectedImages({
         ...selectedImages,
-        [imgName]: thumbUrl
+        [imgPath]: thumbUrl
       });
     }
   };
 
   const handleRequestPressed = () => {
-    // Just pass the newly selected images
-    navigate(`/courses/${courseId}/request`, {
-      state: { 
-        selectedImages: Object.entries(selectedImages).map(([name, url]) => ({
-          name,
-          url
-        }))
-      }
-    });
+    navigate(`/courses/${courseId}/request`);
   };
 
   return (
@@ -85,7 +76,7 @@ export default function GalleryPage() {
         >
           <ImageGrid
             loading={loading}
-            images={images}
+            images={images.map(([path, url]) => [`${courseId}/${path}`, url])} // Prepend courseId to path
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(userData?.requestedImages || {})}
             onSelectImage={handleSelectImage}
@@ -96,7 +87,6 @@ export default function GalleryPage() {
           <SelectedImagesPanel
             selectedImages={selectedImages}
             existingImages={userData?.requestedImages || {}}
-            images={images}
             onRequestPressed={handleRequestPressed}
             availableSlots={getAvailableSlots()}
             sx={{ flex: {md: '1'}  }}
@@ -131,9 +121,9 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             images={Object.entries(selectedImages).map(([name, url]) => [name, url])}
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(existingImages)}
-            onSelectImage={(imgName, thumbUrl) => {
+            onSelectImage={(imgPath) => {
               // Deselect images from selected panel
-              const { [imgName]: removed, ...rest } = selectedImages;
+              const { [imgPath]: removed, ...rest } = selectedImages;
               updateSelectedImages(rest);
             }}
             availableSlots={availableSlots}
