@@ -63,13 +63,16 @@ function LoginPage() {
     <div className='login-container'>
       <Card variant='outlined' sx={{ borderRadius: '12px', p: { xs: 0, md: 3 }, maxWidth: '600px' }}>
         <CardContent>
-          <div style={{ backgroundColor: '#001b54', padding: '20px', borderRadius: '8px', marginBottom: '40px' }}>
+          <div style={{ backgroundColor: '#001b54', padding: '20px', borderRadius: '8px', marginBottom: '40px', position: 'relative' }}>
             <Stack spacing={0} alignItems="center">
               <img src={JainBanner} alt="Profile" style={{ height: '75px', mixBlendMode: 'lighten' }} />
-              <Typography variant="h6" color="#fff" textAlign="left" fontWeight="bold">14th Annual Convocation</Typography>
+              <Stack spacing={0} alignItems="center">
+                <Typography variant="h6" color="#fff" textAlign="left" fontWeight="bold">14th Annual Convocation</Typography>
+                <Typography variant="caption" color="#fff" textAlign="left">A Celebration of Excellence: Nov 13th-15th</Typography>
+              </Stack>
             </Stack>
-            <div style={{ height: '60px', width: '60px', marginBottom: '-50px', borderRadius: '50%', background: '#fff', justifyItems: 'center', alignContent: "center" }}>
-              <img src={JGILogo} width='80%' />
+            <div style={{ height: '60px', width: '60px', position: 'absolute', bottom: '-30px', left: '40px',transform: 'translateX(-50%)', borderRadius: '50%', background: '#fff',display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={JGILogo} alt="JGI Logo" style={{ width: '80%', height: 'auto' }} />
             </div>
           </div>
 
