@@ -3,6 +3,7 @@ const db = require('../config/firebase');
 const { getImageLinks } = require('./onedrive');
 const { sendEmail } = require('./email');
 const { REQUEST_TYPES } = require('../constants');
+const { cache, TTL } = require('../config/cache');
 const { updateSettingsCache } = require('../config/settings');
 
 const COLLECTION_NAME = '2024';
@@ -34,15 +35,22 @@ const authenticateUser = async (username, password) => {
 
 // Update the getUserData function to handle new image format
 const getUserData = async (username) => {
+  const cacheKey = `user_${username}`;
+  const cachedData = cache.get(cacheKey);
+  
+  if (cachedData) return cachedData;
+
   const snapshot = await db.collection(COLLECTION_NAME).doc(username).get();
   if (!snapshot.exists) return null;
   
-  const data = snapshot.data();
-  return {
-    ...data,
+  const data = {
+    ...snapshot.data(),
     username,
-    requestedImages: data.requestedImages || {} // Ensure requestedImages is always an object
+    requestedImages: snapshot.data().requestedImages || {}
   };
+  
+  cache.set(cacheKey, data, TTL.USER_DATA);
+  return data;
 };
 
 // Add new function for student management
@@ -80,6 +88,8 @@ const updateRequest = async (username, requestedImages, type, paymentProof = nul
   }
 
   await db.collection(COLLECTION_NAME).doc(username).update(dataToUpdate);
+  invalidateCache('user', username);
+  invalidateCache('requests');
   return 'Request updated successfully';
 };
 
@@ -170,8 +180,15 @@ const handleImageRequest = async (userdata, course, requestedImages, requestType
   }
 };
 
-// Update the getAllRequests function to handle new image format
 const getAllRequests = async () => {
+  const cacheKey = 'all_requests';
+  const cachedRequests = cache.get(cacheKey);
+  
+  if (cachedRequests) {
+    console.log('📦 Serving cached requests');
+    return cachedRequests;
+  }
+
   console.log(`🔍 [${new Date().toISOString()}] Getting all requests from Firestore...`);
   
   try {
@@ -200,6 +217,7 @@ const getAllRequests = async () => {
       };
     });
 
+    cache.set(cacheKey, requests, TTL.REQUESTS);
     console.log(`✅ Processed ${requests.length} requests`);
     return requests;
 
@@ -231,6 +249,8 @@ const updateRequestStatus = async (username, status) => {
       });
     });
 
+    invalidateCache('user', username);
+    invalidateCache('requests');
     console.log(`✅ Successfully updated request ${username}`);
     return { success: true };
 
@@ -258,6 +278,14 @@ const getAllUsers = async () => {
 // Update these functions
 
 const getSettings = async (category = 'all') => {
+  const cacheKey = `settings_${category}`;
+  const cachedSettings = cache.get(cacheKey);
+
+  if (cachedSettings) {
+    console.log(`📦 Serving cached settings for category: ${category}`);
+    return cachedSettings;
+  }
+
   try {
     if (category === 'all') {
       const snapshot = await db.collection('settings').get();
@@ -265,10 +293,13 @@ const getSettings = async (category = 'all') => {
       snapshot.forEach(doc => {
         settings[doc.id] = doc.data();
       });
+      cache.set(cacheKey, settings, TTL.SETTINGS);
       return settings;
     } else {
       const doc = await db.collection('settings').doc(category).get();
-      return { [category]: doc.exists ? doc.data() : {} };
+      const settings = { [category]: doc.exists ? doc.data() : {} };
+      cache.set(cacheKey, settings, TTL.SETTINGS);
+      return settings;
     }
   } catch (error) {
     console.error('Error getting settings:', error);
@@ -288,10 +319,30 @@ const updateSettings = async (settings) => {
 
     await batch.commit();
     updateSettingsCache(settings); // Update cache after successful save
+    invalidateCache('settings');
     return { success: true };
   } catch (error) {
     console.error('Error updating settings:', error);
     throw error;
+  }
+};
+
+// Add cache invalidation for updates
+const invalidateCache = (type, key = '') => {
+  switch (type) {
+    case 'user':
+      cache.del(`user_${key}`);
+      break;
+    case 'requests':
+      cache.del('all_requests');
+      break;
+    case 'settings':
+      cache.del(`settings_${key}`);
+      cache.del('settings_all');
+      break;
+    default:
+      // For major changes, flush all cache
+      cache.flushAll();
   }
 };
 
@@ -305,5 +356,6 @@ module.exports = {
   importUsers,
   getAllUsers,
   getSettings,
-  updateSettings
+  updateSettings,
+  invalidateCache
 };
