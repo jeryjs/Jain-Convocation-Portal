@@ -62,7 +62,6 @@ const importUsers = async (students) => {
       const docRef = db.collection(COLLECTION_NAME).doc(student.username);
       batch.set(docRef, {
         ...student,
-        requestType: 0, // Default to no request
         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       });
     });
