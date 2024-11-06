@@ -1,4 +1,3 @@
-
 const NodeCache = require('node-cache');
 
 // TTL in seconds

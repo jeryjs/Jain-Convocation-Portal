@@ -49,7 +49,10 @@ function LoginPage() {
   };
 
   const validatePassword = (password) => {
-    const regex = /^\d{8}$/;
+    // Regex for Indian phone numbers: 
+    // - Must be exactly 10 digits
+    // - Must start with 6, 7, 8, or 9
+    const regex = /^[6-9]\d{9}$/;
     return regex.test(password);
   };
 

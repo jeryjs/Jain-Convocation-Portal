@@ -73,7 +73,7 @@ export default function GalleryPage() {
     <>
       <PageHeader
         pageTitle="Image Gallery"
-        pageSubtitle="Manage your images"
+        pageSubtitle="Pick your images. Tip: Images are arranged based on time taken."
         breadcrumbs={['Courses', courseId, 'Gallery']}
         onBack={() => navigate('/courses')}
         sx={{ mb: 2 }}

@@ -56,7 +56,7 @@ function PageHeader({
     <>
       {/* Main Header */}
       <AppBar position="fixed" elevation={0} sx={{ backgroundColor: '#2a3042' }}>
-        <Toolbar sx={{ justifyContent: 'space-between', pl: 2, pr: 4, width: '100%' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: 2, width: '100%' }}>
           <Box component="img" src={JGILogo} sx={{ display: { xs: 'block', md: 'none' }, height: '40px' }} />
           <Box component="img" src={JGIBanner} sx={{ display: { xs: 'none', md: 'block' }, height: '50px' }} />
 
