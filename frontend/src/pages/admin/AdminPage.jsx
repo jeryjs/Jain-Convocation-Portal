@@ -232,30 +232,12 @@ const RequestsTable = ({
   setPaymentPreviewRequest
 }) => {
   const columns = [
-    {
-      field: 'requestDate',
-      headerName: 'Date',
-      width: 180,
-    },
-    {
-      field: 'username',
-      headerName: 'Student ID',
-      width: 130,
-    },
-    {
-      field: 'name',
-      headerName: 'Name',
-      width: 200,
-    },
-    {
-      field: 'course',
-      headerName: 'Course',
-      width: 150,
-    },
-    {
-      field: 'requestType',
-      headerName: 'Type',
-      width: 120,
+    { field: 'requestDate', headerName: 'Date', width: 180 },
+    { field: 'username', headerName: 'USN', width: 130 },
+    { field: 'name', headerName: 'Name', width: 200 },
+    { field: 'course', headerName: 'Course', width: 180 },
+    { 
+      field: 'requestType', headerName: 'Type', width: 120,
       renderCell: (params) => {
         let chipColor = 'secondary';
         if (params.value == REQUEST_TYPES.HARDCOPY) chipColor = 'primary';
@@ -265,17 +247,11 @@ const RequestsTable = ({
         );
       },
     },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 120,
+    { 
+      field: 'status', headerName: 'Status', width: 120,
       renderCell: (params) => getStatusChip(params.value),
     },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 200,
-      sortable: false,
+    { field: 'actions', headerName: 'Actions', width: 200, sortable: false,
       renderCell: (params) => (
         <ButtonGroup size="small">
           <Tooltip title="View Details">
@@ -385,7 +361,7 @@ const RequestsTable = ({
   );
 };
 
-// Extracted RequestDetailsDialog component
+// RequestDetailsDialog component
 const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
   <Dialog open={Boolean(selectedRequest)} onClose={() => setSelectedRequest(null)} maxWidth="sm" fullWidth>
     {selectedRequest && (

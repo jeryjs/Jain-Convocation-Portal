@@ -91,8 +91,6 @@ const SettingsPage = () => {
     }
   };
 
-  if (loading) return <CircularProgress />;
-
   return (
     <>
       <PageHeader
@@ -102,87 +100,86 @@ const SettingsPage = () => {
         onBack={() => {navigate('/admin')}}
       />
 
-      <Box sx={{ p: 3 }}>
-        <Stack spacing={3} width={{ xs:"100vw", md:"60vw" }}>
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 3 }}>Payment Settings</Typography>
-            <Stack spacing={3}>
-              <TextField
-                label="UPI ID"
-                value={settings.payment?.upiId || ''}
-                onChange={(e) => handleCategoryChange('payment', 'upiId', e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Amount"
-                type="number"
-                value={settings.payment?.amount || ''}
-                onChange={(e) => handleCategoryChange('payment', 'amount', e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="UPI Link"
-                value={settings.payment?.upiLink || ''}
-                onChange={(e) => handleCategoryChange('payment', 'upiLink', e.target.value)}
-                helperText="Format: upi://pay?pa=upiid&pn=name&am=amount"
-                fullWidth
-              />
-            </Stack>
-          </Card>
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <Box sx={{ p: 3 }} width={{ xs: "90%", md: "60%" }}>
+          <Stack spacing={3}>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>Payment Settings</Typography>
+              <Stack spacing={3}>
+                <TextField
+                  label="UPI ID"
+                  value={settings.payment?.upiId || ''}
+                  onChange={(e) => handleCategoryChange('payment', 'upiId', e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Amount"
+                  type="number"
+                  value={settings.payment?.amount || ''}
+                  onChange={(e) => handleCategoryChange('payment', 'amount', e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="UPI Link"
+                  value={settings.payment?.upiLink || ''}
+                  onChange={(e) => handleCategoryChange('payment', 'upiLink', e.target.value)}
+                  helperText="Format: upi://pay?pa=upiid&pn=name&am=amount"
+                  fullWidth
+                />
+              </Stack>
+            </Card>
 
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 3 }}>Course Settings</Typography>
-            <Stack spacing={3}>
-              <TextField
-                label="OneDrive Share ID"
-                value={settings.courses?.folderId || ''}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  const match = inputValue.match(/\/s!([^\/\?]+)/);
-                  const folderId = match ? match[1] : inputValue?.replace(/[^A-Za-z0-9_-]/g, '');
-                  handleCategoryChange('courses', 'folderId', folderId);
-                }}
-                helperText="The share ID from your OneDrive folder URL"
-                fullWidth
-              />
-            </Stack>
-          </Card>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>Course Settings</Typography>
+              <Stack spacing={3}>
+                <TextField
+                  label="OneDrive Share ID"
+                  value={settings.courses?.folderId || ''}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    const match = inputValue.match(/\/s!([^\/\?]+)/);
+                    const folderId = match ? match[1] : inputValue?.replace(/[^A-Za-z0-9_-]/g, '');
+                    handleCategoryChange('courses', 'folderId', folderId);
+                  }}
+                  helperText="The share ID from your OneDrive folder URL"
+                  fullWidth
+                />
+              </Stack>
+            </Card>
 
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 3 }}>General Settings</Typography>
-            <Stack spacing={3}>
-              <TextField
-                label="Gmail User"
-                value={settings.general?.gmailUser || ''}
-                onChange={(e) => handleCategoryChange('general', 'gmailUser', e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Gmail App Password"
-                type="password"
-                value={settings.general?.gmailAppPass || ''}
-                onChange={(e) => handleCategoryChange('general', 'gmailAppPass', e.target.value)}
-                fullWidth
-                helperText="Refer this is to generate App Password: https://bit.ly/3YTjwCT"
-              />
-            </Stack>
-          </Card>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>General Settings</Typography>
+              <Stack spacing={3}>
+                <TextField
+                  label="Gmail User"
+                  value={settings.general?.gmailUser || ''}
+                  onChange={(e) => handleCategoryChange('general', 'gmailUser', e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Gmail App Password"
+                  type="password"
+                  value={settings.general?.gmailAppPass || ''}
+                  onChange={(e) => handleCategoryChange('general', 'gmailAppPass', e.target.value)}
+                  fullWidth
+                  helperText="Refer this is to generate App Password: https://bit.ly/3YTjwCT"
+                />
+              </Stack>
+            </Card>
 
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? <CircularProgress size={24} /> : 'Save All Settings'}
-          </Button>
-        </Stack>
-      </Box>
+            <Button variant="contained" onClick={handleSave} disabled={saving}>
+              {saving ? <CircularProgress size={24} /> : 'Save All Settings'}
+            </Button>
+          </Stack>
+        </Box>
+      )}
 
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
+        onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
