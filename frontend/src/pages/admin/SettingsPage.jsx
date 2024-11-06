@@ -16,14 +16,9 @@ import { useNavigate } from 'react-router-dom';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
-    payment: {
-      upiId: '',
-      amount: '',
-      upiLink: ''
-    },
-    courses: {
-      folderId: ''
-    }
+    payment: { upiId: '', amount: '', upiLink: '' },
+    courses: { folderId: '' },
+    general: { gmailUser: '', gmailAppPass: '' }
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,6 +140,26 @@ const SettingsPage = () => {
                 }}
                 helperText="The share ID from your OneDrive folder URL"
                 fullWidth
+              />
+            </Stack>
+          </Card>
+
+          <Card sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 3 }}>General Settings</Typography>
+            <Stack spacing={3}>
+              <TextField
+                label="Gmail User"
+                value={settings.general?.gmailUser || ''}
+                onChange={(e) => handleCategoryChange('general', 'gmailUser', e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="Gmail App Password"
+                type="password"
+                value={settings.general?.gmailAppPass || ''}
+                onChange={(e) => handleCategoryChange('general', 'gmailAppPass', e.target.value)}
+                fullWidth
+                helperText="Refer this is to generate App Password: https://bit.ly/3YTjwCT"
               />
             </Stack>
           </Card>

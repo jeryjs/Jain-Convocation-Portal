@@ -1,7 +1,8 @@
-import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert, Stack } from "@mui/material";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import JGILogo from "../assets/JGI.png";
+import JainBanner from "../assets/jain.png";
 import ProfileImg from "../assets/ProfileImg.png";
 import config from "../config";
 import { useAuth } from '../config/AuthContext';
@@ -60,14 +61,11 @@ function LoginPage() {
     <div className='login-container'>
       <Card variant='outlined' sx={{ borderRadius: '12px', p: { xs: 0, md: 3 }, maxWidth: '600px' }}>
         <CardContent>
-          <div style={{ backgroundColor: '#556ee640', padding: '20px', borderRadius: '8px', marginBottom: '40px' }}>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <div className="col">
-                <Typography variant="h6" color="primary" fontWeight="bold">Welcome Back !</Typography>
-                <Typography variant="body2" color="primary">Sign in to continue..</Typography>
-              </div>
-              <img src={ProfileImg} alt="Profile" style={{ height: '100px' }} />
-            </div>
+          <div style={{ backgroundColor: '#001b54', padding: '20px', borderRadius: '8px', marginBottom: '40px' }}>
+            <Stack spacing={0} alignItems="center">
+              <img src={JainBanner} alt="Profile" style={{ height: '75px', mixBlendMode: 'lighten' }} />
+              <Typography variant="h6" color="#fff" textAlign="left" fontWeight="bold">14th Annual Convocation</Typography>
+            </Stack>
             <div style={{ height: '60px', width: '60px', marginBottom: '-50px', borderRadius: '50%', background: '#fff', justifyItems: 'center', alignContent: "center" }}>
               <img src={JGILogo} width='80%' />
             </div>
@@ -93,9 +91,9 @@ function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               margin='normal'
-              placeholder="DDMMYYYY"
+              placeholder="Enter your password"
               error={!validatePassword(password) && password.length > 0}
-              helperText={!validatePassword(password) && password.length > 0 ? "Your date of birth in DDMMYYYY format is your password" : ""}
+              helperText={!validatePassword(password) && password.length > 0 ? "The phone number you registered with is your password" : ""}
             />
             <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} sx={{ mt: 2, borderRadius: '25px', fontSize: '1.2rem' }}>
               {loading ? <CircularProgress size={24} /> : "Login"}

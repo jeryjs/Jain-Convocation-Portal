@@ -7,6 +7,10 @@ let settingsCache = {
   },
   courses: {
     folderId: process.env.ONEDRIVE_SHAREID // Fallback to env variable
+  },
+  general: {
+    gmailUser: process.env.GMAIL_USER,
+    gmailAppPass: process.env.GMAIL_APP_PASS
   }
 };
 
