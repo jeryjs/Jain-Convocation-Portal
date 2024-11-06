@@ -44,12 +44,11 @@ export default function GalleryPage() {
   }, [courseId]);
 
   const handleSelectImage = (imgName, thumbUrl) => {
+    // imgName is now full path (course/image.jpg)
     if (selectedImages[imgName]) {
-      // Remove image if already selected
       const { [imgName]: removed, ...rest } = selectedImages;
       updateSelectedImages(rest);
     } else if (getAvailableSlots() > 0) {
-      // Add new image if slots available
       updateSelectedImages({
         ...selectedImages,
         [imgName]: thumbUrl

@@ -5,7 +5,7 @@ import {
   IconButton, Tooltip, Tab, Tabs,
   ButtonGroup, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, useTheme,
-  CircularProgress,
+  CircularProgress, Snackbar, Alert
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { 
@@ -48,8 +48,10 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [paymentPreviewOpen, setPaymentPreviewOpen] = useState(false);
+  const [paymentPreviewRequest, setPaymentPreviewRequest] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [snackbar, setSnackbar] = useState({open: false, message: '', severity: 'info'});
   const mounted = useRef(false);
   const navigate = useNavigate();
 
@@ -91,25 +93,14 @@ const AdminPage = () => {
         body: JSON.stringify({ status: newStatus })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update status');
-      }
+      if (!response.ok) throw new Error('Failed to update status: ' + response.statusText);
 
-      // Refresh the requests list
-      handleRefresh();
+      await handleRefresh();
       
-      setSnackbar({
-        open: true,
-        message: `Request ${newStatus} successfully`,
-        severity: 'success'
-      });
+      setSnackbar({ open: true, message: `Request ${newStatus} successfully`, severity: 'success' });
     } catch (error) {
       console.error('Error updating status:', error);
-      setSnackbar({
-        open: true,
-        message: error.message || 'Error updating request status',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: error.message || 'Error updating request status', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -121,6 +112,10 @@ const AdminPage = () => {
     setIsRefreshing(false);
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
   return (
     <>
       <PageHeader
@@ -129,36 +124,14 @@ const AdminPage = () => {
         breadcrumbs={['Admin']}
         actionButtons={
           <Stack direction="row" spacing={2}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<UserIcon />}
-              onClick={() => navigate('/admin/manage')}
-              sx={{
-                boxShadow: 2,
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4,
-                },
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
+            <Button variant="contained" color="primary" startIcon={<UserIcon />}
+              sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
+              onClick={() => navigate('/admin/manage')}>
               Manage Users
             </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<SettingsIcon />}
-              onClick={() => navigate('/admin/settings')}
-              sx={{
-                boxShadow: 2,
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4,
-                },
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
+            <Button variant="contained" color="secondary" startIcon={<SettingsIcon />}
+              sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
+              onClick={() => navigate('/admin/settings')}>
               Settings
             </Button>
           </Stack>
@@ -178,7 +151,8 @@ const AdminPage = () => {
             setSelectedRequest={setSelectedRequest}
             handleRefresh={handleRefresh}
             isRefreshing={isRefreshing}
-            setImagePreviewOpen={setImagePreviewOpen}
+            setImagePreviewOpen={setPaymentPreviewOpen}
+            setPaymentPreviewRequest={setPaymentPreviewRequest}
           />
         </Stack>
       </Box>
@@ -188,11 +162,25 @@ const AdminPage = () => {
         setSelectedRequest={setSelectedRequest}
       />
 
-      <ImagePreviewDialog
-        imagePreviewOpen={imagePreviewOpen}
-        setImagePreviewOpen={setImagePreviewOpen}
-        selectedRequest={selectedRequest}
+      <PreviewPaymentDialog
+        paymentPreviewOpen={paymentPreviewOpen}
+        setPaymentPreviewOpen={setPaymentPreviewOpen}
+        selectedRequest={paymentPreviewRequest}
       />
+
+      <Snackbar 
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
@@ -240,7 +228,8 @@ const RequestsTable = ({
   setSelectedRequest,
   handleRefresh,
   isRefreshing,
-  setImagePreviewOpen
+  setImagePreviewOpen,
+  setPaymentPreviewRequest
 }) => {
   const columns = [
     {
@@ -269,17 +258,10 @@ const RequestsTable = ({
       width: 120,
       renderCell: (params) => {
         let chipColor = 'secondary';
-        if (params.value == REQUEST_TYPES.HARDCOPY) {
-          chipColor = 'primary';
-        } else if (params.value == REQUEST_TYPES.BOTH) {
-          chipColor = 'error';
-        }
+        if (params.value == REQUEST_TYPES.HARDCOPY) chipColor = 'primary';
+        else if (params.value == REQUEST_TYPES.BOTH) chipColor = 'error';
         return (
-          <Chip 
-            label={REQUEST_TYPE_LABELS[params.value] || 'Unknown'} 
-            color={chipColor}
-            size="small"
-          />
+          <Chip label={REQUEST_TYPE_LABELS[params.value] || 'Unknown'} color={chipColor} size="small" />
         );
       },
     },
@@ -297,30 +279,19 @@ const RequestsTable = ({
       renderCell: (params) => (
         <ButtonGroup size="small">
           <Tooltip title="View Details">
-            <IconButton
-              onClick={() => setSelectedRequest(params.row)}
-              size="small"
-            >
+            <IconButton onClick={() => setSelectedRequest(params.row)} size="small">
               <ViewIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           {params.row.requestType !== REQUEST_TYPES.SOFTCOPY && params.row.status == 'pending' && (
             <>
               <Tooltip title="Approve">
-                <IconButton
-                  onClick={() => handleStatusChange(params.row.username, 'approved')}
-                  color="success"
-                  size="small"
-                >
+                <IconButton onClick={() => handleStatusChange(params.row.username, 'approved')} color="success" size="small">
                   <ApproveIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Reject">
-                <IconButton
-                  onClick={() => handleStatusChange(params.row.username, 'rejected')}
-                  color="error"
-                  size="small"
-                >
+                <IconButton onClick={() => handleStatusChange(params.row.username, 'rejected')} color="error" size="small">
                   <RejectIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -328,24 +299,18 @@ const RequestsTable = ({
           )}
           {params.row.status === 'approved' && (
             <Tooltip title="Mark as Completed">
-              <IconButton
-                onClick={() => handleStatusChange(params.row.username, 'completed')}
-                color="info"
-                size="small"
-              >
+              <IconButton onClick={() => handleStatusChange(params.row.username, 'completed')} color="info" size="small">
                 <CheckCircle fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
           {params.row.paymentProof && (
             <Tooltip title="View Payment Proof">
-              <IconButton
+              <IconButton size="small"
                 onClick={() => {
-                  setSelectedRequest(params.row);
+                  setPaymentPreviewRequest(params.row);
                   setImagePreviewOpen(true);
-                }}
-                size="small"
-              >
+                }}>
                 <DownloadIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -422,59 +387,64 @@ const RequestsTable = ({
 
 // Extracted RequestDetailsDialog component
 const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
-  <Dialog
-    open={Boolean(selectedRequest)}
-    onClose={() => setSelectedRequest(null)}
-    maxWidth="sm"
-    fullWidth
-  >
-    <DialogTitle>Request Details</DialogTitle>
-    <DialogContent dividers>
-      {selectedRequest && (
-        <Stack spacing={2}>
-          <Typography variant="subtitle2">
-            Student Details
-          </Typography>
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'auto 1fr' }}>
-            {[
-              ['USN', selectedRequest.username],
-              ['Name', selectedRequest.name],
-              ['Email', selectedRequest.email],
-              ['Phone', selectedRequest.phone],
-              ['Course', selectedRequest.course],
-              ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
-              ['Hard Copy Images', selectedRequest.hardcopyImg??selectedRequest.hardcopyImages],
-              ['Status', selectedRequest.status],
-              ['Date', selectedRequest.requestDate],
-            ].map(([label, value]) => (
-              <React.Fragment key={label}>
-                <Typography color="text.secondary">{label}:</Typography>
-                <Typography>{value}</Typography>
-              </React.Fragment>
-            ))}
-          </Box>
-          
-          <Typography variant="subtitle2" sx={{ mt: 2 }}>Requested Images</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <ImageGrid
-              images={Object.entries(selectedRequest.requestedImages || {})}
-              loading={false}
-              columns={3}
-              showColumnControls={false}
-              sx={{ width: '100%' }} />
-          </Box>
-        </Stack>
-      )}
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={() => setSelectedRequest(null)}>Close</Button>
-    </DialogActions>
+  <Dialog open={Boolean(selectedRequest)} onClose={() => setSelectedRequest(null)} maxWidth="sm" fullWidth>
+    {selectedRequest && (
+      <>
+        <DialogTitle>Request Details</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Typography variant="subtitle2">
+              Student Details
+            </Typography>
+            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'auto 1fr' }}>
+              {[
+                ['USN', selectedRequest.username],
+                ['Name', selectedRequest.name],
+                ['Email', selectedRequest.email],
+                ['Phone', selectedRequest.phone],
+                ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
+                ['Status', selectedRequest.status],
+                ['Date', selectedRequest.requestDate],
+              ].map(([label, value]) => (
+                <React.Fragment key={label}>
+                  <Typography color="text.secondary">{label}:</Typography>
+                  <Typography>{value}</Typography>
+                </React.Fragment>
+              ))}
+            </Box>
+            
+            <Typography variant="label" color='text.secondary' sx={{ mt: 2 }}>Requested Images:</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <ImageGrid
+                images={Object.entries(selectedRequest.requestedImages || {})}
+                loading={false}
+                columns={3}
+                showColumnControls={false}
+                sx={{ width: '100%' }} />
+            </Box>
+
+            {selectedRequest.hardcopyImages && (
+              <Stack spacing={1}>
+                <Typography variant="label" color='text.secondary'>Hard Copy Images:</Typography>
+                <Stack direction="row" spacing={1}>
+                  {selectedRequest.hardcopyImages.map((img) => {
+                    return <Chip key={img} variant="outlined" color="primary" label={img} />;
+                  })}
+                </Stack>
+              </Stack>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedRequest(null)}>Close</Button>
+        </DialogActions>
+      </>
+    )}
   </Dialog>
 );
 
-// ImagePreviewDialog component
-const ImagePreviewDialog = ({ imagePreviewOpen, setImagePreviewOpen, selectedRequest }) => (
-  <Dialog open={imagePreviewOpen} onClose={() => setImagePreviewOpen(false)} maxWidth="md" fullWidth>
+const PreviewPaymentDialog = ({ paymentPreviewOpen, setPaymentPreviewOpen, selectedRequest }) => (
+  <Dialog open={paymentPreviewOpen} onClose={() => setPaymentPreviewOpen(false)} maxWidth="md" fullWidth>
     <DialogTitle>Payment Proof</DialogTitle>
     <DialogContent>
       {selectedRequest?.paymentProof && (
@@ -482,7 +452,17 @@ const ImagePreviewDialog = ({ imagePreviewOpen, setImagePreviewOpen, selectedReq
       )}
     </DialogContent>
     <DialogActions>
-      <Button onClick={() => setImagePreviewOpen(false)}>Close</Button>
+      <Button onClick={() => {
+        const base64Data = selectedRequest.paymentProof.replace(/^data:image\/\w+;base64,/, "");
+        const blob = new Blob([Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))], {type: 'image/jpeg'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `payment-proof-${selectedRequest.username}.jpg`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }}>Download</Button>
+      <Button onClick={() => setPaymentPreviewOpen(false)}>Close</Button>
     </DialogActions>
   </Dialog>
 );

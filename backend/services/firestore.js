@@ -93,7 +93,7 @@ const updateRequest = async (username, requestedImages, type, paymentProof = nul
   return 'Request updated successfully';
 };
 
-const handleImageRequest = async (userdata, course, requestedImages, requestType, paymentProof = null) => {
+const handleImageRequest = async (userdata, requestedImages, requestType, paymentProof = null) => {
   try {
     return await db.runTransaction(async (transaction) => {
       const userRef = db.collection(COLLECTION_NAME).doc(userdata.username);
@@ -121,7 +121,6 @@ const handleImageRequest = async (userdata, course, requestedImages, requestType
 
       // Prepare update data in one go
       const updateData = {
-        course,
         requestType: newRequestType,
         requestedImages,
         status: userData.status == "approved" ? userData.status : newRequestType == REQUEST_TYPES.SOFTCOPY ? 'completed' : 'pending',
@@ -147,7 +146,8 @@ const handleImageRequest = async (userdata, course, requestedImages, requestType
         try {
           if (requestType === REQUEST_TYPES.SOFTCOPY) {
             const imageNames = Object.keys(requestedImages);
-            const imageLinks = await getImageLinks(course, imageNames);
+            // getImageLinks now expects full paths
+            const imageLinks = await getImageLinks(imageNames);
             await sendEmail(
               userdata.email,
               'Your Requested Images',

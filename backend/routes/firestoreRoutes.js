@@ -48,20 +48,18 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Handle image request route
-router.post('/request/:course', authMiddleware, async (req, res) => {
+// Update request route to remove course parameter
+router.post('/request', authMiddleware, async (req, res) => {
   const startTime = Date.now();
   const { userdata, requestedImages, requestType, paymentProof } = req.body;
-  const course = req.params.course;
 
   console.log(`📸 [${new Date().toISOString()}] New image request:`);
   console.log(`   👤 User: ${userdata?.username || 'unknown'}`);
-  console.log(`   📚 Course: ${course}`);
   console.log(`   🖼️  Images: ${Object.keys(requestedImages).length || 0}`);
   console.log(`   📝 Type: ${requestType}`);
 
   try {
-    const result = await handleImageRequest(userdata, course, requestedImages, requestType, paymentProof??'');
+    const result = await handleImageRequest(userdata, requestedImages, requestType, paymentProof??'');
     const duration = Date.now() - startTime;
 
     console.log(`✅ [${new Date().toISOString()}] Image request processed:`);

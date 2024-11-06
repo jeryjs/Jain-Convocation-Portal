@@ -227,7 +227,8 @@ export default function RequestPage() {
         }) : null
       };
 
-      const response = await fetch(`${config.API_BASE_URL}/request/${courseId}`, {
+      // Remove courseId from URL
+      const response = await fetch(`${config.API_BASE_URL}/request`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(requestData)

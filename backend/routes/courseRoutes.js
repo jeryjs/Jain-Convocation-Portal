@@ -23,7 +23,7 @@ router.get('/courses/:course', async (req, res) => {
 
   try {
     const images = await getCourseImages(course);
-    console.log(`✅ Found ${Object.keys(images).length} images in ${course}`);
+    console.log(`✅ Found ${images.length} images in ${course}`);
     res.json(images);
   } catch (error) {
     console.error(`❌ Failed to fetch images for ${course}:`, error);
@@ -32,14 +32,13 @@ router.get('/courses/:course', async (req, res) => {
 });
 
 // Route to get image download links
-router.get('/courses/:course/:images', async (req, res) => {
-  const { course, images } = req.params;
-  const imageList = images.split(',');
-  console.log(`🔗 Fetching links for ${imageList.length} images in ${course}`);
+router.get('/images/:paths(*)', async (req, res) => {
+  const paths = req.params.paths.split(',').map(path => decodeURIComponent(path));
+  console.log(`🔗 Fetching links for ${paths.length} images:`, paths);
 
   try {
-    const links = await getImageLinks(course, imageList);
-    console.log(`✅ Links generated for ${imageList.length} images`);
+    const links = await getImageLinks(paths);
+    console.log(`✅ Links generated for ${paths.length} images`);
     res.json({ links });
   } catch (error) {
     console.error(`❌ Failed to get links for images:`, error);

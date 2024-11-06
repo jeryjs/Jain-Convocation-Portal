@@ -81,7 +81,6 @@ export default function ManagePage() {
     { field: 'email', headerName: 'Email', width: 230 },
     { field: 'password', headerName: 'Password', width: 150 },
     { field: 'role', headerName: 'Role', width: 150 },
-    { field: 'course', headerName: 'Course', width: 150 },
     { field: 'requestTypeLabel', headerName: 'Request Type', width: 150 },
     { field: 'lastUpdated', 
       headerName: 'Last Updated', 
@@ -112,7 +111,7 @@ export default function ManagePage() {
         onBack={() => navigate('/admin')}
       />
 
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: 3, width:{md:'90vw'} }}>
         <Stack spacing={3}>
           <Card sx={{ p: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>

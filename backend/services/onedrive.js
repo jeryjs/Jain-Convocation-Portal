@@ -41,8 +41,9 @@ const getCourseImages = async (course) => {
   return images;
 };
 
-const getImageLinks = async (course, images) => {
-  const cacheKey = `image_links_${images.join(',')}`;
+// Updated to handle full paths directly
+const getImageLinks = async (fullPaths) => {
+  const cacheKey = `image_links_${fullPaths.join(',')}`;
   const cachedLinks = cache.get(cacheKey);
   
   if (cachedLinks) return cachedLinks;
@@ -50,10 +51,10 @@ const getImageLinks = async (course, images) => {
   const shareId = getShareId();
   try {
     const links = await Promise.all(
-      images.map(async (image) => {
-        const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root:/${course}/${image}`);
+      fullPaths.map(async (path) => {
+        const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root:/${path}`);
         return {
-          name: image,
+          name: path,
           url: response.data['@content.downloadUrl']
         };
       })
