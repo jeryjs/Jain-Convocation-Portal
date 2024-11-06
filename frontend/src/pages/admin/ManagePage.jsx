@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Card,
@@ -17,9 +18,10 @@ import { DataGrid } from '@mui/x-data-grid';
 import { REQUEST_TYPE_LABELS } from '../../config/constants';
 import PageHeader from '../../components/PageHeader';
 import config from '../../config';
-import { useNavigate } from "react-router-dom";
+import { useAuth } from '../../config/AuthContext';
 
 export default function ManagePage() {
+  const { getAuthHeaders } = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -37,7 +39,9 @@ export default function ManagePage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${config.API_BASE_URL}/admin/manage`);
+      const response = await fetch(`${config.API_BASE_URL}/admin/manage`, {
+        headers: getAuthHeaders()
+      });
       const data = await response.json();
       setStudents(data.map(student => ({
         ...student,
@@ -46,11 +50,7 @@ export default function ManagePage() {
       })));
     } catch (error) {
       console.error('Error fetching users:', error);
-      setSnackbar({
-        open: true,
-        message: 'Error fetching users',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: 'Error fetching users', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -61,25 +61,17 @@ export default function ManagePage() {
       const jsonData = JSON.parse(jsonInput);
       const response = await fetch(`${config.API_BASE_URL}/admin/manage/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ students: jsonData })
       });
       
       if (!response.ok) throw new Error('Import failed');
       
-      setSnackbar({
-        open: true,
-        message: 'Students imported successfully',
-        severity: 'success'
-      });
+      setSnackbar({ open: true, message: 'Students imported successfully', severity: 'success' });
       setImportDialogOpen(false);
       fetchUsers();
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || 'Error importing students',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: error.message || 'Error importing students', severity: 'error' });
     }
   };
 
@@ -91,8 +83,7 @@ export default function ManagePage() {
     { field: 'role', headerName: 'Role', width: 150 },
     { field: 'course', headerName: 'Course', width: 150 },
     { field: 'requestTypeLabel', headerName: 'Request Type', width: 150 },
-    { 
-      field: 'lastUpdated', 
+    { field: 'lastUpdated', 
       headerName: 'Last Updated', 
       width: 200,
       valueFormatter: (params) => {
@@ -126,10 +117,7 @@ export default function ManagePage() {
           <Card sx={{ p: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6">Student List</Typography>
-              <Button
-                variant="contained"
-                onClick={() => setImportDialogOpen(true)}
-              >
+              <Button variant="contained" onClick={() => setImportDialogOpen(true)}>
                 Import Students
               </Button>
             </Stack>
@@ -149,12 +137,7 @@ export default function ManagePage() {
         </Stack>
       </Box>
 
-      <Dialog
-        open={importDialogOpen}
-        onClose={() => setImportDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={importDialogOpen} onClose={() => setImportDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Import Students</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -178,11 +161,7 @@ export default function ManagePage() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>

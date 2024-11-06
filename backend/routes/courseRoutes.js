@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getCourseFolders, getCourseImages, getImageLink } = require('../services/onedrive');
+const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/onedrive');
 
 // Route to get list of courses (OneDrive folders)
 router.get('/courses', async (req, res) => {
@@ -31,18 +31,19 @@ router.get('/courses/:course', async (req, res) => {
   }
 });
 
-// Route to get image download link
-router.get('/courses/:course/:image', async (req, res) => {
-  const { course, image } = req.params;
-  console.log(`🔗 Fetching link for ${image} in ${course}`);
+// Route to get image download links
+router.get('/courses/:course/:images', async (req, res) => {
+  const { course, images } = req.params;
+  const imageList = images.split(',');
+  console.log(`🔗 Fetching links for ${imageList.length} images in ${course}`);
 
   try {
-    const link = await getImageLink(course, image);
-    console.log(`✅ Link generated for ${image}`);
-    res.json({ link });
+    const links = await getImageLinks(course, imageList);
+    console.log(`✅ Links generated for ${imageList.length} images`);
+    res.json({ links });
   } catch (error) {
-    console.error(`❌ Failed to get link for ${image}:`, error);
-    res.status(500).send('Failed to retrieve image link');
+    console.error(`❌ Failed to get links for images:`, error);
+    res.status(500).send('Failed to retrieve image links');
   }
 });
 

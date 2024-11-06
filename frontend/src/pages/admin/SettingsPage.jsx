@@ -13,6 +13,7 @@ import {
 import PageHeader from '../../components/PageHeader';
 import config from '../../config';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../config/AuthContext';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
@@ -20,6 +21,7 @@ const SettingsPage = () => {
     courses: { folderId: '' },
     general: { gmailUser: '', gmailAppPass: '' }
   });
+  const { getAuthHeaders } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -35,7 +37,9 @@ const SettingsPage = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch(`${config.API_BASE_URL}/admin/settings`);
+      const response = await fetch(`${config.API_BASE_URL}/admin/settings`, {
+        headers: getAuthHeaders()
+      });
       const data = await response.json();
       setSettings(data || {});
     } catch (error) {
@@ -65,7 +69,7 @@ const SettingsPage = () => {
       setSaving(true);
       const response = await fetch(`${config.API_BASE_URL}/admin/settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(settings)
       });
       

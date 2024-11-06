@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
     // Initialize state from secure storage
     const [userData, setUserData] = useState(secureStorage.get()?.userData || null);
+    const [token, setToken] = useState(secureStorage.get()?.token || null);
     const [selectedImages, setSelectedImages] = useState(secureStorage.get()?.selectedImages || {});
 
     // When userData changes, restore selected images from requested images
@@ -19,18 +20,21 @@ export function AuthProvider({ children }) {
     // Persist state changes to secure storage
     useEffect(() => {
         if (userData || Object.keys(selectedImages).length > 0) {
-            secureStorage.set({ userData, selectedImages });
+            secureStorage.set({ userData, token, selectedImages });
         } else {
             secureStorage.clear();
         }
-    }, [userData, selectedImages]);
+    }, [userData, selectedImages, token]);
 
-    const login = (data) => {
+    const login = (data, authToken) => {
         setUserData(data);
+        setToken(authToken);
+        secureStorage.set({ userData: data, token: authToken, selectedImages: {} });
     };
 
     const logout = () => {
         setUserData(null);
+        setToken(null);
         setSelectedImages({});
         secureStorage.clear();
     };
@@ -52,6 +56,12 @@ export function AuthProvider({ children }) {
         }
     };
 
+    // Add headers function for components to use
+    const getAuthHeaders = () => ({
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    });
+
     return (
         <AuthContext.Provider value={{
             userData,
@@ -60,7 +70,8 @@ export function AuthProvider({ children }) {
             logout,
             updateSelectedImages,
             getAvailableSlots,
-            updateUserAfterRequest
+            updateUserAfterRequest,
+            getAuthHeaders
         }}>
             {children}
         </AuthContext.Provider>

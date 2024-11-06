@@ -131,8 +131,8 @@ const handleImageRequest = async (userdata, course, requestedImages, requestType
       };
 
       // Add hardcopy image if applicable
-      if (requestType === REQUEST_TYPES.HARDCOPY && userdata.hardcopyImg) {
-        updateData.hardcopyImg = userdata.hardcopyImg;
+      if (requestType === REQUEST_TYPES.HARDCOPY && userdata.hardcopyImages) {
+        updateData.hardcopyImages = userdata.hardcopyImages;
       }
 
       if (paymentProof) {
@@ -151,7 +151,7 @@ const handleImageRequest = async (userdata, course, requestedImages, requestType
             await sendEmail(
               userdata.email,
               'Your Requested Images',
-              'Please find your requested images attached.\n\nBest regards,\nJain Convocation Team',
+              `Dear ${userdata.name},\n\nPlease find your requested images attached.\n\nBest regards,\nJain Convocation Team`,
               imageLinks
             );
           } else if (requestType === REQUEST_TYPES.HARDCOPY) {

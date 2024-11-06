@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import JGILogo from "../assets/JGI.png";
 import JainBanner from "../assets/jain.png";
-import ProfileImg from "../assets/ProfileImg.png";
 import config from "../config";
 import { useAuth } from '../config/AuthContext';
 
@@ -28,9 +27,9 @@ function LoginPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        login(data.userdata);
-        if (data.userdata.role === "admin") {
+        const { userdata, token } = await response.json();
+        login(userdata, token);
+        if (userdata.role === "admin") {
           navigate("/admin");
         } else {
           navigate("/courses");

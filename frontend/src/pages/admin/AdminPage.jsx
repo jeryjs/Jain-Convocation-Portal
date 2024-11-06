@@ -22,6 +22,7 @@ import ImageGrid from '../../components/ImageGrid';
 import PageHeader from '../../components/PageHeader';
 import config from '../../config';
 import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../../config/constants';
+import { useAuth } from '../../config/AuthContext';
 
 const formatDate = (timestamp) => {
   if (!timestamp) return 'N/A';
@@ -42,6 +43,7 @@ const formatDate = (timestamp) => {
 
 const AdminPage = () => {
   const theme = useTheme();
+  const { getAuthHeaders } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -59,8 +61,14 @@ const AdminPage = () => {
   }, []);
 
   const fetchRequests = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/admin/requests`);
+      const response = await fetch(`${config.API_BASE_URL}/admin/requests`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch requests');
+      
       const data = await response.json();
       setRequests(data.map(req => ({
         ...req,
@@ -79,7 +87,7 @@ const AdminPage = () => {
       setLoading(true);
       const response = await fetch(`${config.API_BASE_URL}/admin/requests/${requestId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ status: newStatus })
       });
 
@@ -435,7 +443,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
               ['Phone', selectedRequest.phone],
               ['Course', selectedRequest.course],
               ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
-              ['Hard Copy Img', selectedRequest.hardcopyImg],
+              ['Hard Copy Images', selectedRequest.hardcopyImg??selectedRequest.hardcopyImages],
               ['Status', selectedRequest.status],
               ['Date', selectedRequest.requestDate],
             ].map(([label, value]) => (
@@ -446,17 +454,14 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
             ))}
           </Box>
           
-          <Typography variant="subtitle2" sx={{ mt: 2 }}>
-            Requested Images
-          </Typography>
+          <Typography variant="subtitle2" sx={{ mt: 2 }}>Requested Images</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             <ImageGrid
               images={Object.entries(selectedRequest.requestedImages || {})}
               loading={false}
               columns={3}
               showColumnControls={false}
-              sx={{ width: '100%' }}
-            />
+              sx={{ width: '100%' }} />
           </Box>
         </Stack>
       )}
@@ -467,27 +472,13 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
   </Dialog>
 );
 
-// Extracted ImagePreviewDialog component
+// ImagePreviewDialog component
 const ImagePreviewDialog = ({ imagePreviewOpen, setImagePreviewOpen, selectedRequest }) => (
-  <Dialog
-    open={imagePreviewOpen}
-    onClose={() => setImagePreviewOpen(false)}
-    maxWidth="md"
-    fullWidth
-  >
+  <Dialog open={imagePreviewOpen} onClose={() => setImagePreviewOpen(false)} maxWidth="md" fullWidth>
     <DialogTitle>Payment Proof</DialogTitle>
     <DialogContent>
       {selectedRequest?.paymentProof && (
-        <Box
-          component="img"
-          src={selectedRequest.paymentProof}
-          sx={{
-            width: '100%',
-            height: 'auto',
-            maxHeight: '70vh',
-            objectFit: 'contain',
-          }}
-        />
+        <Box component="img" src={selectedRequest.paymentProof} sx={{ width: '100%', height: 'auto', maxHeight: '70vh', objectFit: 'contain' }} />
       )}
     </DialogContent>
     <DialogActions>

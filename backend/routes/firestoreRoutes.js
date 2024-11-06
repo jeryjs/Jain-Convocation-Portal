@@ -10,6 +10,8 @@ const {
   getSettings,
   updateSettings
 } = require('../services/firestore');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { generateToken } = require('../services/auth');
 
 // Login route
 router.post('/login', async (req, res) => {
@@ -28,7 +30,8 @@ router.post('/login', async (req, res) => {
       console.log(`   👤 User: ${username}`);
       console.log(`   📝 Role: ${userdata.role || 'student'}`);
       console.log(`   ⏱️  Duration: ${duration}ms`);
-      res.json({ userdata });
+      const token = generateToken(userdata);
+      res.json({ userdata, token });
     } else {
       console.log(`❌ [${new Date().toISOString()}] Login failed:`);
       console.log(`   👤 User: ${username}`);
@@ -46,7 +49,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Handle image request route
-router.post('/request/:course', async (req, res) => {
+router.post('/request/:course', authMiddleware, async (req, res) => {
   const startTime = Date.now();
   const { userdata, requestedImages, requestType, paymentProof } = req.body;
   const course = req.params.course;
@@ -76,7 +79,7 @@ router.post('/request/:course', async (req, res) => {
 });
 
 // Admin requests route with detailed logging
-router.get('/admin/requests', async (req, res) => {
+router.get('/admin/requests', authMiddleware, adminMiddleware, async (req, res) => {
   const startTime = Date.now();
   console.log(`📊 [${new Date().toISOString()}] Fetching admin requests...`);
 
@@ -99,7 +102,7 @@ router.get('/admin/requests', async (req, res) => {
 });
 
 // Status update route with detailed logging
-router.put('/admin/requests/:requestId/status', async (req, res) => {
+router.put('/admin/requests/:requestId/status', authMiddleware, adminMiddleware, async (req, res) => {
   const startTime = Date.now();
   const { requestId } = req.params;
   const { status } = req.body;
@@ -127,7 +130,7 @@ router.put('/admin/requests/:requestId/status', async (req, res) => {
 });
 
 // Add new routes for student management
-router.get('/admin/manage', async (req, res) => {
+router.get('/admin/manage', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const students = await getAllUsers();
     res.json(students);
@@ -137,7 +140,7 @@ router.get('/admin/manage', async (req, res) => {
   }
 });
 
-router.post('/admin/manage/import', async (req, res) => {
+router.post('/admin/manage/import', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { students } = req.body;
     await importUsers(students);
@@ -151,10 +154,8 @@ router.post('/admin/manage/import', async (req, res) => {
   }
 });
 
-// Update these routes
-
 // Get all settings or specific category
-router.get('/admin/settings/:category?', async (req, res) => {
+router.get('/admin/settings/:category?', authMiddleware, async (req, res) => {
   try {
     const settings = await getSettings(req.params.category || 'all');
     res.json(settings);
@@ -165,7 +166,7 @@ router.get('/admin/settings/:category?', async (req, res) => {
 });
 
 // Update settings
-router.post('/admin/settings', async (req, res) => {
+router.post('/admin/settings', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     await updateSettings(req.body);
     res.json({ success: true });

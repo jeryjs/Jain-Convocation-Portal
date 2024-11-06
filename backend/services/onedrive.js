@@ -42,6 +42,11 @@ const getCourseImages = async (course) => {
 };
 
 const getImageLinks = async (course, images) => {
+  const cacheKey = `image_links_${images.join(',')}`;
+  const cachedLinks = cache.get(cacheKey);
+  
+  if (cachedLinks) return cachedLinks;
+
   const shareId = getShareId();
   try {
     const links = await Promise.all(
@@ -53,6 +58,8 @@ const getImageLinks = async (course, images) => {
         };
       })
     );
+    
+    cache.set(cacheKey, links, TTL.COURSES);
     return links;
   } catch (error) {
     console.error('Error getting image links:', error);
