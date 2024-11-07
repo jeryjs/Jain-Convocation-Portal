@@ -157,7 +157,6 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
         try {
           if (requestType === REQUEST_TYPES.SOFTCOPY) {
             const imageNames = Object.keys(requestedImages);
-            // getImageLinks now expects full paths
             const imageLinks = await getImageLinks(imageNames);
             await sendEmail(
               userdata.email,
@@ -174,9 +173,10 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
           }
         } catch (emailError) {
           console.error('Error sending email:', emailError);
-          // Don't throw here as the main operation succeeded
         }
       });
+
+      invalidateCache('requests');
 
       return {
         success: true,

@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/onedrive');
+const { log } = require('../utils/logUtils');
 
 // Route to get list of courses (OneDrive folders)
 router.get('/courses', async (req, res) => {
-  console.log('📚 Fetching all courses...');
-  
   try {
     const courses = await getCourseFolders();
-    console.log(`✅ Found ${courses.length} courses`);
+    log('success', 'FetchCourses', { count: courses.length });
     res.json(courses);
   } catch (error) {
-    console.error('❌ Failed to fetch courses:', error);
+    log('error', 'FetchCoursesFailed', { error: error.message });
     res.status(500).send('Failed to retrieve courses');
   }
 });
@@ -19,14 +18,12 @@ router.get('/courses', async (req, res) => {
 // Route to get all images in a course folder
 router.get('/courses/:course', async (req, res) => {
   const course = req.params.course;
-  console.log(`📸 Fetching images for course: ${course}`);
-
   try {
     const images = await getCourseImages(course);
-    console.log(`✅ Found ${images.length} images in ${course}`);
+    log('success', 'FetchCourseImages', { course, count: images.length });
     res.json(images);
   } catch (error) {
-    console.error(`❌ Failed to fetch images for ${course}:`, error);
+    log('error', 'FetchCourseImagesFailed', { course, error: error.message });
     res.status(500).send('Failed to retrieve images');
   }
 });
@@ -34,14 +31,14 @@ router.get('/courses/:course', async (req, res) => {
 // Route to get image download links
 router.get('/images/:paths(*)', async (req, res) => {
   const paths = req.params.paths.split(',').map(path => decodeURIComponent(path));
-  console.log(`🔗 Fetching links for ${paths.length} images:`, paths);
+  log('info', 'FetchingImageLinks', { count: paths.length });
 
   try {
     const links = await getImageLinks(paths);
-    console.log(`✅ Links generated for ${paths.length} images`);
+    log('success', 'ImageLinksFetched', { count: links.length });
     res.json({ links });
   } catch (error) {
-    console.error(`❌ Failed to get links for images:`, error);
+    log('error', 'FetchImageLinksFailed', { error: error.message });
     res.status(500).send('Failed to retrieve image links');
   }
 });

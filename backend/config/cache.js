@@ -5,7 +5,7 @@ const TTL = {
   SETTINGS: 3600, // 1 hour
   COURSES: 60, // 1 minute
   USER_DATA: 30, // 30 seconds
-  REQUESTS: 15, // 15 seconds
+  SETTINGS: 3600, // 1 hour
 };
 
 const cache = new NodeCache({
