@@ -140,8 +140,8 @@ router.get('/admin/manage', authMiddleware, adminMiddleware, async (req, res) =>
 
 router.post('/admin/manage/import', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { students } = req.body;
-    await importUsers(students);
+    const { users } = req.body;
+    await importUsers(users);
     res.json({ success: true });
   } catch (error) {
     console.error('Failed to import students:', error);

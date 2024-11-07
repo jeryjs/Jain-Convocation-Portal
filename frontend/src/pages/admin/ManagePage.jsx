@@ -5,9 +5,9 @@ import {
   Button, TextField, Dialog,
   DialogTitle, DialogContent,
   DialogActions, Snackbar,
-  Alert,
+  Alert, CircularProgress,
   IconButton, Tooltip, FormControl, InputLabel, Select, MenuItem,
-  ToggleButton, ToggleButtonGroup, 
+  ToggleButton, ToggleButtonGroup,
   Tab, Tabs, Paper,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -15,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CodeIcon from '@mui/icons-material/Code';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { DataGrid } from '@mui/x-data-grid';
 import { REQUEST_TYPE_LABELS } from '../../config/constants';
 import PageHeader from '../../components/PageHeader';
@@ -33,9 +34,10 @@ export default function ManagePage() {
   const [jsonInput, setJsonInput] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [formMode, setFormMode] = useState('add');
-  const mounted  = useRef(false);
-  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const mounted = useRef(false);
+  const navigate = useNavigate();
 
   const defaultUserData = {
     username: '',
@@ -50,11 +52,12 @@ export default function ManagePage() {
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
-    
-    fetchUsers();
+
+    handleRefresh();
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const response = await fetch(`${config.API_BASE_URL}/admin/manage`, {
         headers: getAuthHeaders()
@@ -67,6 +70,12 @@ export default function ManagePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchUsers();
+    setIsRefreshing(false);
   };
 
   const handleViewModeChange = (event, newMode) => {
@@ -130,7 +139,7 @@ export default function ManagePage() {
     try {
       setSaving(true);
       const usersToSave = viewMode === 'json' ? JSON.parse(jsonInput) : editingUsers;
-      
+
       const response = await fetch(`${config.API_BASE_URL}/admin/manage/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -139,11 +148,7 @@ export default function ManagePage() {
 
       if (!response.ok) throw new Error('Operation failed');
 
-      setSnackbar({ 
-        open: true, 
-        message: `Users ${formMode === 'import' ? 'imported' : 'updated'} successfully`, 
-        severity: 'success' 
-      });
+      setSnackbar({ open: true, message: `Users ${formMode === 'import' ? 'imported' : 'updated'} successfully`, severity: 'success' });
       setDialogOpen(false);
       setSelectionModel([]);
       fetchUsers();
@@ -198,13 +203,13 @@ export default function ManagePage() {
 
   const columns = [
     { field: 'id', headerName: 'USN', width: 130 },
-    { field: 'name', headerName: 'Name', width: 200 },
-    { field: 'email', headerName: 'Email', width: 200 },
+    { field: 'name', headerName: 'Name', width: 180 },
+    { field: 'email', headerName: 'Email', width: 180 },
     { field: 'username', headerName: 'Username', width: 130 },
     { field: 'password', headerName: 'Password', width: 130 },
     { field: 'role', headerName: 'Role', width: 100 },
     { field: 'phone', headerName: 'Phone', width: 130 },
-    { 
+    {
       field: 'requestType', headerName: 'Request Type', width: 120,
       renderCell: (params) => REQUEST_TYPE_LABELS[params.value || 0]
     },
@@ -231,14 +236,37 @@ export default function ManagePage() {
         onBack={() => navigate('/admin')}
       />
 
-      <Box sx={{ p: 3, width:{md:'90vw'} }}>
+      <Box sx={{ p: 3, width: { md: '90vw' } }}>
         <Stack spacing={3}>
           <Card sx={{ p: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6">Users List</Typography>
-              <Button variant="contained" onClick={handleDialogOpen}>
-                {selectionModel.length > 0 ? 'Edit Selected' : 'Import Users'}
-              </Button>
+              <Stack direction="row" spacing={2}>
+                <Tooltip title="Refresh">
+                  <IconButton
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    sx={{
+                      bgcolor: 'background.paper',
+                      boxShadow: 1,
+                      '&:hover': {
+                        bgcolor: 'background.paper',
+                        transform: 'rotate(180deg)',
+                      },
+                      transition: 'transform 0.5s',
+                    }}
+                  >
+                    {isRefreshing ? (
+                      <CircularProgress size={24} />
+                    ) : (
+                      <RefreshIcon />
+                    )}
+                  </IconButton>
+                </Tooltip>
+                <Button variant="contained" onClick={handleDialogOpen}>
+                  {selectionModel.length > 0 ? 'Edit Selected' : 'Import Users'}
+                </Button>
+              </Stack>
             </Stack>
             <DataGrid
               rows={users}
@@ -248,7 +276,7 @@ export default function ManagePage() {
                 pagination: { paginationModel: { page: 0, pageSize: 10 } },
                 sorting: { sortModel: [{ field: 'username', sort: 'asc' }] },
               }}
-              pageSizeOptions={[10, 25, 50]}
+              pageSizeOptions={[10, 25, 50, 100]}
               disableRowSelectionOnClick
               checkboxSelection
               onRowSelectionModelChange={(newSelection) => {
@@ -287,14 +315,14 @@ export default function ManagePage() {
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ p: 1 }}>
                   <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} variant="scrollable">
                     {editingUsers.map((_, index) => (
-                      <Tab key={index} label={`User ${index + 1}`} icon={editingUsers.length > 1 && 
-                          <IconButton size="small" onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveUser(index);
-                            }}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        }
+                      <Tab key={index} label={`User ${index + 1}`} icon={editingUsers.length > 1 &&
+                        <IconButton size="small" onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveUser(index);
+                        }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      }
                       />
                     ))}
                   </Tabs>
@@ -304,7 +332,7 @@ export default function ManagePage() {
                 </Stack>
               </Paper>
               {editingUsers[activeTab] && (
-                <UserForm 
+                <UserForm
                   user={editingUsers[activeTab]}
                   index={activeTab}
                 />
@@ -338,11 +366,12 @@ export default function ManagePage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <LoadingButton 
+          <LoadingButton
             onClick={handleSave}
             loading={saving}
             variant="contained"
             disabled={(() => {
+              if (loading) return true;
               if (viewMode !== 'json') return false;
               try {
                 const parsed = JSON.parse(jsonInput);

@@ -53,20 +53,33 @@ const getUserData = async (username) => {
   return data;
 };
 
-// Add new function for student management
-const importUsers = async (students) => {
+// Function to manage users (import, edit, add)
+const importUsers = async (users) => {
   try {
+    if (!Array.isArray(users) || users.length === 0)
+      throw new Error('Invalid users data: must be a non-empty array');
+
     const batch = db.batch();
     
-    students.forEach(student => {
-      const docRef = db.collection(COLLECTION_NAME).doc(student.username);
+    users.forEach(user => {
+      if (!user.username) {
+        throw new Error('Each user must have a username');
+      }
+      const docRef = db.collection(COLLECTION_NAME).doc(user.username);
+      // Remove any undefined values and clean the user object
+      const cleanUser = Object.entries(user).reduce((acc, [key, value]) => {
+        if (value !== undefined) acc[key] = value;
+        return acc;
+      }, {});
+      
       batch.set(docRef, {
-        ...student,
+        ...cleanUser,
         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       });
     });
 
     await batch.commit();
+    invalidateCache('requests');  // Invalidate relevant caches
     return { success: true };
   } catch (error) {
     console.error('Import students error:', error);
@@ -82,9 +95,8 @@ const updateRequest = async (username, requestedImages, type, paymentProof = nul
     lastUpdated: admin.firestore.FieldValue.serverTimestamp()
   };
   
-  if ([1, 3].includes(type) && paymentProof) { // for HARDCOPY and BOTH
+  if ([1, 3].includes(type) && paymentProof)  // for HARDCOPY and BOTH
     dataToUpdate.paymentProof = paymentProof;
-  }
 
   await db.collection(COLLECTION_NAME).doc(username).update(dataToUpdate);
   invalidateCache('user', username);
@@ -195,18 +207,6 @@ const getAllRequests = async () => {
       .where('requestType', '>', 0) // Only get documents with a requestType
       .get();
 
-    // Log the raw data for debugging
-    console.log(`📦 Raw request count: ${snapshot.size}`);
-    if (snapshot.size > 0) {
-      const firstDoc = snapshot.docs[0].data();
-      console.log(`📄 Sample request data:`, {
-        id: snapshot.docs[0].id,
-        username: firstDoc.username,
-        timestamp: firstDoc.lastUpdated?.toDate?.(),
-        status: firstDoc.status
-      });
-    }
-
     const requests = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -274,8 +274,6 @@ const getAllUsers = async () => {
   }
 };
 
-// Update these functions
-
 const getSettings = async (category = 'all') => {
   const cacheKey = `settings_${category}`;
   const cachedSettings = cache.get(cacheKey);
@@ -326,7 +324,7 @@ const updateSettings = async (settings) => {
   }
 };
 
-// Add cache invalidation for updates
+// Cache invalidation for data updates
 const invalidateCache = (type, key = '') => {
   switch (type) {
     case 'user':
