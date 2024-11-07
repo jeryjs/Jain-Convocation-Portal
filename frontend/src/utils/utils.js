@@ -1,5 +1,5 @@
-
-export const downloadFile = (url, filename, delay=1000) => {
+// Function to convert a string to a slug
+export const downloadFile = (url, filename, delay=100) => {
   return new Promise((resolve, reject) => {
     fetch(url)
       .then(response => response.blob())
@@ -20,9 +20,21 @@ export const downloadFile = (url, filename, delay=1000) => {
   });
 };
 
+// Function to format a date string
 export const formatDate = (timestamp) => {
   if (!timestamp) return 'N/A';
   try {
+    // Handle Firestore timestamp format
+    if (timestamp._seconds) {
+      const date = new Date(timestamp._seconds * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleString('en-US', {
+          dateStyle: 'short',
+          timeStyle: 'medium'
+        });
+      }
+    }
+    // Handle regular timestamp
     const date = new Date(timestamp);
     if (!isNaN(date.getTime())) {
       return date.toLocaleString('en-US', {
@@ -83,6 +95,7 @@ export const compressImage = (file, maxSize) => {
   });
 };
 
+// Function to convert a data URL to a Blob
 export const dataURLtoBlob = (dataURL) => {
   const arr = dataURL.split(',');
   const mime = arr[0].match(/:(.*?);/)[1];
@@ -95,8 +108,18 @@ export const dataURLtoBlob = (dataURL) => {
   return new Blob([u8arr], { type: mime });
 };
 
+// Function to generate a UPI payment link
 export const generateUPILink = (baseLink, amount) => {
   if (!baseLink) return '';
   const basePart = baseLink.split('am=')[0];
   return `${basePart}am=${amount}`;
+};
+
+// Function to validate a phone number
+export const validatePhone = (phone) => {
+  // Regex for Indian phone numbers: 
+  // - Must be exactly 10 digits
+  // - Must start with 6, 7, 8, or 9
+  const regex = /^[6-9]\d{9}$/;
+  return regex.test(phone);
 };

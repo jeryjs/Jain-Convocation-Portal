@@ -59,7 +59,7 @@ const AdminPage = () => {
       setRequests(data.map(req => ({
         ...req,
         id: req.username,
-        requestDate: formatDate(req.timestamp),
+        requestDate: formatDate(req.lastUpdated),
       })));
     } catch (error) {
       console.error('Error fetching requests:', error);

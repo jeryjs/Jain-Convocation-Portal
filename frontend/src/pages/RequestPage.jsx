@@ -19,6 +19,7 @@ import {
   DialogActions,
   TextField,
   Grid,
+  Chip,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -31,7 +32,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { LoadingButton } from '@mui/lab';
 import DownloadIcon from '@mui/icons-material/Download';
 import SendIcon from '@mui/icons-material/Send';
-import { downloadFile, compressImage, generateUPILink } from '../utils/utils';
+import { downloadFile, compressImage, generateUPILink, validatePhone } from '../utils/utils';
 
 const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
@@ -53,6 +54,7 @@ export default function RequestPage() {
   });
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadLinks, setDownloadLinks] = useState([]);
 
   useEffect(() => {
     if (userData) {
@@ -89,7 +91,7 @@ export default function RequestPage() {
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    
+
     try {
       if (file.size <= MAX_FILE_SIZE) {
         setPaymentProof(file);
@@ -98,7 +100,7 @@ export default function RequestPage() {
         if (compressedFile && compressedFile.size <= MAX_FILE_SIZE) {
           setPaymentProof(compressedFile);
         } else {
-          setSnackbar({ open: true, message: 'Unable to compress file below 250KB. Please use a smaller image.', severity: 'error'});
+          setSnackbar({ open: true, message: 'Unable to compress file below 250KB. Please use a smaller image.', severity: 'error' });
         }
       }
     } catch (error) {
@@ -150,20 +152,14 @@ export default function RequestPage() {
         headers: getAuthHeaders()
       });
       const data = await response.json();
-      
-      if (!data.links || data.links.length === 0) {
+
+      if (!data.links || data.links.length === 0)
         throw new Error('No download links available');
-      }
 
-      // Download files sequentially with longer delays
-      for (const link of data.links) {
-        const filename = link.name.split('/').pop();
-        await downloadFile(link.url, filename, 100);
-      }
-
-      setSnackbar({ open: true, message: `Successfully downloaded ${data.links.length} images`, severity: 'success' });
+      setDownloadLinks(data.links);
+      setSnackbar({ open: true, message: 'Successfully generated download links!', severity: 'success' });
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error downloading images', severity: 'error' });
+      setSnackbar({ open: true, message: error.message || 'Error fetching image links', severity: 'error' });
     } finally {
       setIsDownloading(false);
     }
@@ -173,6 +169,11 @@ export default function RequestPage() {
     try {
       setProcessing(true);
       setIsSubmitting(true);
+
+      // Add phone validation for hardcopy requests
+      if (requestType === REQUEST_TYPES.HARDCOPY)
+        if (!userFormData.phone || !validatePhone(userFormData.phone))
+          throw new Error('Please enter a valid phone number');
 
       const updatedUserData = {
         ...userData,
@@ -205,33 +206,28 @@ export default function RequestPage() {
       if (result.success) {
         updateUserAfterRequest(updatedUserData);  // Update both user data and selected images
         setSuccessDialog(true);
-        handleDownload(); // Download images if request is successful
       } else {
         throw new Error(result.message);
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || 'Error submitting request',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: error.message || 'Error submitting request', severity: 'error' });
     } finally {
       setIsSubmitting(false);
       setProcessing(false);
     }
   };
-  
+
   return (
     <>
       <PageHeader
         pageTitle={hasExistingRequests ? "Re-request Images" : "Request Images"}
-        pageSubtitle={hasExistingRequests 
-          ? "Request soft copies of your previously selected images" 
+        pageSubtitle={hasExistingRequests
+          ? "Request soft copies of your previously selected images"
           : "Review and submit your request"}
         breadcrumbs={['Courses', courseId, 'Gallery', 'Request']}
         onBack={() => navigate(`/courses/${courseId}`)}
       />
-      
+
       <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', mx: 'auto' }}>
         <Stack spacing={{ xs: 2, sm: 3 }}>
           {hasExistingRequests && (
@@ -248,7 +244,7 @@ export default function RequestPage() {
             </ToggleButtonGroup>
           </Card>
 
-          <UserForm 
+          <UserForm
             userData={userData}
             userFormData={userFormData}
             onFormChange={handleFormChange}
@@ -277,49 +273,53 @@ export default function RequestPage() {
             />
           )}
 
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
-            spacing={2} 
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
             sx={{ width: '100%' }}
           >
-            <Button 
-              variant="contained" 
-              size="large" 
+            <LoadingButton
+              loading={isSubmitting}
+              variant="contained"
+              size="large"
               onClick={handleSubmit}
               startIcon={<SendIcon />}
               disabled={
-                (requestType === REQUEST_TYPES.HARDCOPY && 
-                  (!paymentProof || selectedHardcopyImages.length === 0 || !userFormData.phone)) || 
-                isSubmitting || 
-                (requestType === REQUEST_TYPES.SOFTCOPY && 
-                  Object.keys(selectedImages).length === 0)
+                (requestType === REQUEST_TYPES.SOFTCOPY && Object.keys(selectedImages).length === 0) ||
+                (requestType === REQUEST_TYPES.HARDCOPY && (!paymentProof || selectedHardcopyImages.length === 0))
               }
-              sx={{ 
-                py: { xs: 1.5, sm: 1 },
-                flex: 1
-              }}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Submit Request'
-              )}
-            </Button>
+              sx={{ py: { xs: 1.5, sm: 1 }, flex: 1 }}>
+              { hasExistingRequests? 'Re-Submit Request' : 'Submit Request'}
+            </LoadingButton>
 
             {requestType === REQUEST_TYPES.SOFTCOPY && canDownloadImages() && (
-              <LoadingButton
-                loading={isDownloading}
-                variant="outlined"
-                size="large"
-                onClick={handleDownload}
-                startIcon={<DownloadIcon />}
-                sx={{ 
-                  py: { xs: 1.5, sm: 1 },
-                  flex: { sm: 1 }
-                }}
-              >
-                Download Images
-              </LoadingButton>
+              <>
+                {downloadLinks.length === 0 ? (
+                  <LoadingButton
+                    loading={isDownloading}
+                    variant="outlined"
+                    size="large"
+                    onClick={handleDownload}
+                    startIcon={<DownloadIcon />}
+                    sx={{ py: { xs: 1.5, sm: 1 }, flex: { sm: 1 } }}>
+                    Download Images
+                  </LoadingButton>
+                ) : (
+                  <Card variant='outlined' sx={{ flex: { sm: 1 } }}>
+                    {downloadLinks.map((link) => (
+                      <Chip
+                        component='a'
+                        label={ link.name.match(/\/(\w+)/)[1] }
+                        href={link.url}
+                        icon={<DownloadIcon />}
+                        color="secondary"
+                        variant="outlined"
+                        clickable
+                        sx={{ m:'20' }} />
+                    ))}
+                  </Card>
+                )}
+              </>
             )}
           </Stack>
         </Stack>
@@ -357,7 +357,7 @@ export default function RequestPage() {
         </DialogActions>
       </Dialog>
 
-      <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open={processing}/>
+      <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open={processing} />
 
       <Snackbar
         open={snackbar.open}
@@ -383,23 +383,22 @@ const UserForm = React.memo(({ userData, userFormData, onFormChange, requestType
         <TextField
           label="USN"
           value={userData.username}
-          InputProps={{ readOnly: true }}
-          fullWidth
+          aria-readonly="true"
         />
         <TextField
           label="Email"
           value={userFormData.email}
           onChange={handleChange('email')}
-          fullWidth
-          required
+          type='email'
         />
         {(requestType == REQUEST_TYPES.HARDCOPY || hasExistingHardcopy) && (
           <TextField
             label="Phone Number"
             value={userFormData.phone}
             onChange={handleChange('phone')}
-            fullWidth
-            required
+            type="tel"
+            error={requestType == REQUEST_TYPES.HARDCOPY && !validatePhone(userFormData.phone)}
+            helperText={requestType == REQUEST_TYPES.HARDCOPY && 'Please enter a valid phone number for hardcopy requests'}
           />
         )}
       </Stack>
@@ -408,8 +407,8 @@ const UserForm = React.memo(({ userData, userFormData, onFormChange, requestType
 }, (prevProps, nextProps) => {
   // Custom comparison for memo
   return prevProps.userFormData.email == nextProps.userFormData.email &&
-         prevProps.userFormData.phone == nextProps.userFormData.phone &&
-         prevProps.requestType == nextProps.requestType;
+    prevProps.userFormData.phone == nextProps.userFormData.phone &&
+    prevProps.requestType == nextProps.requestType;
 });
 
 // Payment Details component
@@ -427,7 +426,7 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
     <Card sx={{ p: 2 }}>
       <Stack spacing={3}>
         <Typography variant="h6">Payment Details</Typography>
-        
+
         <Card variant="outlined" sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
           <Grid container spacing={3} alignItems="center">
             {/* Payment Info */}
@@ -448,8 +447,8 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
             {/* QR Code */}
             <Grid item xs={12} md={6}>
               <Box component="a" href={paymentSettings.upiLink} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)' } }}>
-                <QRCodeCanvas value={paymentSettings.upiLink} size={180} level="H" includeMargin={true}/>
-                <Typography variant="caption" color="text.secondary" display={{ md:"none" }} sx={{ mt: 1 }}>
+                <QRCodeCanvas value={paymentSettings.upiLink} size={180} level="H" includeMargin={true} />
+                <Typography variant="caption" color="text.secondary" display={{ md: "none" }} sx={{ mt: 1 }}>
                   Tap QR to open in UPI app
                 </Typography>
               </Box>
@@ -460,7 +459,7 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
               <Stack spacing={2}>
                 <Button component="label" variant="contained" startIcon={<CloudUploadIcon />} size="large" fullWidth>
                   Upload Payment Proof
-                  <input type="file" hidden accept="image/*" onChange={handleFileUpload}/>
+                  <input type="file" hidden accept="image/*" onChange={handleFileUpload} />
                 </Button>
 
                 {paymentProof && (
@@ -481,20 +480,20 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
 const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImages, handleImageSelection }) => (
   <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
     <Typography variant="h6" sx={{ mb: 2 }}>
-      {requestType === REQUEST_TYPES.HARDCOPY ? 
-        'Select up to THREE images for hardcopy (₹500 per print)' : 
+      {requestType === REQUEST_TYPES.HARDCOPY ?
+        'Select up to THREE images for hardcopy (₹500 per print)' :
         'Selected Images'}
     </Typography>
     <ImageGrid
       images={Object.entries(selectedImages)}
       selectedImages={
-        requestType === REQUEST_TYPES.HARDCOPY ? 
-        selectedHardcopyImages : []
+        requestType === REQUEST_TYPES.HARDCOPY ?
+          selectedHardcopyImages : []
       }
       onSelectImage={
-        requestType === REQUEST_TYPES.HARDCOPY ? 
-        handleImageSelection : 
-        null
+        requestType === REQUEST_TYPES.HARDCOPY ?
+          handleImageSelection :
+          null
       }
       availableSlots={requestType == REQUEST_TYPES.HARDCOPY ? 3 : 3}
       columns={3}
