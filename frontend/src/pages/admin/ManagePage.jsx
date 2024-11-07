@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useNavigate } from "react-router-dom";
 import {
   Box, Card, Stack, Typography,
@@ -114,11 +114,13 @@ export default function ManagePage() {
     setActiveTab(Math.min(activeTab, newUsers.length - 1));
   };
 
-  const handleUserChange = (index, field, value) => {
-    const newUsers = [...editingUsers];
-    newUsers[index] = { ...newUsers[index], [field]: value };
-    setEditingUsers(newUsers);
-  };
+  const handleUserChange = useCallback((index, field, value) => {
+    setEditingUsers(prevUsers => {
+      const newUsers = [...prevUsers];
+      newUsers[index] = { ...newUsers[index], [field]: value };
+      return newUsers;
+    });
+  }, []);
 
   const handleDialogOpen = () => {
     // If users are selected, load them for editing
@@ -162,45 +164,6 @@ export default function ManagePage() {
   // Add selection model to DataGrid
   const [selectionModel, setSelectionModel] = useState([]);
 
-  const UserForm = ({ user, index }) => (
-    <Stack spacing={2}>
-      <TextField label="Username" value={user.username} required
-        onChange={(e) => handleUserChange(index, 'username', e.target.value)}
-      />
-      <TextField label="Name" value={user.name}
-        onChange={(e) => handleUserChange(index, 'name', e.target.value)}
-      />
-      <TextField label="Email" type="email" value={user.email}
-        onChange={(e) => handleUserChange(index, 'email', e.target.value)}
-      />
-      <TextField label="Password" value={user.password}
-        onChange={(e) => handleUserChange(index, 'password', e.target.value)}
-      />
-      <TextField label="Phone" value={user.phone}
-        onChange={(e) => handleUserChange(index, 'phone', e.target.value)}
-      />
-      <FormControl fullWidth>
-        <InputLabel>Role</InputLabel>
-        <Select value={user.role} label="Role"
-          onChange={(e) => handleUserChange(index, 'role', e.target.value)}
-        >
-          <MenuItem value="student">Student</MenuItem>
-          <MenuItem value="admin">Admin</MenuItem>
-        </Select>
-      </FormControl>
-      <FormControl fullWidth>
-        <InputLabel>Request Type</InputLabel>
-        <Select value={user.requestType} label="Request Type"
-          onChange={(e) => handleUserChange(index, 'requestType', e.target.value)}
-        >
-          {Object.entries(REQUEST_TYPE_LABELS).map(([value, label]) => (
-            <MenuItem key={value} value={Number(value)}>{label}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Stack>
-  );
-
   const columns = [
     { field: 'id', headerName: 'USN', width: 130 },
     { field: 'name', headerName: 'Name', width: 180 },
@@ -243,24 +206,9 @@ export default function ManagePage() {
               <Typography variant="h6">Users List</Typography>
               <Stack direction="row" spacing={2}>
                 <Tooltip title="Refresh">
-                  <IconButton
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    sx={{
-                      bgcolor: 'background.paper',
-                      boxShadow: 1,
-                      '&:hover': {
-                        bgcolor: 'background.paper',
-                        transform: 'rotate(180deg)',
-                      },
-                      transition: 'transform 0.5s',
-                    }}
-                  >
-                    {isRefreshing ? (
-                      <CircularProgress size={24} />
-                    ) : (
-                      <RefreshIcon />
-                    )}
+                  <IconButton onClick={handleRefresh} disabled={isRefreshing}
+                    sx={{ bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'background.paper', transform: 'rotate(180deg)' }, transition: 'transform 0.5s' }}>
+                    {isRefreshing ? (<CircularProgress size={24} />) : (<RefreshIcon />)}
                   </IconButton>
                 </Tooltip>
                 <Button variant="contained" onClick={handleDialogOpen}>
@@ -335,6 +283,7 @@ export default function ManagePage() {
                 <UserForm
                   user={editingUsers[activeTab]}
                   index={activeTab}
+                  onUserChange={handleUserChange}
                 />
               )}
             </Stack>
@@ -394,3 +343,43 @@ export default function ManagePage() {
     </>
   );
 }
+
+
+const UserForm = memo(({ user, index, onUserChange }) => (
+  <Stack spacing={2}>
+    <TextField label="Username" value={user.username} required
+      onChange={(e) => onUserChange(index, 'username', e.target.value)}
+    />
+    <TextField label="Name" value={user.name}
+      onChange={(e) => onUserChange(index, 'name', e.target.value)}
+    />
+    <TextField label="Email" type="email" value={user.email}
+      onChange={(e) => onUserChange(index, 'email', e.target.value)}
+    />
+    <TextField label="Password" value={user.password}
+      onChange={(e) => onUserChange(index, 'password', e.target.value)}
+    />
+    <TextField label="Phone" value={user.phone}
+      onChange={(e) => onUserChange(index, 'phone', e.target.value)}
+    />
+    <FormControl fullWidth>
+      <InputLabel>Role</InputLabel>
+      <Select value={user.role} label="Role"
+        onChange={(e) => onUserChange(index, 'role', e.target.value)}
+      >
+        <MenuItem value="student">Student</MenuItem>
+        <MenuItem value="admin">Admin</MenuItem>
+      </Select>
+    </FormControl>
+    <FormControl fullWidth>
+      <InputLabel>Request Type</InputLabel>
+      <Select value={user.requestType} label="Request Type"
+        onChange={(e) => onUserChange(index, 'requestType', e.target.value)}
+      >
+        {Object.entries(REQUEST_TYPE_LABELS).map(([value, label]) => (
+          <MenuItem key={value} value={Number(value)}>{label}</MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  </Stack>
+));

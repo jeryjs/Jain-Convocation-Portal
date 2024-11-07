@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   Card,
   CardMedia,
@@ -76,7 +76,7 @@ export default function ImageGrid({
   );
 }
 
-function ImageCard({ loading, imgPath, imgThumbLink, isSelected, isSelectable, isLocked, canSelect, onSelect }) {
+const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isSelectable, isLocked, canSelect, onSelect }) => {
   const displayName = getShortName(imgPath);
 
   return (
@@ -120,4 +120,4 @@ function ImageCard({ loading, imgPath, imgThumbLink, isSelected, isSelectable, i
       )}
     </Card>
   );
-}
+});

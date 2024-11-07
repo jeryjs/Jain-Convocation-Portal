@@ -20,7 +20,10 @@ import {
   KeyboardArrowDown,
   Logout as LogoutIcon,
   Home,
-  NavigateNext
+  NavigateNext,
+  Info as InfoIcon,
+  QuestionAnswer as FaqIcon,
+  Feedback as FeedbackIcon,
 } from '@mui/icons-material';
 import JGIBanner from '../assets/jain.png';
 import JGILogo from '../assets/jain1.png';
@@ -50,6 +53,11 @@ function PageHeader({
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    handleClose();
   };
 
   return (
@@ -85,7 +93,7 @@ function PageHeader({
             <Typography variant="subtitle2" color="white" sx={{ mr: 1 }}>
               {userData?.name || userData?.username}
             </Typography>
-            <KeyboardArrowDown sx={{ color: 'white', fontSize: 20 }} />
+            <KeyboardArrowDown sx={{ color: 'white', fontSize: 20, rotate: anchorEl ? '-180deg' : '0deg', transition: 'all 0.2s ease-in-out' }} />
           </Box>
         </Toolbar>
       </AppBar>
@@ -125,14 +133,21 @@ function PageHeader({
         }}
       >
         <List sx={{ width: 200 }}>
+          <ListItem button onClick={() => handleNavigate('/faq')}>
+            <ListItemIcon><FaqIcon color="primary" /></ListItemIcon>
+            <ListItemText primary="FAQ" />
+          </ListItem>
+          <ListItem button onClick={() => handleNavigate('/feedback')}>
+            <ListItemIcon><FeedbackIcon color="primary" /></ListItemIcon>
+            <ListItemText primary="Feedback" />
+          </ListItem>
+          <ListItem button onClick={() => handleNavigate('/about')}>
+            <ListItemIcon><InfoIcon color="primary" /></ListItemIcon>
+            <ListItemText primary="About" />
+          </ListItem>
           <ListItem button onClick={handleLogout}>
-            <ListItemIcon>
-              <LogoutIcon color="error" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Logout"
-              primaryTypographyProps={{ color: 'error' }}
-            />
+            <ListItemIcon><LogoutIcon color="error" /></ListItemIcon>
+            <ListItemText primary="Logout" primaryTypographyProps={{ color: 'error' }} />
           </ListItem>
         </List>
       </Popover>
