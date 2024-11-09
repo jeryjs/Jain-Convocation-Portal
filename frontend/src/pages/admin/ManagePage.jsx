@@ -16,7 +16,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CodeIcon from '@mui/icons-material/Code';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { REQUEST_TYPE_LABELS } from '../../config/constants';
 import PageHeader from '../../components/PageHeader';
 import config from '../../config';
@@ -161,6 +161,24 @@ export default function ManagePage() {
     }
   };
 
+  const handleDelete = async (usernames) => {
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/admin/manage`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ usernames: Array.isArray(usernames) ? usernames : [usernames] })
+      });
+
+      if (!response.ok) throw new Error('Delete operation failed');
+
+      setSnackbar({ open: true, message: 'Users deleted successfully', severity: 'success' });
+      setSelectionModel([]);
+      fetchUsers();
+    } catch (error) {
+      setSnackbar({ open: true, message: error.message, severity: 'error' });
+    }
+  };
+
   // Add selection model to DataGrid
   const [selectionModel, setSelectionModel] = useState([]);
 
@@ -181,11 +199,19 @@ export default function ManagePage() {
       headerName: 'Actions',
       width: 100,
       renderCell: (params) => (
-        <Tooltip title="Edit">
-          <IconButton onClick={() => handleEditClick(params.row)}>
-            <EditIcon />
-          </IconButton>
-        </Tooltip>
+        <Stack direction="row">
+          <Tooltip title="Edit">
+            <IconButton onClick={() => handleEditClick(params.row)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton onClick={() => handleDelete(params.row.username)}
+              sx={{ color: 'error.main' }}>
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       ),
     },
   ];
@@ -211,6 +237,16 @@ export default function ManagePage() {
                     {isRefreshing ? (<CircularProgress size={24} />) : (<RefreshIcon />)}
                   </IconButton>
                 </Tooltip>
+                {selectionModel.length > 0 && (
+                  <Button 
+                    variant="contained" 
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDelete(selectionModel)}
+                  >
+                    Delete Selected
+                  </Button>
+                )}
                 <Button variant="contained" onClick={handleDialogOpen}>
                   {selectionModel.length > 0 ? 'Edit Selected' : 'Import Users'}
                 </Button>
@@ -231,6 +267,14 @@ export default function ManagePage() {
                 setSelectionModel(newSelection);
               }}
               rowSelectionModel={selectionModel}
+              slots={{
+                toolbar: GridToolbar, // Add this to enable column management
+              }}
+              slotProps={{
+                toolbar: {
+                  showQuickFilter: true,
+                },
+              }}
             />
           </Card>
         </Stack>

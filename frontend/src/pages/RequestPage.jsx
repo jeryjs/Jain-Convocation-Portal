@@ -463,8 +463,19 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
                 </Button>
 
                 {paymentProof && (
-                  <Alert severity="success" icon={false} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {paymentProof.name}
+                  <Alert severity="success" icon={false} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  <Card variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <Box
+                        component="img"
+                        src={URL.createObjectURL(paymentProof)}
+                        alt="Payment proof"
+                        sx={{ height: 240, objectFit: 'cover', borderRadius: 1 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {paymentProof.name}
+                      </Typography>
+                    </Box>
+                  </Card>
                   </Alert>
                 )}
               </Stack>

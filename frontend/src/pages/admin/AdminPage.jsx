@@ -7,7 +7,7 @@ import {
   DialogContent, DialogActions, useTheme,
   CircularProgress, Snackbar, Alert
 } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { 
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,
@@ -338,6 +338,7 @@ const RequestsTable = ({
               sortModel: [{ field: 'requestDate', sort: 'desc' }],
             },
           }}
+          slots={{ toolbar: GridToolbar }}
           pageSizeOptions={[10, 25, 50]}
         />
       </Box>

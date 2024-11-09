@@ -80,9 +80,31 @@ const importUsers = async (users) => {
 	return { success: true };
 };
 
+// Function to delete users
+const deleteUsers = async (usernames) => {
+	if (!Array.isArray(usernames) || usernames.length === 0) {
+		throw new Error("Invalid usernames: must be a non-empty array");
+	}
+
+	const batch = db.batch();
+	usernames.forEach(username => {
+		const docRef = db.collection(COLLECTION_NAME).doc(username);
+		batch.delete(docRef);
+	});
+
+	await batch.commit();
+	usernames.forEach(username => {
+		const cacheKey = `user_${username}`;
+		cache.del(cacheKey);
+	});
+	invalidateCache("requests");
+	return { success: true };
+};
+
 module.exports = {
 	authenticateUser,
 	getUserData,
 	getAllUsers,
 	importUsers,
+	deleteUsers,
 };

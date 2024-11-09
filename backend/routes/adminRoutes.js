@@ -1,7 +1,6 @@
-
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, importUsers } = require('../services/user');
+const { getAllUsers, importUsers, deleteUsers } = require('../services/user');
 const { getSettings, updateSettings } = require('../services/settings');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { log } = require('../utils/logUtils');
@@ -28,6 +27,20 @@ router.post('/admin/manage/import', authMiddleware, adminMiddleware, async (req,
     res.json({ success: true });
   } catch (error) {
     log('error', 'ImportUsersFailed', { error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Route to delete users
+router.delete('/admin/manage', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { usernames } = req.body;
+    log('info', 'DeletingUsers', { count: usernames.length });
+    await deleteUsers(usernames);
+    log('success', 'UsersDeleted', { count: usernames.length });
+    res.json({ success: true });
+  } catch (error) {
+    log('error', 'DeleteUsersFailed', { error: error.message });
     res.status(500).json({ success: false, message: error.message });
   }
 });
