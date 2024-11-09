@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import PrivateRoute from './components/PrivateRoute';
 import { AuthProvider } from './config/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -25,6 +27,8 @@ function App() {
           <Route path="/admin/manage" element={<PrivateRoute requiredRole="admin"><ManagePage /></PrivateRoute>} />
           <Route path="/admin/settings" element={<PrivateRoute requiredRole="admin"><SettingsPage /></PrivateRoute>} />
         </Routes>
+        <Analytics />
+        <SpeedInsights />
       </Router>
     </AuthProvider>
   );
