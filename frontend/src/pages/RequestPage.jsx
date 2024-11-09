@@ -121,14 +121,14 @@ export default function RequestPage() {
   };
 
   // Update image selection handler
-  const handleImageSelection = (imgName) => {
+  const handleImageSelection = (imgPath) => {
     if (requestType === REQUEST_TYPES.HARDCOPY) {
       setSelectedHardcopyImages(prev => {
-        const isSelected = prev.includes(imgName);
+        const isSelected = prev.includes(imgPath);
         if (isSelected)
-          return prev.filter(img => img !== imgName);
+          return prev.filter(img => img !== imgPath);
         if (prev.length < 3) { // Allow up to 3 selections
-          return [...prev, imgName];
+          return [...prev, imgPath];
         }
         return prev;
       });
@@ -137,7 +137,7 @@ export default function RequestPage() {
 
   // Helper function to calculate payment amount
   const calculatePaymentAmount = () => {
-    return selectedHardcopyImages.length * 500;
+    return selectedHardcopyImages.length * Number(paymentSettings.amount);
   };
 
   const canDownloadImages = () => {
@@ -228,7 +228,7 @@ export default function RequestPage() {
         onBack={() => navigate(`/gallery/${sessionId}`)}
       />
 
-      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', mx: 'auto' }}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', minWidth:{xs:'95vw', md:'70vw'} }}>
         <Stack spacing={{ xs: 2, sm: 3 }}>
           {hasExistingRequests && (
             <Alert severity="info" sx={{ mb: 2 }}>
@@ -286,7 +286,8 @@ export default function RequestPage() {
               startIcon={<SendIcon />}
               disabled={
                 (requestType === REQUEST_TYPES.SOFTCOPY && Object.keys(selectedImages).length === 0) ||
-                (requestType === REQUEST_TYPES.HARDCOPY && (!paymentProof || selectedHardcopyImages.length === 0))
+                (requestType === REQUEST_TYPES.HARDCOPY && (!paymentProof || selectedHardcopyImages.length === 0)) ||
+                userFormData.email == ''
               }
               sx={{ py: { xs: 1.5, sm: 1 }, flex: 1 }}>
               { hasExistingRequests? 'Re-Submit Request' : 'Submit Request'}

@@ -111,8 +111,7 @@ export const dataURLtoBlob = (dataURL) => {
 // Function to generate a UPI payment link
 export const generateUPILink = (baseLink, amount) => {
   if (!baseLink) return '';
-  const basePart = baseLink.split('am=')[0];
-  return `${basePart}am=${amount}`;
+  return baseLink.replace(/am=\d*/, `am=${amount}`);
 };
 
 // Function to validate a phone number

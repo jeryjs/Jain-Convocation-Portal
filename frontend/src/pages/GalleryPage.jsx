@@ -68,14 +68,15 @@ function GalleryPage() {
     fetchImages();
   }, [sessionId, navigate]);
 
-  const handleSelectImage = (imgPath, thumbUrl) => {
-    if (selectedImages[imgPath]) {
-      const { [imgPath]: removed, ...rest } = selectedImages;
+  const handleSelectImage = (imageName, thumbUrl) => {
+    const fullPath = `${pathData.day}/${pathData.time}/${pathData.batch}/${imageName}`;
+    if (selectedImages[fullPath]) {
+      const { [fullPath]: removed, ...rest } = selectedImages;
       updateSelectedImages(rest);
     } else if (getAvailableSlots() > 0) {
       updateSelectedImages({
         ...selectedImages,
-        [imgPath]: thumbUrl
+        [fullPath]: thumbUrl
       });
     }
   };
@@ -101,7 +102,7 @@ function GalleryPage() {
         >
           <ImageGrid
             loading={loading}
-            images={images.map(([path, url]) => [`${pathData.day}/${pathData.time}/${pathData.batch}/${path}`, url])} // Prepend day, time, batch to path
+            images={images.map(([path, url]) => [path, url])}
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(userData?.requestedImages || {})}
             onSelectImage={handleSelectImage}
@@ -170,7 +171,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
           <Button
             variant="contained"
             onClick={onRequestPressed}
-            disabled={selectedImages.length == 0}
+            disabled={Object.keys(selectedImages).length < 0}
             sx={{ 
               flex: 1,
               height: { xs: '32px', md: '36px' },
