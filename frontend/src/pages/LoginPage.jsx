@@ -32,7 +32,7 @@ function LoginPage() {
         if (userdata.role === "admin") {
           navigate("/admin");
         } else {
-          navigate("/courses");
+          navigate("/sessions");
         }
       } else {
         setSnackbarMessage("Login failed: Incorrect username or password");

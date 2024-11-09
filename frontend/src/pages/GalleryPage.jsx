@@ -15,10 +15,11 @@ import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../config/AuthContext';
 
 export default function GalleryPage() {
-  const { courseId } = useParams();
+  const { sessionId } = useParams();
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
   const mounted = useRef(false);
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, updateUserData } = useAuth();
 
@@ -29,19 +30,24 @@ export default function GalleryPage() {
     const fetchImages = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${config.API_BASE_URL}/courses/${courseId}`);
+        // Decode session ID back to path
+        const [day, time, batch] = atob(sessionId).split('/');
+        setPathData({ day, time, batch });
+        
+        const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
         const formattedData = data.map((item) => Object.entries(item)[0]);
         setImages(formattedData);
       } catch (error) {
         console.error('Error fetching images:', error);
+        navigate('/sessions'); // Redirect on error
       } finally {
         setLoading(false);
       }
     };
 
     fetchImages();
-  }, [courseId]);
+  }, [sessionId, navigate]);
 
   const handleSelectImage = (imgPath, thumbUrl) => {
     if (selectedImages[imgPath]) {
@@ -56,16 +62,16 @@ export default function GalleryPage() {
   };
 
   const handleRequestPressed = () => {
-    navigate(`/courses/${courseId}/request`);
+    navigate(`/gallery/${sessionId}/request`);
   };
 
   return (
     <>
       <PageHeader
         pageTitle="Image Gallery"
-        pageSubtitle="Pick your images. Tip: Images are arranged based on time taken."
-        breadcrumbs={['Courses', courseId, 'Gallery']}
-        onBack={() => navigate('/courses')}
+        pageSubtitle="Images are sorted by time taken."
+        breadcrumbs={['Sessions', 'Gallery']}
+        onBack={() => navigate('/sessions')}
         sx={{ mb: 2 }}
       />
       <Box sx={{ width: {xs:'100vw', md:'90vw'} }}>
@@ -76,7 +82,7 @@ export default function GalleryPage() {
         >
           <ImageGrid
             loading={loading}
-            images={images.map(([path, url]) => [`${courseId}/${path}`, url])} // Prepend courseId to path
+            images={images.map(([path, url]) => [`${pathData.day}/${pathData.time}/${pathData.batch}/${path}`, url])} // Prepend day, time, batch to path
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(userData?.requestedImages || {})}
             onSelectImage={handleSelectImage}

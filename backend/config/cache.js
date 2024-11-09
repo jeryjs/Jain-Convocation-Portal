@@ -3,7 +3,7 @@ const NodeCache = require('node-cache');
 // TTL in seconds
 const TTL = {
   SETTINGS: 3600, // 1 hour
-  COURSES: 60, // 1 minute
+  COURSES: 120, // 2 minutes
   USER_DATA: 30, // 30 seconds
   SETTINGS: 3600, // 1 hour
 };

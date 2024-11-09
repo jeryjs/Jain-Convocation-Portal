@@ -14,23 +14,56 @@ const getCourseFolders = async () => {
   if (cachedFolders) return cachedFolders;
 
   const shareId = getShareId();
-  const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root/children`);
-  const folders = response.data.value
-    .filter(folder => folder.folder && folder.folder.childCount > 0)
-    .map(folder => folder.name);
+  
+  try {
+    // Get days (top level folders)
+    const daysResponse = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root/children?$filter=folder ne null`);
+    
+    // Process each day to get its time slots
+    const structure = await Promise.all(daysResponse.data.value
+      .filter(day => day.folder)
+      .map(async day => {
+        const timesResponse = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root:/${day.name}:/children?$filter=folder ne null`);
+        
+        // For each time slot, get its batches
+        const times = await Promise.all(timesResponse.data.value
+          .filter(time => time.folder)
+          .map(async time => {
+            const batchesResponse = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root:/${day.name}/${time.name}:/children?$filter=folder ne null`);
+            
+            return {
+              name: time.name,
+              batches: batchesResponse.data.value
+                .filter(batch => batch.folder)
+                .map(batch => batch.name)
+            };
+          }));
 
-  cache.set(cacheKey, folders, TTL.COURSES);
-  return folders;
+        return {
+          name: day.name,
+          times
+        };
+      }));
+
+    // Cache with a longer TTL since structure changes less frequently
+    cache.set(cacheKey, structure, TTL.COURSES * 2);
+    return structure;
+  } catch (error) {
+    console.error('Error fetching folder structure:', error);
+    throw error;
+  }
 };
 
-const getCourseImages = async (course) => {
-  const cacheKey = `course_images_${course}`;
+const getCourseImages = async (day, time, batch) => {
+  const cacheKey = `course_images_${day}_${time}_${batch}`;
   const cachedImages = cache.get(cacheKey);
   
   if (cachedImages) return cachedImages;
 
   const shareId = getShareId();
-  const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root:/${course}?expand=children(expand=thumbnails)`);
+  const path = `${day}/${time}/${batch}`;
+  const response = await axios.get(`https://api.onedrive.com/v1.0/shares/s!${shareId}/root:/${path}?expand=children(expand=thumbnails)`);
+  
   const images = response.data.children
     .filter(item => item.image)
     .map(item => ({

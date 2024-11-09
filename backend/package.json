@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "main": "index.js",
   "scripts": {
-    "dev": "node index.js"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +20,7 @@
     "googleapis": "^144.0.0",
     "multer": "^1.4.5-lts.1",
     "node-cache": "^5.1.2",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "nodemon": "^3.1.7"
   }
 }

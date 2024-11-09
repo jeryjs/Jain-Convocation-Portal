@@ -38,7 +38,7 @@ const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
 export default function RequestPage() {
   const navigate = useNavigate();
-  const { courseId } = useParams();
+  const { sessionId } = useParams();
   const { userData, updateUserAfterRequest, selectedImages, getAuthHeaders } = useAuth();
   const hasExistingRequests = Object.keys(userData?.requestedImages || {}).length > 0;
   const [paymentProof, setPaymentProof] = useState(null);
@@ -224,8 +224,8 @@ export default function RequestPage() {
         pageSubtitle={hasExistingRequests
           ? "Request soft copies of your previously selected images"
           : "Review and submit your request"}
-        breadcrumbs={['Courses', courseId, 'Gallery', 'Request']}
-        onBack={() => navigate(`/courses/${courseId}`)}
+        breadcrumbs={['Sessions', 'Gallery', 'Request']}
+        onBack={() => navigate(`/gallery/${sessionId}`)}
       />
 
       <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', mx: 'auto' }}>
@@ -309,7 +309,7 @@ export default function RequestPage() {
                     {downloadLinks.map((link) => (
                       <Chip
                         component='a'
-                        label={ link.name.match(/\/(\w+)/)[1] }
+                        label={ link.name.match(/\/(\w+\.\w+)$/)[1] }
                         href={link.url}
                         icon={<DownloadIcon />}
                         color="secondary"

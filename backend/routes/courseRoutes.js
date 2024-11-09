@@ -6,12 +6,18 @@ const { log } = require('../utils/logUtils');
 // Route to get list of courses (OneDrive folders)
 router.get('/courses', async (req, res) => {
   try {
+    log('info', 'FetchingStructure', { message: 'Starting folder structure fetch' });
     const courses = await getCourseFolders();
-    log('success', 'FetchCourses', { count: courses.length });
+    log('success', 'FetchStructure', { 
+      days: courses.length,
+      times: courses.reduce((acc, day) => acc + day.times.length, 0),
+      batches: courses.reduce((acc, day) => 
+        acc + day.times.reduce((tacc, time) => tacc + time.batches.length, 0), 0)
+    });
     res.json(courses);
   } catch (error) {
-    log('error', 'FetchCoursesFailed', { error: error.message });
-    res.status(500).send('Failed to retrieve courses');
+    log('error', 'FetchStructureFailed', { error: error.message });
+    res.status(500).send('Failed to retrieve folder structure');
   }
 });
 
@@ -24,6 +30,19 @@ router.get('/courses/:course', async (req, res) => {
     res.json(images);
   } catch (error) {
     log('error', 'FetchCourseImagesFailed', { course, error: error.message });
+    res.status(500).send('Failed to retrieve images');
+  }
+});
+
+// Route to get all images in a course folder by day, time, and batch
+router.get('/courses/:day/:time/:batch', async (req, res) => {
+  const { day, time, batch } = req.params;
+  try {
+    const images = await getCourseImages(day, time, batch);
+    log('success', 'FetchCourseImages', { day, time, batch, count: images.length });
+    res.json(images);
+  } catch (error) {
+    log('error', 'FetchCourseImagesFailed', { day, time, batch, error: error.message });
     res.status(500).send('Failed to retrieve images');
   }
 });
