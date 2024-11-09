@@ -86,7 +86,7 @@ function AboutPage() {
               <Typography variant="h3" gutterBottom sx={{ fontWeight: 'bold' }}>
                 Welcome to Jain University
               </Typography>
-              <Typography variant="h6" sx={{ maxWidth: '800px', mb: 2 }}>
+              <Typography variant="h6" sx={{ maxWidth: '800px', mb: 2, justifySelf:'center' }}>
                 Empowering minds, shaping futures, and creating tomorrow's leaders through excellence in education.
               </Typography>
             </Paper>
@@ -154,7 +154,7 @@ function AboutPage() {
                 Our Vision
               </Typography>
               <Divider sx={{ mb: 3 }} />
-              <Typography variant="body1" paragraph>
+              <Typography variant="body1" color='text.primary'>
                 To be a premier institution delivering world-class education, nurturing talent, and creating knowledge leaders who will make a positive impact on society.
               </Typography>
             </Box>
@@ -178,9 +178,9 @@ function AboutPage() {
                 <CodeIcon fontSize='large' /> Developer Information
               </Typography>
               <Divider sx={{ mb: 3 }} />
-              <Typography variant="body1" paragraph>
+              <Typography variant="body1" color='text.primary'>
                 This portal was developed by Jery J.S (<Link href="https://github.com/jeryjs" target="_blank" rel="noopener">GitHub Profile</Link>).<br/>
-                Version 1.0.0 | Built with React and Material-UI | © 2024 Jain University
+                Version 1.4.0 | Built with React and Material-UI | © 2024 Jain University
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 For technical support or inquiries, please contact the development team.
