@@ -25,8 +25,8 @@ import {
   QuestionAnswer as FaqIcon,
   Feedback as FeedbackIcon,
 } from '@mui/icons-material';
-import JGIBanner from '../assets/jain.png';
-import JGILogo from '../assets/jain1.png';
+import JGIBanner from '../assets/jain.webp';
+import JGILogo from '../assets/jain1.webp';
 import { useAuth } from '../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
