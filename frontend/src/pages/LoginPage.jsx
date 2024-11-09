@@ -1,6 +1,6 @@
-import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert, Stack } from "@mui/material";
+import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert, Stack, Box } from "@mui/material";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import JGILogo from "../assets/JGI.webp";
 import ConvocationBanner from "../assets/banner.webp";
 import config from "../config";
@@ -98,6 +98,13 @@ function LoginPage() {
               {loading ? <CircularProgress size={24} /> : "Login"}
             </Button>
           </form>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Link to="/faq" state={{ hideHeader: true }} style={{ textDecoration: 'none' }}>
+              <Typography variant="caption" color="primary" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>
+                Need help? Check our FAQ
+              </Typography>
+            </Link>
+          </Box>
         </CardContent>
       </Card>
       <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}>
