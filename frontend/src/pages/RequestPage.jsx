@@ -32,7 +32,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { LoadingButton } from '@mui/lab';
 import DownloadIcon from '@mui/icons-material/Download';
 import SendIcon from '@mui/icons-material/Send';
-import { downloadFile, compressImage, generateUPILink, validatePhone } from '../utils/utils';
+import { compressImage, generateUPILink, validatePhone } from '../utils/utils';
 
 const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
