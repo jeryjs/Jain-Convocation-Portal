@@ -13,8 +13,10 @@ import {
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../config/AuthContext';
+import { cacheManager } from '../utils/cache';
 
-export default function GalleryPage() {
+
+function GalleryPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
@@ -27,9 +29,19 @@ export default function GalleryPage() {
     if (mounted.current) return;
     mounted.current = true;
     
-    const fetchImages = async () => {
+    const fetchImages = async (isRetry = false) => {
       setLoading(true);
       try {
+        // Try to get from cache first
+        const cacheKey = `gallery-${sessionId}`;
+        const cached = !isRetry && cacheManager.get(cacheKey);
+        if (cached) {
+          setImages(cached);
+          setPathData(atob(sessionId).split('/'));
+          setLoading(false);
+          return;
+        }
+
         // Decode session ID back to path
         const [day, time, batch] = atob(sessionId).split('/');
         setPathData({ day, time, batch });
@@ -37,10 +49,17 @@ export default function GalleryPage() {
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
         const formattedData = data.map((item) => Object.entries(item)[0]);
+        
         setImages(formattedData);
+        // Cache the new data
+        cacheManager.set(cacheKey, formattedData, isRetry);
       } catch (error) {
         console.error('Error fetching images:', error);
-        navigate('/sessions'); // Redirect on error
+        if (!isRetry) {
+          fetchImages(true);
+        } else {
+          navigate('/sessions'); // Redirect on error after retry
+        }
       } finally {
         setLoading(false);
       }
@@ -102,6 +121,8 @@ export default function GalleryPage() {
     </>
   );
 }
+
+export default GalleryPage;
 
 
 function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx }) {

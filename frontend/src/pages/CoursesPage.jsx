@@ -5,6 +5,96 @@ import { ExpandMore as ExpandMoreIcon, AccessTime as TimeIcon, Groups as GroupsI
 import { motion } from 'framer-motion';
 import config from '../config';
 import PageHeader from '../components/PageHeader';
+import { cacheManager } from '../utils/cache';
+
+function CoursesPage() {
+  const [structure, setStructure] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState({});
+  const [expandedDay, setExpandedDay] = useState(null);
+  const mounted = useRef(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+
+    const fetchCourses = async (isRetry = false) => {
+      setLoading(true);
+      try {
+        // Try to get from cache first
+        const cached = !isRetry && cacheManager.get('courses');
+        if (cached) {
+          setStructure(cached);
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${config.API_BASE_URL}/courses`);
+        const data = await response.json();
+        
+        setStructure(data);
+        // Cache the new data
+        cacheManager.set('courses', data, isRetry);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        // Retry with cache invalidation
+        if (!isRetry) fetchCourses(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  return (
+    <>
+      <PageHeader 
+        pageTitle="Select Session" 
+        pageSubtitle="Navigate through day and time to select your stage" 
+        breadcrumbs={['Sessions']} 
+        sx={{ mb: 2 }}
+      />
+
+      {loading ? (
+        <Box sx={{ width: '100%', px: 3, mb: 3 }}>
+          <LinearProgress />
+        </Box>
+      ) : (
+        <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ width: {md: '80vw'} }}>
+          {structure.map((day, dayIndex) => (
+            <Grid item xs={12} key={day.name}>
+              <DayCard day={day} index={dayIndex} isExpanded={expandedDay === dayIndex} onExpand={() => {
+                setExpandedDay(expandedDay === dayIndex ? null : dayIndex);
+                setExpanded({});
+              }} />
+              <Collapse in={expandedDay === dayIndex}>
+                <Box sx={{ mt: 2, pl: { sm: 4 } }}>
+                  <Grid container spacing={2}>
+                    {day.times.map((time, timeIndex) => (
+                      <Grid item xs={12} sm={6} md={4} key={time.name}>
+                        <TimeSlot
+                          time={time}
+                          isExpanded={expanded[`${dayIndex}-${timeIndex}`]}
+                          onExpand={() => setExpanded(prev => ({ ...prev, [`${dayIndex}-${timeIndex}`]: !prev[`${dayIndex}-${timeIndex}`] }))}
+                          onStageSelect={(stage) => navigate(`/gallery/${btoa(`${day.name}/${time.name}/${stage}`)}`)}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Collapse>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </>
+  );
+}
+
+export default CoursesPage;
+
 
 const DayCard = memo(({ day, index, isExpanded, onExpand }) => {
   const theme = useTheme();
@@ -40,6 +130,7 @@ const DayCard = memo(({ day, index, isExpanded, onExpand }) => {
     </motion.div>
   );
 }, (prev, next) => prev.isExpanded === next.isExpanded);
+
 
 const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
   const theme = useTheme();
@@ -107,68 +198,3 @@ const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
     </Paper>
   );
 });
-
-function CoursesPage() {
-  const [structure, setStructure] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState({});
-  const [expandedDay, setExpandedDay] = useState(null);
-  const mounted = useRef(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
-    fetch(`${config.API_BASE_URL}/courses`)
-      .then(res => res.json())
-      .then(data => setStructure(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <>
-      <PageHeader 
-        pageTitle="Select Session" 
-        pageSubtitle="Navigate through day and time to select your stage" 
-        breadcrumbs={['Sessions']} 
-        sx={{ mb: 2 }}
-      />
-
-      {loading ? (
-        <Box sx={{ width: '100%', px: 3, mb: 3 }}>
-          <LinearProgress />
-        </Box>
-      ) : (
-        <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ width: {md: '80vw'} }}>
-          {structure.map((day, dayIndex) => (
-            <Grid item xs={12} key={day.name}>
-              <DayCard day={day} index={dayIndex} isExpanded={expandedDay === dayIndex} onExpand={() => {
-                setExpandedDay(expandedDay === dayIndex ? null : dayIndex);
-                setExpanded({});
-              }} />
-              <Collapse in={expandedDay === dayIndex}>
-                <Box sx={{ mt: 2, pl: { sm: 4 } }}>
-                  <Grid container spacing={2}>
-                    {day.times.map((time, timeIndex) => (
-                      <Grid item xs={12} sm={6} md={4} key={time.name}>
-                        <TimeSlot
-                          time={time}
-                          isExpanded={expanded[`${dayIndex}-${timeIndex}`]}
-                          onExpand={() => setExpanded(prev => ({ ...prev, [`${dayIndex}-${timeIndex}`]: !prev[`${dayIndex}-${timeIndex}`] }))}
-                          onStageSelect={(stage) => navigate(`/gallery/${btoa(`${day.name}/${time.name}/${stage}`)}`)}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-              </Collapse>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-    </>
-  );
-}
-
-export default CoursesPage;
