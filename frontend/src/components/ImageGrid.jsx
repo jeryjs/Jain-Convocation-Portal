@@ -23,7 +23,7 @@ const getShortName = (fullPath) => {
 };
 
 export default function ImageGrid({ 
-  images, 
+  images, // format: [{ 'path/to/image.jpg': 'thumbimglink' }]
   selectedImages = [],
   lockedImages = [], 
   onSelectImage, 

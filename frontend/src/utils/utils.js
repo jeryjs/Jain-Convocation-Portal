@@ -21,21 +21,10 @@ export const downloadFile = (url, filename, delay=100) => {
 };
 
 // Function to format a date string
-export const formatDate = (timestamp) => {
-  if (!timestamp) return 'N/A';
+export const formatDate = (seconds) => {
+  if (!seconds) return 'N/A';
   try {
-    // Handle Firestore timestamp format
-    if (timestamp._seconds) {
-      const date = new Date(timestamp._seconds * 1000);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleString('en-US', {
-          dateStyle: 'short',
-          timeStyle: 'medium'
-        });
-      }
-    }
-    // Handle regular timestamp
-    const date = new Date(timestamp);
+    const date = new Date(seconds * 1000);
     if (!isNaN(date.getTime())) {
       return date.toLocaleString('en-US', {
         dateStyle: 'short',

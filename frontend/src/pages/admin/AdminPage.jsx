@@ -59,7 +59,7 @@ const AdminPage = () => {
       setRequests(data.map(req => ({
         ...req,
         id: req.username,
-        requestDate: formatDate(req.lastUpdated),
+        lastUpdated: req.lastUpdated._seconds
       })));
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -216,7 +216,10 @@ const RequestsTable = ({
   setPaymentPreviewRequest
 }) => {
   const columns = [
-    { field: 'requestDate', headerName: 'Date', width: 180 },
+    { 
+      field: 'lastUpdated', headerName: 'Date', width: 180,
+      renderCell: (params) => formatDate(params.value)
+    },
     { field: 'username', headerName: 'USN', width: 130 },
     { field: 'name', headerName: 'Name', width: 200 },
     { field: 'course', headerName: 'Course', width: 180 },
@@ -335,7 +338,7 @@ const RequestsTable = ({
               paginationModel: { page: 0, pageSize: 10 },
             },
             sorting: {
-              sortModel: [{ field: 'requestDate', sort: 'desc' }],
+              sortModel: [{ field: 'lastUpdated', sort: 'desc' }],
             },
           }}
           slots={{ toolbar: GridToolbar }}
@@ -365,7 +368,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
                 ['Phone', selectedRequest.phone],
                 ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
                 ['Status', selectedRequest.status],
-                ['Date', selectedRequest.requestDate],
+                ['Date', formatDate(selectedRequest.lastUpdated)],
               ].map(([label, value]) => (
                 <React.Fragment key={label}>
                   <Typography color="text.secondary">{label}:</Typography>
@@ -377,7 +380,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
             <Typography variant="label" color='text.secondary' sx={{ mt: 2 }}>Requested Images:</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               <ImageGrid
-                images={Object.entries(selectedRequest.requestedImages || {})}
+                images={Object.entries(selectedRequest.requestedImages).map(([path, url]) => ({ [path]: url }))}
                 loading={false}
                 columns={3}
                 showColumnControls={false}
