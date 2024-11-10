@@ -46,7 +46,7 @@ const getCourseImages = async (day, time, batch) => {
 	const images = response.data.children
 		.filter((item) => item.image)
 		.map((item) => ({
-			[item.name]: item.thumbnails[0].large.url.replace(/width=\d+&height=\d+/, "width=480&height=480"),
+			[`${path}/${item.name}`]: item.thumbnails[0].large.url.replace(/width=\d+&height=\d+/, "width=480&height=480"),
 		}));
 
 	cache.set(cacheKey, images, TTL.COURSES);

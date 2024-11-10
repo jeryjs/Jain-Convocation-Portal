@@ -14,6 +14,7 @@ import {
 import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../config/AuthContext';
 import { cacheManager } from '../utils/cache';
+import { useTheme } from '@emotion/react';
 
 
 function GalleryPage() {
@@ -31,28 +32,27 @@ function GalleryPage() {
     
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
+
+      // Decode session ID back to path
+      const [day, time, batch] = atob(sessionId).split('/');
+      setPathData({ day, time, batch });
+
       try {
         // Try to get from cache first
         const cacheKey = `gallery-${sessionId}`;
         const cached = !isRetry && cacheManager.get(cacheKey);
-        if (cached) {
-          setImages(cached);
-          setPathData(atob(sessionId).split('/'));
-          setLoading(false);
-          return;
-        }
-
-        // Decode session ID back to path
-        const [day, time, batch] = atob(sessionId).split('/');
-        setPathData({ day, time, batch });
+        // if (cached) {
+        //   setImages(cached);
+        //   setLoading(false);
+        //   return;
+        // }
         
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
-        const formattedData = data.map((item) => Object.entries(item)[0]);
         
-        setImages(formattedData);
+        setImages(data);
         // Cache the new data
-        cacheManager.set(cacheKey, formattedData, isRetry);
+        cacheManager.set(cacheKey, data, isRetry);
       } catch (error) {
         console.error('Error fetching images:', error);
         if (!isRetry) {
@@ -68,15 +68,14 @@ function GalleryPage() {
     fetchImages();
   }, [sessionId, navigate]);
 
-  const handleSelectImage = (imageName, thumbUrl) => {
-    const fullPath = `${pathData.day}/${pathData.time}/${pathData.batch}/${imageName}`;
-    if (selectedImages[fullPath]) {
-      const { [fullPath]: removed, ...rest } = selectedImages;
+  const handleSelectImage = (imagePath, thumbUrl) => {
+    if (selectedImages[imagePath]) {
+      const { [imagePath]: removed, ...rest } = selectedImages;
       updateSelectedImages(rest);
     } else if (getAvailableSlots() > 0) {
       updateSelectedImages({
         ...selectedImages,
-        [fullPath]: thumbUrl
+        [imagePath]: thumbUrl
       });
     }
   };
@@ -102,7 +101,7 @@ function GalleryPage() {
         >
           <ImageGrid
             loading={loading}
-            images={images.map(([path, url]) => [path, url])}
+            images={images}
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(userData?.requestedImages || {})}
             onSelectImage={handleSelectImage}
@@ -129,6 +128,9 @@ export default GalleryPage;
 function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx }) {
   const { updateSelectedImages } = useAuth();
 
+  // Transform selectedImages back to array of objects format
+  const selectedImagesArray = Object.entries(selectedImages).map(([path, url]) => ({ [path]: url }));
+
   return (
     <Card elevation={2} sx={{ ...sx }}>
       <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -146,7 +148,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
 
         <Box sx={{ flex: 1, overflowY: 'auto', mb: 2 }}>
           <ImageGrid
-            images={Object.entries(selectedImages).map(([name, url]) => [name, url])}
+            images={selectedImagesArray}
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(existingImages)}
             onSelectImage={(imgPath) => {
@@ -155,7 +157,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
               updateSelectedImages(rest);
             }}
             availableSlots={availableSlots}
-            columns={window.innerHeight/window.innerWidth > 0.95 ? "3" : "1"}
+            columns={window.innerWidth < 900 ? "3" : "1"}
             showColumnControls={false}
           />
         </Box>

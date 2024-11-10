@@ -50,20 +50,19 @@ export default function ImageGrid({
       )}
       <Grid container spacing={{ xs: 0, md: 2}} sx={{ overflowY: 'auto' }}>
         {(loading ? skeletonArray : images).map((item, index) => {
-          const [imgPath, imgThumbLink] = loading ? [] : item;
-          const isSelected = selectedImages.includes(imgPath);
-          const isSelectable = selectedImages.length < 3 || isSelected;
-          const isLocked = lockedImages.includes(imgPath);
+          const imagePath = loading ? null : Object.keys(item)[0];
+          const imageUrl = loading ? null : item[imagePath];
+          const isSelected = selectedImages.includes(imagePath);
+          const isLocked = lockedImages.includes(imagePath);
           const canSelect = !isLocked && (isSelected || availableSlots > 0);
 
           return (
             <Grid item xs={12 / (showColumnControls ? localColumns : columns)} key={index}>
               <ImageCard
                 loading={loading}
-                imgPath={imgPath}
-                imgThumbLink={imgThumbLink}
+                imgPath={imagePath}
+                imgThumbLink={imageUrl}
                 isSelected={isSelected}
-                isSelectable={isSelectable}
                 isLocked={isLocked}
                 canSelect={canSelect}
                 onSelect={onSelectImage}
@@ -76,7 +75,7 @@ export default function ImageGrid({
   );
 }
 
-const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isSelectable, isLocked, canSelect, onSelect }) => {
+const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isLocked, canSelect, onSelect }) => {
   const displayName = getShortName(imgPath);
 
   return (
@@ -85,7 +84,7 @@ const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isSelectab
       style={{
         position: 'relative',
         cursor: isLocked ? 'default' : 'pointer',
-        opacity: isSelectable ? 1 : 0.5,
+        opacity: canSelect ? 1 : 0.5,
         transition: '0.3s',
         border: isSelected ? '2px solid #3f51b5' : '2px solid transparent',
       }}>
@@ -107,10 +106,7 @@ const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isSelectab
       </CardActionArea>
       {!loading && onSelect && (
         <CardActions sx={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#ffffffcc', borderRadius: '50%', p: 0, m: 1 }}>
-          <IconButton aria-label="select image" sx={{ p: 0 }} onClick={(e) => { 
-            e.stopPropagation();
-            onSelect(imgPath, imgThumbLink);
-          }}>
+          <IconButton aria-label="select image" sx={{ p: 0 }} >
             <CheckCircleIcon color={isSelected ? 'primary' : 'disabled'} />
           </IconButton>
         </CardActions>

@@ -14,7 +14,7 @@ function FAQPage() {
         <PageHeader
           pageTitle="Frequently Asked Questions"
           pageSubtitle="Find answers to common questions about the convocation portal"
-          breadcrumbs={['Home', 'FAQ']}
+          breadcrumbs={['FAQ']}
         />
       )}
       

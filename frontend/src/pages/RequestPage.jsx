@@ -122,6 +122,7 @@ export default function RequestPage() {
 
   // Update image selection handler
   const handleImageSelection = (imgPath) => {
+    console.log('Selecting image:', selectedHardcopyImages);
     if (requestType === REQUEST_TYPES.HARDCOPY) {
       setSelectedHardcopyImages(prev => {
         const isSelected = prev.includes(imgPath);
@@ -257,6 +258,7 @@ export default function RequestPage() {
             selectedImages={selectedImages}
             selectedHardcopyImages={selectedHardcopyImages}
             handleImageSelection={handleImageSelection}
+            amount={paymentSettings?.amount?? 0}
           />
 
           {requestType === REQUEST_TYPES.HARDCOPY && paymentSettings && (
@@ -424,7 +426,7 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
   };
 
   return (
-    <Card sx={{ p: 2 }}>
+    <Card sx={{ p: 2, opacity: paymentSettings.amount > 0 ? 1 : 0.5, pointerEvents: paymentSettings.amount > 0 ? 'auto' : 'none' }}>
       <Stack spacing={3}>
         <Typography variant="h6">Payment Details</Typography>
 
@@ -489,24 +491,18 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
 };
 
 // Extracted ImagesSection component
-const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImages, handleImageSelection }) => (
+const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImages, handleImageSelection, amount }) => (
+  console.log('ImagesSection: ', selectedImages),
   <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
     <Typography variant="h6" sx={{ mb: 2 }}>
       {requestType === REQUEST_TYPES.HARDCOPY ?
-        'Select up to THREE images for hardcopy (₹500 per print)' :
+        `Select up to THREE images for hardcopy (₹${amount} per print)` :
         'Selected Images'}
     </Typography>
     <ImageGrid
-      images={Object.entries(selectedImages)}
-      selectedImages={
-        requestType === REQUEST_TYPES.HARDCOPY ?
-          selectedHardcopyImages : []
-      }
-      onSelectImage={
-        requestType === REQUEST_TYPES.HARDCOPY ?
-          handleImageSelection :
-          null
-      }
+      images={ Object.entries(selectedImages).map(([path, url]) => ({ [path]: url })) }
+      selectedImages={ requestType === REQUEST_TYPES.HARDCOPY ? selectedHardcopyImages : [] }
+      onSelectImage={ requestType === REQUEST_TYPES.HARDCOPY ? handleImageSelection : null }
       availableSlots={requestType == REQUEST_TYPES.HARDCOPY ? 3 : 3}
       columns={3}
       showColumnControls={false}
