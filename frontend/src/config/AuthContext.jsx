@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
     };
 
     const getAvailableSlots = () => {
-        return 3 - Object.keys(selectedImages).length;
+        return 4 - Object.keys(selectedImages).length;
     };
 
     // Update both userData and selectedImages after successful request

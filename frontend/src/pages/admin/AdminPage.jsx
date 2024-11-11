@@ -382,7 +382,6 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
               <ImageGrid
                 images={Object.entries(selectedRequest.requestedImages).map(([path, url]) => ({ [path]: url }))}
                 loading={false}
-                columns={3}
                 showColumnControls={false}
                 sx={{ width: '100%' }} />
             </Box>

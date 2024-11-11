@@ -15,11 +15,11 @@ const faqData = [
   },
   {
     question: "How can I download my digital photos?",
-    answer: "1. Navigate to Sessions > Select your batch time > Gallery\n2. Select up to 3 photos and click Request\n3. Once approved, you can download them from the request page\n4. Photos will also be sent to your registered email"
+    answer: "1. Navigate to Sessions > Select your batch time > Gallery\n2. Select up to 4 photos and click Request\n3. Once approved, you can download them from the request page\n4. Photos will also be sent to your registered email"
   },
   {
     question: "Can I order a printed (hard) copy of my photo?",
-    answer: "1. In Gallery, select up to 3 photos\n2. Choose 'Hard Copy' when requesting\n3. Make payment via UPI (₹500 per print)\n4. Upload payment screenshot\n5. Collect prints from the assigned counter"
+    answer: "1. In Gallery, select up to 4 photos\n2. Choose 'Hard Copy' when requesting\n3. Make payment via UPI (₹500 per print)\n4. Upload payment screenshot\n5. Collect prints from the assigned counter"
   },
   {
     question: "What payment methods are accepted for ordering a hard copy?",

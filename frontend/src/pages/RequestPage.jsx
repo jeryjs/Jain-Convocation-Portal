@@ -128,7 +128,7 @@ export default function RequestPage() {
         const isSelected = prev.includes(imgPath);
         if (isSelected)
           return prev.filter(img => img !== imgPath);
-        if (prev.length < 3) { // Allow up to 3 selections
+        if (prev.length < 4) { // Allow up to 4 selections
           return [...prev, imgPath];
         }
         return prev;
@@ -496,15 +496,14 @@ const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImages, ha
   <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
     <Typography variant="h6" sx={{ mb: 2 }}>
       {requestType === REQUEST_TYPES.HARDCOPY ?
-        `Select up to THREE images for hardcopy (₹${amount} per print)` :
+        `Select up to FOUR images for hardcopy (₹${amount} per print)` :
         'Selected Images'}
     </Typography>
     <ImageGrid
       images={ Object.entries(selectedImages).map(([path, url]) => ({ [path]: url })) }
       selectedImages={ requestType === REQUEST_TYPES.HARDCOPY ? selectedHardcopyImages : [] }
       onSelectImage={ requestType === REQUEST_TYPES.HARDCOPY ? handleImageSelection : null }
-      availableSlots={requestType == REQUEST_TYPES.HARDCOPY ? 3 : 3}
-      columns={3}
+      availableSlots={4}
       showColumnControls={false}
     />
   </Card>
