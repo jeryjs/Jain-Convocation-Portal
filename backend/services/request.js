@@ -69,6 +69,7 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 
 		return {
 			success: true,
+			id: userdata.username,
 			requestType: newRequestType,
 			status: updateData.status,
 		};
