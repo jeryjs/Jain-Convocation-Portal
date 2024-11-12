@@ -4,13 +4,14 @@ const { sendEmail } = require('../services/email');
 
 // Route to send email
 router.post('/send-email', async (req, res) => {
-  const { to, subject, text } = req.body;
+  const { to, subject, html } = req.body;
   
   try {
-    await sendEmail(to, subject, text);
-    res.status(200).send('Email sent successfully');
+    await sendEmail(to, subject, html);
+    res.status(200).json({ success: true, message: 'Email sent successfully' });
   } catch (error) {
-    res.status(500).send('Failed to send email');
+    console.error('Email error:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

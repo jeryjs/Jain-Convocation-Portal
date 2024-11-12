@@ -1,3 +1,5 @@
+import config from "../config";
+
 // Function to convert a string to a slug
 export const downloadFile = (url, filename, delay=100) => {
   return new Promise((resolve, reject) => {
@@ -110,4 +112,70 @@ export const validatePhone = (phone) => {
   // - Must start with 6, 7, 8, or 9
   const regex = /^[6-9]\d{9}$/;
   return regex.test(phone);
+};
+
+export const formatWaitingTime = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return hours > 0 
+    ? `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes > 0 ? `and ${remainingMinutes} minutes` : ''}`
+    : `${minutes} minutes`;
+};
+
+export const sendRequestEmail = async (userData, requestType, imageLinks = null, waitingTime) => {
+  const emailContent = requestType === 'softcopy' 
+    ? `
+      <div style="font-family: Arial, sans-serif; margin: 0 auto;">
+        <p>Dear Graduate,</p>
+        <p>Heartfelt congratulations on your remarkable achievement! We're proud to have played a part in your educational journey. <strong>Please find your convocation photo attached</strong>, a cherished memory of this special day.</p>
+        ${imageLinks?.length ? `
+        <div style="margin: 20px 0;">
+          <p><strong>Your Photos:</strong></p>
+          <ul style="list-style: none; padding: 0;">
+            ${imageLinks.map(link => `
+              <li style="margin: 10px 0;">
+                <a href="${link.url}" style="color: #1976d2; text-decoration: none;">
+                  ${link.name}
+                </a>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+        ` : ''}
+        <p>Wishing you continued success and a bright future.</p>
+        <p>Best regards,<br>JAIN (Deemed-to-be)University</p>
+      </div>
+    `
+    : `
+      <div style="font-family: Arial, sans-serif; margin: 0 auto;">
+        <p>Dear Graduate,</p>
+        <p>Heartfelt congratulations on your remarkable achievement! We're proud to have played a part in your educational journey. Your request for hardcopy prints of your convocation photos has been received.</p>
+        <p><strong>Our team will process your request within ${waitingTime??60} minutes.</strong> We'll contact you once your prints are ready for collection.</p>
+        <p>Wishing you continued success and a bright future.</p>
+        <p>Best regards,<br>JAIN (Deemed-to-be)University</p>
+      </div>
+    `;
+
+  const emailData = {
+    to: userData.email,
+    subject: requestType === 'softcopy' ? 'Your Convocation Photos' : 'Hardcopy Request Confirmation',
+    html: emailContent.trim()
+  };
+
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(emailData)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to send email');
+    }
+    console.log('Email sent successfully');
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
 };

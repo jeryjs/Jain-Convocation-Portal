@@ -2,13 +2,23 @@ const admin = require("firebase-admin");
 const db = require("../config/firebase");
 const { cache, TTL } = require("../config/cache");
 const { REQUEST_TYPES } = require("../constants");
-const { getImageLinks } = require("./onedrive");
-const { sendEmail } = require("./email");
 const { invalidateCache } = require("../utils/cache.utils");
 
 const COLLECTION_NAME = "2024";
 
-// Function to handle softcopy/hardcopy requests
+// Calculate waiting time for hardcopy requests
+const calculateWaitingTime = async () => {
+  const approvedRequests = await db.collection(COLLECTION_NAME)
+    .where("status", "==", "approved")
+    .count()
+    .get();
+
+  const count = approvedRequests.data().count;
+  const baseWaitingTime = 60; // Base waiting time in minutes
+  const additionalTime = Math.floor(count / 1) * 15; // Add 15 mins for every 50 requests
+  return baseWaitingTime + additionalTime;
+};
+
 const handleImageRequest = async (userdata, requestedImages, requestType, paymentProof = null) => {
 	return await db.runTransaction(async (transaction) => {
 		const userRef = db.collection(COLLECTION_NAME).doc(userdata.username);
@@ -41,37 +51,16 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 		// Single update operation
 		transaction.update(userRef, updateData);
 
-		// Handle notifications outside transaction to not slow it down
-		setImmediate(async () => {
-			try {
-				if (requestType === REQUEST_TYPES.SOFTCOPY) {
-					const imageNames = Object.keys(requestedImages);
-					const imageLinks = await getImageLinks(imageNames);
-					await sendEmail(
-						userdata.email,
-						"Your Requested Images",
-						`Dear ${userdata.name},\n\nPlease find your requested images attached.\n\nBest regards,\nJain Convocation Team`,
-						imageLinks
-					);
-				} else if (requestType === REQUEST_TYPES.HARDCOPY) {
-					await sendEmail(
-						userdata.email,
-						"Hardcopy Request Confirmation",
-						`Dear ${userdata.name},\n\nYour request for hardcopies has been received. Our team will contact you within 24 hours regarding the collection process.\n\nBest regards,\nJain Convocation Team`
-					);
-				}
-			} catch (emailError) {
-				console.error("Error sending email:", emailError);
-			}
-		});
-
 		invalidateCache("requests");
+
+		const waitingTime = requestType === REQUEST_TYPES.HARDCOPY ? await calculateWaitingTime() : 0;
 
 		return {
 			success: true,
 			id: userdata.username,
 			requestType: newRequestType,
 			status: updateData.status,
+			waitingTime
 		};
 	});
 };

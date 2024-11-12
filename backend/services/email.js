@@ -12,21 +12,14 @@ const getTransporter = () => {
   });
 };
 
-const sendEmail = async (to, subject, text, attachments = []) => {
+const sendEmail = async (to, subject, html) => {
   try {
-    // Append attachment links to the email text
-    if (attachments.length > 0) {
-      text += '\n\nAttachments:\n';
-      attachments.forEach((attachment, index) => {
-        text += `${index + 1}. ${attachment.name} - ${attachment.url}\n`;
-      });
-    }
-
     const mailOptions = {
       from: getSettings('general').gmailUser,
       to,
       subject,
-      text
+      html: html,  // Only send HTML content
+      contentType: 'text/html', // Force HTML content type
     };
 
     await getTransporter().sendMail(mailOptions);

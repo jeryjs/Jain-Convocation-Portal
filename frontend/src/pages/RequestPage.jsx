@@ -32,7 +32,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { LoadingButton } from '@mui/lab';
 import DownloadIcon from '@mui/icons-material/Download';
 import SendIcon from '@mui/icons-material/Send';
-import { compressImage, generateUPILink, validatePhone } from '../utils/utils';
+import { compressImage, generateUPILink, validatePhone, formatWaitingTime, sendRequestEmail } from '../utils/utils';
 
 const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
@@ -45,7 +45,7 @@ export default function RequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [processing, setProcessing] = useState(false);
-  const [successDialog, setSuccessDialog] = useState(false);
+  const [successDialog, setSuccessDialog] = useState({ open: false, waitingTime: null });
   const [requestType, setRequestType] = useState(REQUEST_TYPES.SOFTCOPY);
   const [selectedHardcopyImages, setSelectedHardcopyImages] = useState([]);
   const [userFormData, setUserFormData] = useState({
@@ -109,7 +109,7 @@ export default function RequestPage() {
   };
 
   const handleSuccessDialogClose = () => {
-    setSuccessDialog(false);
+    setSuccessDialog({ open: false, waitingTime: null });
     window.location.reload();
   };
 
@@ -122,7 +122,6 @@ export default function RequestPage() {
 
   // Update image selection handler
   const handleImageSelection = (imgPath) => {
-    console.log('Selecting image:', selectedHardcopyImages);
     if (requestType === REQUEST_TYPES.HARDCOPY) {
       setSelectedHardcopyImages(prev => {
         const isSelected = prev.includes(imgPath);
@@ -159,6 +158,7 @@ export default function RequestPage() {
 
       setDownloadLinks(data.links);
       setSnackbar({ open: true, message: 'Successfully generated download links!', severity: 'success' });
+      return data.links;
     } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Error fetching image links', severity: 'error' });
     } finally {
@@ -171,10 +171,8 @@ export default function RequestPage() {
       setProcessing(true);
       setIsSubmitting(true);
 
-      // Add phone validation for hardcopy requests
-      if (requestType === REQUEST_TYPES.HARDCOPY)
-        if (!userFormData.phone || !validatePhone(userFormData.phone))
-          throw new Error('Please enter a valid phone number');
+      if (requestType === REQUEST_TYPES.HARDCOPY && (!userFormData.phone || !validatePhone(userFormData.phone)))
+        throw new Error('Please enter a valid phone number');
 
       const updatedUserData = {
         ...userData,
@@ -196,7 +194,6 @@ export default function RequestPage() {
         }) : null
       };
 
-      // Remove courseId from URL
       const response = await fetch(`${config.API_BASE_URL}/request`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -205,8 +202,17 @@ export default function RequestPage() {
 
       const result = await response.json();
       if (result.success) {
-        updateUserAfterRequest(updatedUserData);  // Update both user data and selected images
-        setSuccessDialog(true);
+        updateUserAfterRequest(updatedUserData);
+        
+        // Send email based on request type
+        if (requestType === REQUEST_TYPES.SOFTCOPY) {
+          const links = await handleDownload(); // Generate download links
+          await sendRequestEmail(updatedUserData, 'softcopy', links);
+        } else if (requestType === REQUEST_TYPES.HARDCOPY) {
+          await sendRequestEmail(updatedUserData, 'hardcopy', result.waitingTime);
+        }
+        
+        setSuccessDialog({ open: true, waitingTime: result.waitingTime });
       } else {
         throw new Error(result.message);
       }
@@ -311,6 +317,7 @@ export default function RequestPage() {
                   <Card variant='outlined' sx={{ flex: { sm: 1 } }}>
                     {downloadLinks.map((link) => (
                       <Chip
+                        key={link.name}
                         component='a'
                         label={ link.name.match(/\/(\w+\.\w+)$/)[1] }
                         href={link.url}
@@ -341,7 +348,7 @@ export default function RequestPage() {
       </Dialog>
 
       <Dialog
-        open={successDialog}
+        open={successDialog.open}
         onClose={handleSuccessDialogClose}
         aria-labelledby="success-dialog-title"
         aria-describedby="success-dialog-description">
@@ -351,8 +358,8 @@ export default function RequestPage() {
         <DialogContent>
           <DialogContentText id="success-dialog-description">
             {requestType == REQUEST_TYPES.SOFTCOPY
-              ? "The requested images will be sent to your registered email address within 15 minutes."
-              : "Your request for hard copies has been received. Our team will contact you within 24 hours regarding the collection process."}
+              ? "The requested images will be sent to your registered email address within 5 minutes."
+              : `Your request for hard copies has been received. Our team will contact you within ${formatWaitingTime(successDialog.waitingTime)}.`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -492,7 +499,6 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
 
 // Extracted ImagesSection component
 const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImages, handleImageSelection, amount }) => (
-  console.log('ImagesSection: ', selectedImages),
   <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
     <Typography variant="h6" sx={{ mb: 2 }}>
       {requestType === REQUEST_TYPES.HARDCOPY ?
