@@ -36,9 +36,9 @@ const AdminPage = () => {
   const [paymentPreviewRequest, setPaymentPreviewRequest] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState({open: false, message: '', severity: 'info'});
+  const [downloadingImages, setDownloadingImages] = useState({});
   const mounted = useRef(false);
   const navigate = useNavigate();
-  const [downloadingImages, setDownloadingImages] = useState({});
 
   useEffect(() => {
     if (mounted.current) return;
@@ -410,10 +410,12 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest, downloading
                 ['Name', selectedRequest.name],
                 ['Email', selectedRequest.email],
                 ['Phone', selectedRequest.phone],
+                ['Program', selectedRequest.program],
+                ['Day', selectedRequest.day],
                 ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
                 ['Status', selectedRequest.status],
-                ['Date', formatDate(selectedRequest.lastUpdated)],
-              ].map(([label, value]) => (
+                ['Date', formatDate(selectedRequest.lastUpdated)]
+              ].filter(([_, value]) => value != null).map(([label, value]) => (
                 <React.Fragment key={label}>
                   <Typography color="text.secondary">{label}:</Typography>
                   <Typography>{value}</Typography>
@@ -421,7 +423,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest, downloading
               ))}
             </Box>
             
-            <Typography variant="label" color='text.secondary' sx={{ mt: 2 }}>Requested Images:</Typography>
+            <Typography variant="subtitle2" sx={{ mt: 2 }}>Requested Images:</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               <ImageGrid
                 images={Object.entries(selectedRequest.requestedImages).map(([path, url]) => ({ [path]: url }))}
@@ -432,7 +434,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest, downloading
 
             {selectedRequest.hardcopyImages && (
               <Stack spacing={1}>
-                <Typography variant="label" color='text.secondary'>Hard Copy Images:</Typography>
+                <Typography variant="subtitle2">Hard Copy Images:</Typography>
                 <Stack direction="column" spacing={1}>
                   {selectedRequest.hardcopyImages.map((img) => (
                     <Chip
