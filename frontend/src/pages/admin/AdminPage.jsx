@@ -27,7 +27,7 @@ import { formatDate, downloadFile } from '../../utils/utils';
 
 const AdminPage = () => {
   const theme = useTheme();
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, userData } = useAuth(); // Add user to destructuring
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -154,18 +154,20 @@ const AdminPage = () => {
         pageSubtitle="Manage student requests"
         breadcrumbs={['Admin']}
         actionButtons={
-          <Stack direction="row" spacing={2}>
-            <Button variant="contained" color="primary" startIcon={<UserIcon />}
-              sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
-              onClick={() => navigate('/admin/manage')}>
-              Manage Users
-            </Button>
-            <Button variant="contained" color="secondary" startIcon={<SettingsIcon />}
-              sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
-              onClick={() => navigate('/admin/settings')}>
-              Settings
-            </Button>
-          </Stack>
+          userData?.username == 'admin' ? (
+            <Stack direction="row" spacing={2}>
+              <Button variant="contained" color="primary" startIcon={<UserIcon />}
+                sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
+                onClick={() => navigate('/admin/manage')}>
+                Manage Users
+              </Button>
+              <Button variant="contained" color="secondary" startIcon={<SettingsIcon />}
+                sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
+                onClick={() => navigate('/admin/settings')}>
+                Settings
+              </Button>
+            </Stack>
+          ) : null
         }
       />
 
