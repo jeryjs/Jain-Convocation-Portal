@@ -212,6 +212,7 @@ export default function RequestPage() {
           await sendRequestEmail(updatedUserData, 'hardcopy', result.waitingTime);
         }
         
+        setSnackbar({ open: true, message: 'Email sent successfully.', severity: 'success' });
         setSuccessDialog({ open: true, waitingTime: result.waitingTime });
       } else {
         throw new Error(result.message);

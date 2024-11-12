@@ -23,7 +23,7 @@ import PageHeader from '../../components/PageHeader';
 import config from '../../config';
 import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from '../../config/constants';
 import { useAuth } from '../../config/AuthContext';
-import { formatDate } from '../../utils/utils';
+import { formatDate, downloadFile } from '../../utils/utils';
 
 const AdminPage = () => {
   const theme = useTheme();
@@ -38,6 +38,7 @@ const AdminPage = () => {
   const [snackbar, setSnackbar] = useState({open: false, message: '', severity: 'info'});
   const mounted = useRef(false);
   const navigate = useNavigate();
+  const [downloadingImages, setDownloadingImages] = useState({});
 
   useEffect(() => {
     if (mounted.current) return;
@@ -100,6 +101,52 @@ const AdminPage = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  const getImageLinks = async (paths) => {
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/images/${paths.join(',')}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      // Cache the links
+      data.links.forEach(link => {
+        localStorage.setItem(`img_${link.name}`, link.url);
+      });
+      
+      return data.links;
+    } catch (error) {
+      console.error('Error fetching image links:', error);
+      throw error;
+    }
+  };
+
+  const handleImageDownload = async (path, requestImages) => {
+    setDownloadingImages(prev => ({ ...prev, [path]: true }));
+    try {
+      // Check cache first
+      const cachedUrl = localStorage.getItem(`img_${path}`);
+      if (cachedUrl) {
+        await downloadFile(cachedUrl, path);
+      } else {
+        // If not in cache, fetch all images for this request
+        const links = await getImageLinks(Object.keys(requestImages));
+        const link = links.find(l => l.name === path);
+        if (link) await downloadFile(link.url, path);
+      }
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Error downloading image', severity: 'error' });
+    } finally {
+      setDownloadingImages(prev => ({ ...prev, [path]: false }));
+    }
+  };
+
+  const dialogProps = {
+    selectedRequest,
+    setSelectedRequest,
+    downloadingImages,
+    handleImageDownload
+  };
+
   return (
     <>
       <PageHeader
@@ -141,10 +188,7 @@ const AdminPage = () => {
         </Stack>
       </Box>
 
-      <RequestDetailsDialog
-        selectedRequest={selectedRequest}
-        setSelectedRequest={setSelectedRequest}
-      />
+      <RequestDetailsDialog {...dialogProps} />
 
       <PreviewPaymentDialog
         paymentPreviewOpen={paymentPreviewOpen}
@@ -350,7 +394,7 @@ const RequestsTable = ({
 };
 
 // RequestDetailsDialog component
-const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
+const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest, downloadingImages, handleImageDownload }) => (
   <Dialog open={Boolean(selectedRequest)} onClose={() => setSelectedRequest(null)} maxWidth="sm" fullWidth>
     {selectedRequest && (
       <>
@@ -389,10 +433,18 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest }) => (
             {selectedRequest.hardcopyImages && (
               <Stack spacing={1}>
                 <Typography variant="label" color='text.secondary'>Hard Copy Images:</Typography>
-                <Stack direction="row" spacing={1}>
-                  {selectedRequest.hardcopyImages.map((img) => {
-                    return <Chip key={img} variant="outlined" color="primary" label={img} />;
-                  })}
+                <Stack direction="column" spacing={1}>
+                  {selectedRequest.hardcopyImages.map((img) => (
+                    <Chip
+                      key={img}
+                      variant="outlined"
+                      color="primary"
+                      label={img}
+                      icon={downloadingImages[img] ? <CircularProgress size={16} /> : <DownloadIcon />}
+                      onClick={() => handleImageDownload(img, selectedRequest.requestedImages)}
+                      clickable
+                    />
+                  ))}
                 </Stack>
               </Stack>
             )}
