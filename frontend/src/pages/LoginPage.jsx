@@ -78,7 +78,7 @@ function LoginPage() {
               variant='outlined'
               fullWidth
               value={username}
-              onChange={(e) => setUsername(e.target.value.toUpperCase())}
+              onChange={(e) => setUsername(e.target.value.toUpperCase().replace(' ', ''))} // Convert to uppercase and remove spaces
               required
               margin='normal'
               placeholder="Enter your USN in caps"
