@@ -154,7 +154,7 @@ const AdminPage = () => {
         pageSubtitle="Manage student requests"
         breadcrumbs={['Admin']}
         actionButtons={
-          userData?.username == 'admin' ? (
+          userData?.username == 'ADMIN' ? (
             <Stack direction="row" spacing={2}>
               <Button variant="contained" color="primary" startIcon={<UserIcon />}
                 sx={{ boxShadow: 2, '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }, transition: 'all 0.2s ease-in-out' }}
