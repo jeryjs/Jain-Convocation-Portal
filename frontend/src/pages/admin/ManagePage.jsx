@@ -153,7 +153,7 @@ export default function ManagePage() {
       setSnackbar({ open: true, message: `Users ${formMode === 'import' ? 'imported' : 'updated'} successfully`, severity: 'success' });
       setDialogOpen(false);
       setSelectionModel([]);
-      fetchUsers();
+      // fetchUsers();  // temporarily disable refresh to avoid load on firestore
     } catch (error) {
       setSnackbar({ open: true, message: error.message, severity: 'error' });
     } finally {
