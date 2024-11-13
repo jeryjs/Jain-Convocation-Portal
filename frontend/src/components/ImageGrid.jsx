@@ -44,10 +44,10 @@ export default function ImageGrid({
     <Card variant='elevation' elevation='4' sx={{ display:"flex", flexDirection: "column", ...sx }}>
       {showColumnControls && (
         <Box sx={{ mt:'-20px', mr: '-0px', mb:'10px', display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
+          <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
             <RemoveCircleOutlineIcon />
           </IconButton>
-          <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
+          <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
             <AddCircleOutlineIcon />
           </IconButton>
         </Box>
