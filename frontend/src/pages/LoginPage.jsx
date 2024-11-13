@@ -48,10 +48,12 @@ function LoginPage() {
   };
 
   const validatePassword = (password) => {
-    // Regex for Indian phone numbers: 
-    // - Must be exactly 10 digits
-    // - Must start with 6, 7, 8, or 9
-    const regex = /^[6-9]\d{9}$/;
+    // Regex for Indian and Nepal phone numbers with optional country codes:
+    // - Must be exactly 10 or 12 digits
+    // - Must start with 6, 7, 8, or 9 for India
+    // - Must start with 9 for Nepal
+    // - Optional country codes: 91 for India, 977 for Nepal
+    const regex = /^(91|977)?[6-9]\d{9}(\d{3})?$/;
     return regex.test(password);
   };
 
