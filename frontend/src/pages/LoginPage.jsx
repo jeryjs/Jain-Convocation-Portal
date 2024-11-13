@@ -82,6 +82,7 @@ function LoginPage() {
               required
               margin='normal'
               placeholder="Enter your USN"
+              helperText="Your USN in caps is your username."
             />
             <TextField
               label='Password'

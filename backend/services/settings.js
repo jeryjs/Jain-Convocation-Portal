@@ -5,7 +5,7 @@ const { invalidateCache } = require("../utils/cache.utils");
 
 // Function to get settings from firestore
 const getSettings = async (category = "all") => {
-	const cacheKey = `settings_${category}`;
+	const cacheKey = `settings_${category}2`;
 	const cachedSettings = cache.get(cacheKey);
 
 	if (cachedSettings) {

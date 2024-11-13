@@ -4,3 +4,4 @@ backend/serviceAccountKey.json
 node_modules/
 
 test/
+backend/.env.bak
