@@ -190,7 +190,7 @@ const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
             <GroupsIcon color="primary" sx={{ fontSize: { xs: 18, sm: 24 } }} />
             <Typography sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-              Available Stages
+              {time.batches?.length?"Available Stages":"No Stages Available"}
             </Typography>
           </Box>
           <Grid container spacing={1}>
