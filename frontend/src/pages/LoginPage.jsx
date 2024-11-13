@@ -78,7 +78,7 @@ function LoginPage() {
               variant='outlined'
               fullWidth
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value.toUpperCase())}
               required
               margin='normal'
               placeholder="Enter your USN"
@@ -92,9 +92,9 @@ function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               margin='normal'
-              placeholder="Enter your password"
+              placeholder="Enter your registered phone number"
               error={!validatePassword(password) && password.length > 0}
-              helperText={!validatePassword(password) && password.length > 0 ? "The phone number you registered with is your password" : ""}
+              helperText={"For any assistance with logging in, please visit the help desk near the entrance."}
             />
             <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} sx={{ mt: 2, borderRadius: '25px', fontSize: '1.2rem' }}>
               {loading ? <CircularProgress size={24} /> : "Login"}
