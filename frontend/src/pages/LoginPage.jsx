@@ -35,7 +35,7 @@ function LoginPage() {
           navigate("/sessions");
         }
       } else {
-        setSnackbarMessage("Login failed: Incorrect username or password");
+        setSnackbarMessage("Login failed: Incorrect username or password.\nPlease visit the help desk near the entrance for assistance with logging in.");
         setSnackbarOpen(true);
       }
     } catch (error) {
