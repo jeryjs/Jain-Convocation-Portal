@@ -180,7 +180,7 @@ function AboutPage() {
               <Divider sx={{ mb: 3 }} />
               <Typography variant="body1" color='text.primary'>
                 This portal was developed by Jery J.S (<Link href="https://github.com/jeryjs" target="_blank" rel="noopener">GitHub Profile</Link>).<br/>
-                Version 1.4.2 | Built with React and Material-UI | © 2024 Jain University
+                Version 2.0.2 | Built with React and Material-UI | © 2024 Jain University
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 For technical support or inquiries, please contact the development team.
