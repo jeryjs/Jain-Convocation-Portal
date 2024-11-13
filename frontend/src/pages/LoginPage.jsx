@@ -81,8 +81,7 @@ function LoginPage() {
               onChange={(e) => setUsername(e.target.value.toUpperCase())}
               required
               margin='normal'
-              placeholder="Enter your USN"
-              helperText="Your USN in caps is your username."
+              placeholder="Enter your USN in caps"
             />
             <TextField
               label='Password'
