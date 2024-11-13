@@ -1,10 +1,11 @@
-import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert, Stack, Box } from "@mui/material";
+import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert, Box, IconButton, InputAdornment } from "@mui/material";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import JGILogo from "../assets/JGI.webp";
 import ConvocationBanner from "../assets/banner.webp";
 import config from "../config";
 import { useAuth } from '../config/AuthContext';
+import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
@@ -12,6 +13,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -85,7 +87,7 @@ function LoginPage() {
             />
             <TextField
               label='Password'
-              type='password'
+              type={showPassword ? 'text' : 'password'}
               variant='outlined'
               fullWidth
               value={password}
@@ -95,6 +97,15 @@ function LoginPage() {
               placeholder="Enter your registered phone number"
               error={!validatePassword(password) && password.length > 0}
               helperText={"For any assistance with logging in, please visit the help desk near the entrance."}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOutlined /> : <VisibilityOffOutlined />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} sx={{ mt: 2, borderRadius: '25px', fontSize: '1.2rem' }}>
               {loading ? <CircularProgress size={24} /> : "Login"}
