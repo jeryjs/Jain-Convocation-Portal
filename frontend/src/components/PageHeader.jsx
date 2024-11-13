@@ -137,10 +137,10 @@ function PageHeader({
             <ListItemIcon><FaqIcon color="primary" /></ListItemIcon>
             <ListItemText primary="FAQ" />
           </ListItem>
-          <ListItem button onClick={() => handleNavigate('/feedback')}>
+          {/* <ListItem button onClick={() => handleNavigate('/feedback')}>
             <ListItemIcon><FeedbackIcon color="primary" /></ListItemIcon>
             <ListItemText primary="Feedback" />
-          </ListItem>
+          </ListItem> */}
           <ListItem button onClick={() => handleNavigate('/about')}>
             <ListItemIcon><InfoIcon color="primary" /></ListItemIcon>
             <ListItemText primary="About" />
