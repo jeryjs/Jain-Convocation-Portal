@@ -41,6 +41,7 @@ export default function RequestPage() {
   const { sessionId } = useParams();
   const { userData, updateUserAfterRequest, selectedImages, getAuthHeaders } = useAuth();
   const hasExistingRequests = Object.keys(userData?.requestedImages || {}).length > 0;
+  const hasExistingHardcopyRequests = userData?.hardcopyImages?.length > 0;
   const [paymentProof, setPaymentProof] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
@@ -84,7 +85,7 @@ export default function RequestPage() {
   }, [requestType, getAuthHeaders]);
 
   const handleRequestTypeChange = (event, newType) => {
-    if (newType !== null) {
+    if (newType !== null && (!hasExistingHardcopyRequests || newType !== REQUEST_TYPES.HARDCOPY)) {
       setRequestType(parseInt(newType));
     }
   };
@@ -244,11 +245,19 @@ export default function RequestPage() {
             </Alert>
           )}
 
+          {hasExistingHardcopyRequests && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              You have already requested hardcopies. Please wait for your existing request to be processed.
+            </Alert>
+          )}
+
           <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Request Type</Typography>
             <ToggleButtonGroup value={requestType} exclusive onChange={handleRequestTypeChange} sx={{ mb: 2 }}>
               <ToggleButton value={REQUEST_TYPES.SOFTCOPY}>Soft Copy</ToggleButton>
-              <ToggleButton value={REQUEST_TYPES.HARDCOPY}>Hard Copy</ToggleButton>
+              <ToggleButton value={REQUEST_TYPES.HARDCOPY} disabled={hasExistingHardcopyRequests}>
+                Hard Copy
+              </ToggleButton>
             </ToggleButtonGroup>
           </Card>
 
