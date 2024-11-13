@@ -7,6 +7,27 @@ import config from '../config';
 import PageHeader from '../components/PageHeader';
 import { cacheManager } from '../utils/cache';
 
+// Utility function for handling file name in the format "10AM to 11AM"
+const convertTimeToMinutes = (timeStr) => {
+  const [time, period] = timeStr.match(/(\d+(?:AM|PM))/gi)[0].split(/(AM|PM)/);
+  let hours = parseInt(time);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60;
+};
+
+// Utility function for handling file name in the format "10AM to 11AM"
+const sortTimeSlots = (data) => {
+  return data.map(day => ({
+    ...day,
+    times: day.times.sort((a, b) => {
+      const timeA = convertTimeToMinutes(a.name);
+      const timeB = convertTimeToMinutes(b.name);
+      return timeA - timeB;
+    })
+  }));
+};
+
 function CoursesPage() {
   const [structure, setStructure] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +46,7 @@ function CoursesPage() {
         // Try to get from cache first
         const cached = !isRetry && cacheManager.get('courses');
         if (cached) {
-          setStructure(cached);
+          setStructure(sortTimeSlots(cached)); // Apply sorting to cached data
           setLoading(false);
           return;
         }
@@ -33,9 +54,9 @@ function CoursesPage() {
         const response = await fetch(`${config.API_BASE_URL}/courses`);
         const data = await response.json();
         
-        setStructure(data);
-        // Cache the new data
-        cacheManager.set('courses', data, isRetry);
+        const sortedData = sortTimeSlots(data);
+        setStructure(sortedData);
+        cacheManager.set('courses', sortedData, isRetry);
       } catch (error) {
         console.error('Error fetching courses:', error);
         // Retry with cache invalidation
