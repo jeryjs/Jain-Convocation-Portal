@@ -70,56 +70,45 @@ function GalleryPage() {
     fetchImages();
   }, [sessionId, navigate]);
 
-  useEffect(() => {
-    if (isGroupPhotos) {
-      // Pre-fetch and cache all image links for group photos
-      const cacheImageLinks = async () => {
-        setLoadingLinks(true);
-        try {
-          const response = await fetch(`${config.API_BASE_URL}/images/${images.map(img => Object.keys(img)[0]).join(',')}`, {
-            headers: getAuthHeaders()
-          });
-          const data = await response.json();
-          
-          // Cache the links with a long expiry (30 days)
-          data.links.forEach(link => {
-            localStorage.setItem(`img_${link.name}`, JSON.stringify({
-              url: link.url,
-              timestamp: Date.now(),
-              expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
-            }));
-          });
-        } catch (error) {
-          console.error('Error caching image links:', error);
-        } finally {
-          setLoadingLinks(false);
-        }
-      };
-      cacheImageLinks();
-    }
-  }, [images, isGroupPhotos]);
-
   const handleImageDownload = async (imagePath) => {
     try {
-      // Check cache first
-      const cached = localStorage.getItem(`img_${imagePath}`);
+      // Check if links are already cached
+      const cached = localStorage.getItem('group_photos_links');
+      let links;
+
       if (cached) {
-        const { url, expires } = JSON.parse(cached);
+        const { data, expires } = JSON.parse(cached);
         if (expires > Date.now()) {
-          await downloadFile(url, imagePath.split('/').pop());
-          return;
+          links = data;
+        } else {
+          localStorage.removeItem('group_photos_links');
         }
-        localStorage.removeItem(`img_${imagePath}`);
       }
 
-      // If not in cache or expired, fetch new link
-      const links = await getImageLinks([imagePath]);
-      const link = links.find(l => l.name === imagePath);
+      if (!links) {
+        setLoadingLinks(true);
+        // Fetch all image links at once
+        const response = await fetch(`${config.API_BASE_URL}/images/${images.map(img => Object.keys(img)[0]).join(',')}`, {
+          headers: getAuthHeaders()
+        });
+        links = await response.json();
+        
+        // Cache the links with a 30-day expiry
+        localStorage.setItem('group_photos_links', JSON.stringify({
+          data: links,
+          expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
+        }));
+        setLoadingLinks(false);
+      }
+
+      // Find and download the requested image
+      const link = links.links.find(l => l.name === imagePath);
       if (link) {
         await downloadFile(link.url, imagePath.split('/').pop());
       }
     } catch (error) {
       console.error('Error downloading image:', error);
+      setLoadingLinks(false);
     }
   };
 
