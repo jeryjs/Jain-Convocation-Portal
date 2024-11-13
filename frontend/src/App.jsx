@@ -26,8 +26,8 @@ function App() {
           <Route path="/gallery/:sessionId" element={<PrivateRoute><GalleryPage /></PrivateRoute>} />
           <Route path="/gallery/:sessionId/request" element={<PrivateRoute><RequestPage /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute requiredRole="admin"><AdminPage /></PrivateRoute>} />
-          <Route path="/admin/manage" element={<PrivateRoute requiredRole="admin" username="admin"><ManagePage /></PrivateRoute>} />
-          <Route path="/admin/settings" element={<PrivateRoute requiredRole="admin" username="admin"><SettingsPage /></PrivateRoute>} />
+          <Route path="/admin/manage" element={<PrivateRoute requiredRole="admin" username="ADMIN"><ManagePage /></PrivateRoute>} />
+          <Route path="/admin/settings" element={<PrivateRoute requiredRole="admin" username="ADMIN"><SettingsPage /></PrivateRoute>} />
           <Route path='/faq' element={<FAQPage />} />
           <Route path='/about' element={<AboutPage />} />
         </Routes>

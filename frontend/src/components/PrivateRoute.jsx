@@ -13,7 +13,7 @@ function PrivateRoute({ children, requiredRole, username }) {
     return <Navigate to="/courses" replace />;
   }
 
-  if (username && userData.username !== username) {
+  if (username && userData.username != username) {
     return <Navigate to="/admin" replace />;
   }
 
