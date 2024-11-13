@@ -137,7 +137,7 @@ function GalleryPage() {
         onBack={() => navigate('/sessions')}
         sx={{ mb: 2 }}
       />
-      <Box sx={{ width: {xs:'100vw', md:'90vw'} }}>
+      <Box sx={{ width: {xs:'100vw', md:'90vw'}, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (
           <ImageGrid
             loading={loading || loadingLinks}
@@ -168,11 +168,89 @@ function GalleryPage() {
               existingImages={userData?.requestedImages || {}}
               onRequestPressed={handleRequestPressed}
               availableSlots={getAvailableSlots()}
-              sx={{ flex: {md: '1'}  }}
+              sx={{ flex: {md: '1'}, display: { xs: 'none', md: 'block' } }}
             />
           </Stack>
         )}
       </Box>
+
+      {/* Mobile Selected Images Strip & Request Button */}
+      {!isGroupPhotos && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: { xs: 'block', md: 'none' },
+            zIndex: 1000
+          }}
+        >
+          {/* Horizontal Scrollable Selected Images */}
+          <Box 
+            sx={{ 
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              px: 2,
+              pt: 1,
+              pb: 0.5,
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {Object.entries(selectedImages).length > 0 ? (
+              Object.entries(selectedImages).map(([path, url]) => (
+                <Box
+                  key={path}
+                  component="img"
+                  src={url}
+                  sx={{
+                    height: 60,
+                    width: 60,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    mr: 1,
+                    display: 'inline-block',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    const { [path]: removed, ...rest } = selectedImages;
+                    updateSelectedImages(rest);
+                  }}
+                />
+              ))
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+                No images selected
+              </Typography>
+            )}
+          </Box>
+
+          {/* Request Button Section */}
+          <Box sx={{ p: 2, pt: 1 }}>
+            <Stack spacing={1}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <WarningIcon color="warning" sx={{ fontSize: 16, mr: 1 }} />
+                <Typography variant="caption" sx={{ color: 'warning.main' }}>
+                  You will not be able to change selections after making request.
+                </Typography>
+              </Box>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleRequestPressed}
+                disabled={Object.keys(selectedImages).length < 0}
+              >
+                Request ({Object.keys(selectedImages).length}/4)
+              </Button>
+            </Stack>
+          </Box>
+        </Box>
+      )}
     </>
   );
 }
