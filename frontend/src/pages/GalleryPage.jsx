@@ -14,7 +14,7 @@ import {
 import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../config/AuthContext';
 import { cacheManager } from '../utils/cache';
-import { useTheme } from '@emotion/react';
+import { downloadFile } from '../utils/utils';
 
 
 function GalleryPage() {
@@ -24,7 +24,9 @@ function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
   const mounted = useRef(false);
-  const { userData, selectedImages, updateSelectedImages, getAvailableSlots, updateUserData } = useAuth();
+  const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  const isGroupPhotos = pathData.batch === 'Group Photos';
 
   useEffect(() => {
     if (mounted.current) return;
@@ -68,6 +70,59 @@ function GalleryPage() {
     fetchImages();
   }, [sessionId, navigate]);
 
+  useEffect(() => {
+    if (isGroupPhotos) {
+      // Pre-fetch and cache all image links for group photos
+      const cacheImageLinks = async () => {
+        setLoadingLinks(true);
+        try {
+          const response = await fetch(`${config.API_BASE_URL}/images/${images.map(img => Object.keys(img)[0]).join(',')}`, {
+            headers: getAuthHeaders()
+          });
+          const data = await response.json();
+          
+          // Cache the links with a long expiry (30 days)
+          data.links.forEach(link => {
+            localStorage.setItem(`img_${link.name}`, JSON.stringify({
+              url: link.url,
+              timestamp: Date.now(),
+              expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
+            }));
+          });
+        } catch (error) {
+          console.error('Error caching image links:', error);
+        } finally {
+          setLoadingLinks(false);
+        }
+      };
+      cacheImageLinks();
+    }
+  }, [images, isGroupPhotos]);
+
+  const handleImageDownload = async (imagePath) => {
+    try {
+      // Check cache first
+      const cached = localStorage.getItem(`img_${imagePath}`);
+      if (cached) {
+        const { url, expires } = JSON.parse(cached);
+        if (expires > Date.now()) {
+          await downloadFile(url, imagePath.split('/').pop());
+          return;
+        }
+        localStorage.removeItem(`img_${imagePath}`);
+      }
+
+      // If not in cache or expired, fetch new link
+      const links = await getImageLinks([imagePath]);
+      const link = links.find(l => l.name === imagePath);
+      if (link) {
+        await downloadFile(link.url, imagePath.split('/').pop());
+      }
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    }
+  };
+
   const handleSelectImage = (imagePath, thumbUrl) => {
     if (selectedImages[imagePath]) {
       const { [imagePath]: removed, ...rest } = selectedImages;
@@ -94,29 +149,40 @@ function GalleryPage() {
         sx={{ mb: 2 }}
       />
       <Box sx={{ width: {xs:'100vw', md:'90vw'} }}>
-        <Stack 
-          direction={{ xs: "column", md: "row" }} 
-          spacing={2}
-          sx={{ height: {md: '80vh'} }}
-        >
+        {isGroupPhotos ? (
           <ImageGrid
-            loading={loading}
+            loading={loading || loadingLinks}
             images={images}
-            selectedImages={Object.keys(selectedImages)}
-            lockedImages={Object.keys(userData?.requestedImages || {})}
-            onSelectImage={handleSelectImage}
-            availableSlots={getAvailableSlots()}
-            sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
+            columns={3}
+            showColumnControls={true}
+            onDownload={handleImageDownload}
+            sx={{ p: 2, height: 'calc(100vh - 200px)', flex: 1 }}
           />
+        ) : (
+          <Stack 
+            direction={{ xs: "column", md: "row" }} 
+            spacing={2}
+            sx={{ height: {md: '80vh'} }}
+          >
+            <ImageGrid
+              loading={loading}
+              images={images}
+              selectedImages={Object.keys(selectedImages)}
+              lockedImages={Object.keys(userData?.requestedImages || {})}
+              onSelectImage={handleSelectImage}
+              availableSlots={getAvailableSlots()}
+              sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
+            />
 
-          <SelectedImagesPanel
-            selectedImages={selectedImages}
-            existingImages={userData?.requestedImages || {}}
-            onRequestPressed={handleRequestPressed}
-            availableSlots={getAvailableSlots()}
-            sx={{ flex: {md: '1'}  }}
-          />
-        </Stack>
+            <SelectedImagesPanel
+              selectedImages={selectedImages}
+              existingImages={userData?.requestedImages || {}}
+              onRequestPressed={handleRequestPressed}
+              availableSlots={getAvailableSlots()}
+              sx={{ flex: {md: '1'}  }}
+            />
+          </Stack>
+        )}
       </Box>
     </>
   );

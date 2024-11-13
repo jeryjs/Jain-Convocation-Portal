@@ -11,10 +11,13 @@ import {
   Skeleton,
   Box,
   Chip,
+  Button,
+  CircularProgress
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import DownloadIcon from '@mui/icons-material/Download';
 
 // Helper function to get short name from full path
 const getShortName = (fullPath) => {
@@ -27,6 +30,7 @@ export default function ImageGrid({
   selectedImages = [],
   lockedImages = [], 
   onSelectImage, 
+  onDownload,
   loading,
   availableSlots,
   columns = 3,
@@ -66,6 +70,7 @@ export default function ImageGrid({
                 isLocked={isLocked}
                 canSelect={canSelect}
                 onSelect={onSelectImage}
+                onDownload={onDownload}
               />
             </Grid>
           );
@@ -75,16 +80,36 @@ export default function ImageGrid({
   );
 }
 
-const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isLocked, canSelect, onSelect }) => {
+const ImageCard = memo(({ 
+  loading, 
+  imgPath, 
+  imgThumbLink, 
+  isSelected, 
+  isLocked, 
+  canSelect, 
+  onSelect,
+  onDownload 
+}) => {
   const displayName = getShortName(imgPath);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    setDownloading(true);
+    try {
+      await onDownload(imgPath);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <Card
-      onClick={() => !loading && canSelect && onSelect && onSelect(imgPath, imgThumbLink)}
+      onClick={() => !loading && !onDownload && canSelect && onSelect && onSelect(imgPath, imgThumbLink)}
       style={{
         position: 'relative',
-        cursor: isLocked ? 'default' : 'pointer',
-        opacity: canSelect ? 1 : 0.5,
+        cursor: onDownload ? 'default' : (isLocked ? 'default' : 'pointer'),
+        opacity: onDownload ? 1 : (canSelect ? 1 : 0.5),
         transition: '0.3s',
         border: isSelected ? '2px solid #3f51b5' : '2px solid transparent',
       }}>
@@ -104,14 +129,30 @@ const ImageCard = memo(({ loading, imgPath, imgThumbLink, isSelected, isLocked, 
           )}
         </CardContent>
       </CardActionArea>
-      {!loading && onSelect && (
+      
+      {!loading && onDownload && (
+        <CardActions sx={{ justifyContent: 'center', p: 1 }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleDownload}
+            disabled={downloading}
+            startIcon={downloading ? <CircularProgress size={16} /> : <DownloadIcon />}
+          >
+            Download
+          </Button>
+        </CardActions>
+      )}
+      
+      {!loading && onSelect && !onDownload && (
         <CardActions sx={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#ffffffcc', borderRadius: '50%', p: 0, m: 1 }}>
           <IconButton aria-label="select image" sx={{ p: 0 }} >
             <CheckCircleIcon color={isSelected ? 'primary' : 'disabled'} />
           </IconButton>
         </CardActions>
       )}
-      {isLocked && (
+      
+      {isLocked && !onDownload && (
         <Chip label="Already Requested" size="small" color="primary" sx={{ position: 'absolute', top: 8, right: 8 }} />
       )}
     </Card>
