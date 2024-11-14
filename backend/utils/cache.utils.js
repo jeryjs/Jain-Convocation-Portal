@@ -7,7 +7,7 @@ const invalidateCache = (type, key = '') => {
       cache.del(`user_${key}`);
       break;
     case 'requests':
-      cache.del(`request_${key}`);
+      cache.del(`requests_${key}`);
       cache.del('all_requests');
       break;
     case 'settings':

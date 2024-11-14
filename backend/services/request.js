@@ -139,6 +139,8 @@ const updateRequestStatus = async (username, status) => {
 	invalidateCache("requests", "pending");
 	invalidateCache("requests", "approved");
 	invalidateCache("requests", "completed");
+	invalidateCache("requests", "pending_approved");
+	invalidateCache("requests", "pending_approved_completed");
 	return { success: true };
 };
 
