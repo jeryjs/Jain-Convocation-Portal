@@ -86,6 +86,7 @@ const getAllRequests = async (statusFilter = ['pending', 'approved'], limit = 10
     // Handle multiple statuses with a separate query for each status
     const promises = statusFilter.map(status => 
       db.collection(COLLECTION_NAME)
+		.where("requestType", "!=", 2)
         .where("requestType", ">", 0)
         .where("status", "==", status)
         .orderBy("lastUpdated", "desc")
