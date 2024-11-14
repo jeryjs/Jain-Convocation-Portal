@@ -206,14 +206,19 @@ export default function RequestPage() {
         updateUserAfterRequest(updatedUserData);
         
         // Send email based on request type
-        if (requestType === REQUEST_TYPES.SOFTCOPY) {
-          const links = await handleDownload(); // Generate download links
-          await sendRequestEmail(updatedUserData, 'softcopy', links);
-        } else if (requestType === REQUEST_TYPES.HARDCOPY) {
-          await sendRequestEmail(updatedUserData, 'hardcopy', result.waitingTime);
+        try {
+          if (requestType === REQUEST_TYPES.SOFTCOPY) {
+            const links = await handleDownload(); // Generate download links
+            await sendRequestEmail(updatedUserData, 'softcopy', links);
+          } else if (requestType === REQUEST_TYPES.HARDCOPY) {
+            await sendRequestEmail(updatedUserData, 'hardcopy', result.waitingTime);
+          }
+          setSnackbar({ open: true, message: 'Email sent successfully.', severity: 'success' });
+        } catch (error) {
+          // setSnackbar({ open: true, message: 'Email couldn\'t be sent.', severity: 'error' });
+          console.error('Error sending email:', error);
         }
         
-        setSnackbar({ open: true, message: 'Email sent successfully.', severity: 'success' });
         setSuccessDialog({ open: true, waitingTime: result.waitingTime });
       } else {
         throw new Error(result.message);
