@@ -76,7 +76,7 @@ function LoginPage() {
 
           <form onSubmit={handleLogin}>
             <TextField
-              label='Username'
+              label='USN'
               variant='outlined'
               fullWidth
               value={username}
@@ -84,10 +84,9 @@ function LoginPage() {
               required
               margin='normal'
               placeholder="Enter your USN in caps"
-              helperText="Your USN is your username and phone number is password."
             />
             <TextField
-              label='Password'
+              label='Phone Number'
               type={showPassword ? 'text' : 'password'}
               variant='outlined'
               fullWidth
