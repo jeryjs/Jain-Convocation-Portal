@@ -66,7 +66,7 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 };
 
 // Function to get all requests with status > 0 
-const getAllRequests = async (statusFilter = ['pending', 'approved'], limit = 100) => {
+const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'], limit = 100) => {
   // Sort statusFilter to ensure consistent cache keys
   const sortedStatuses = [...statusFilter].sort();
   const cacheKey = `requests_${sortedStatuses.join('_')}`;
