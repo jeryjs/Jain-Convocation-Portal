@@ -55,6 +55,10 @@ const AdminPage = () => {
       const params = new URLSearchParams();
       statusFilter.forEach(s => params.append('status', s));
       
+      // Get the limit from user through a prompt
+      if (statusFilter.includes('completed'))
+        params.append('limit', prompt('Enter limit for completed requests (default: 100)', 100)??100);
+      
       const response = await fetch(`${config.API_BASE_URL}/admin/requests?${params}`, {
         headers: getAuthHeaders()
       });
