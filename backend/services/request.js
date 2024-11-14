@@ -70,10 +70,10 @@ const getAllRequests = async (statusFilter = ['pending', 'approved'], limit = 10
   const cacheKey = `requests_${statusFilter.join('_')}`;
   const cachedRequests = cache.get(cacheKey);
 
-  if (cachedRequests) {
-    console.log("📦 Serving cached requests");
-    return cachedRequests;
-  }
+//   if (cachedRequests) {
+//     console.log("📦 Serving cached requests");
+//     return cachedRequests;
+//   }
 
   // Base query with requestType > 0
   let query = db.collection(COLLECTION_NAME)
