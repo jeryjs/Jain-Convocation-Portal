@@ -63,17 +63,14 @@ const AdminPage = () => {
       
       const data = await response.json();
       if (statusFilter.includes('completed')) {
-        // Merge with existing non-completed requests
-        setRequests(prev => {
-          const nonCompleted = prev.filter(r => r.status !== 'completed');
-          const completed = data.filter(r => r.status === 'completed');
-          return [...nonCompleted, ...completed];
-        });
+        // Replace all requests when fetching completed
+        setRequests(data);
       } else {
-        // Replace only non-completed requests
+        // Only replace non-completed requests
         setRequests(prev => {
           const completed = prev.filter(r => r.status === 'completed');
-          return [...data, ...completed];
+          const nonCompleted = data.filter(r => r.status !== 'completed');
+          return [...nonCompleted, ...completed];
         });
       }
     } catch (error) {
