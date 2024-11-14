@@ -89,7 +89,7 @@ const getAllRequests = async (statusFilter = ['pending', 'approved'], limit = 10
         .where("requestType", ">", 0)
         .where("status", "==", status)
         .orderBy("lastUpdated", "desc")
-        .limit(limit)
+        // .limit(limit)	// Temporary fix for Firestore limit issue/sorting issue
         .get()
     );
 
