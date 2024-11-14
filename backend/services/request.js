@@ -67,13 +67,15 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 
 // Function to get all requests with status > 0 
 const getAllRequests = async (statusFilter = ['pending', 'approved'], limit = 100) => {
-  const cacheKey = `requests_${statusFilter.join('_')}`;
+  // Sort statusFilter to ensure consistent cache keys
+  const sortedStatuses = [...statusFilter].sort();
+  const cacheKey = `requests_${sortedStatuses.join('_')}`;
   const cachedRequests = cache.get(cacheKey);
 
-//   if (cachedRequests) {
-//     console.log("📦 Serving cached requests");
-//     return cachedRequests;
-//   }
+  if (cachedRequests) {
+    console.log("📦 Serving cached requests");
+    return cachedRequests;
+  }
 
   // Base query with requestType > 0
   let query = db.collection(COLLECTION_NAME)
@@ -136,12 +138,9 @@ const updateRequestStatus = async (username, status) => {
 		});
 	});
 
+	// Clear user cache
 	invalidateCache("user", username);
-	invalidateCache("requests", "pending");
-	invalidateCache("requests", "approved");
-	invalidateCache("requests", "completed");
-	invalidateCache("requests", "pending_approved");
-	invalidateCache("requests", "pending_approved_completed");
+	invalidateCache();	// Clear all cache
 	return { success: true };
 };
 
