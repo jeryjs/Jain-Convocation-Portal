@@ -28,16 +28,16 @@ const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 async function initializeSettings() {
-	const { getSettings } = require("./services/settings");
-	const { updateSettingsCache } = require("./config/settings");
+    const { getSettings } = require("./services/settings");
+    const { updateSettingsCache } = require("./config/settings");
 
-	try {
-		const settings = await getSettings("courses");
-		updateSettingsCache(settings);
-		console.log("Settings cache initialized");
-	} catch (error) {
-		console.error("Error initializing settings:", error);
-	}
+    try {
+        const settings = await getSettings("all");
+        updateSettingsCache(settings);
+        console.log("Settings cache initialized with all categories");
+    } catch (error) {
+        console.error("Error initializing settings:", error);
+    }
 }
 
 initializeSettings();

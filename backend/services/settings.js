@@ -5,47 +5,51 @@ const { invalidateCache } = require("../utils/cache.utils");
 
 // Function to get settings from firestore
 const getSettings = async (category = "all") => {
-	const cacheKey = `settings_${category}2`;
-	const cachedSettings = cache.get(cacheKey);
+    const cacheKey = `settings_${category}`;
+    const cachedSettings = cache.get(cacheKey);
 
-	if (cachedSettings) {
-		console.log(`📦 Serving cached settings for category: ${category}`);
-		return cachedSettings;
-	}
+    if (cachedSettings) {
+        console.log(`📦 Serving cached settings for category: ${category}`);
+        return cachedSettings;
+    }
 
-	if (category === "all") {
-		const snapshot = await db.collection("settings").get();
-		const settings = {};
-		
-    snapshot.forEach((doc) => settings[doc.id] = doc.data());
-
-		cache.set(cacheKey, settings, TTL.SETTINGS);
-		return settings;
-	} else {
-		const doc = await db.collection("settings").doc(category).get();
-		const settings = { [category]: doc.exists ? doc.data() : {} };
-		cache.set(cacheKey, settings, TTL.SETTINGS);
-		return settings;
-	}
+    try {
+        let settings;
+        if (category === "all") {
+            const snapshot = await db.collection("settings").get();
+            settings = {};
+            snapshot.forEach((doc) => settings[doc.id] = doc.data());
+        } else {
+            const doc = await db.collection("settings").doc(category).get();
+            settings = { [category]: doc.exists ? doc.data() : {} };
+        }
+        
+        cache.set(cacheKey, settings, TTL.SETTINGS);
+        updateSettingsCache(settings); // Update in-memory cache as well
+        return settings;
+    } catch (error) {
+        console.error('Error fetching settings:', error);
+        throw error;
+    }
 };
 
 // Function to update settings
 const updateSettings = async (settings) => {
-	const batch = db.batch();
+    const batch = db.batch();
 
-	// Update each category
-	Object.entries(settings).forEach(([category, categorySettings]) => {
-		const docRef = db.collection("settings").doc(category);
-		batch.set(docRef, categorySettings);
-	});
+    // Update each category
+    Object.entries(settings).forEach(([category, categorySettings]) => {
+        const docRef = db.collection("settings").doc(category);
+        batch.set(docRef, categorySettings);
+    });
 
-	await batch.commit();
-	updateSettingsCache(settings); // Update cache after successful save
-	invalidateCache("settings");
-	return { success: true };
+    await batch.commit();
+    updateSettingsCache(settings); // Update cache after successful save
+    invalidateCache("settings");
+    return { success: true };
 };
 
 module.exports = {
-	getSettings,
-	updateSettings,
+    getSettings,
+    updateSettings,
 };
