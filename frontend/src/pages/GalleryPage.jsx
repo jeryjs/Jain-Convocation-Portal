@@ -160,6 +160,7 @@ function GalleryPage() {
               lockedImages={Object.keys(userData?.requestedImages || {})}
               onSelectImage={handleSelectImage}
               availableSlots={getAvailableSlots()}
+              searchEnabled={true}
               sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
             />
 

@@ -36,6 +36,7 @@ export default function ImageGrid({
   availableSlots,
   columns = 3,
   showColumnControls = true,
+  searchEnabled = false,
   sx 
 }) {
   const [localColumns, setLocalColumns] = useState(columns);
@@ -63,26 +64,30 @@ export default function ImageGrid({
 
   return (
     <Card variant='elevation' elevation='4' sx={{ display:"flex", flexDirection: "column", ...sx }}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search images..."
-          value={searchTerm}
-          onChange={handleSearch}
-          disabled={loading}
-        />
-        {showColumnControls && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
-              <RemoveCircleOutlineIcon />
-            </IconButton>
-            <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
-              <AddCircleOutlineIcon />
-            </IconButton>
-          </Box>
-        )}
-      </Box>
+      {(searchEnabled || showColumnControls) && (
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          {searchEnabled && (
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search images..."
+              value={searchTerm}
+              onChange={handleSearch}
+              disabled={loading}
+            />
+          )}
+          {showColumnControls && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
+                <RemoveCircleOutlineIcon />
+              </IconButton>
+              <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
+                <AddCircleOutlineIcon />
+              </IconButton>
+            </Box>
+          )}
+        </Box>
+      )}
       
       <Grid container spacing={{ xs: 0, md: 2}} sx={{ overflowY: 'auto' }}>
         {(loading ? skeletonArray : images).map((item, index) => {
