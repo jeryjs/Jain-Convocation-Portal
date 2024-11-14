@@ -95,7 +95,14 @@ const AdminPage = () => {
 
       if (!response.ok) throw new Error('Failed to update status: ' + response.statusText);
 
-      await handleRefresh();
+      // Update requests locally instead of refreshing
+      setRequests(prevRequests => 
+        prevRequests.map(request => 
+          request.username === requestId 
+            ? { ...request, status: newStatus, lastUpdated: { _seconds: Date.now() / 1000 } }
+            : request
+        )
+      );
       
       setSnackbar({ open: true, message: `Request ${newStatus} successfully`, severity: 'success' });
     } catch (error) {
