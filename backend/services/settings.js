@@ -40,6 +40,7 @@ const updateSettings = async (settings) => {
     // Update each category
     Object.entries(settings).forEach(([category, categorySettings]) => {
         const docRef = db.collection("settings").doc(category);
+        invalidateCache(`settings`, category);
         batch.set(docRef, categorySettings);
     });
 
