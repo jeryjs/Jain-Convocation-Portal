@@ -17,6 +17,7 @@ import {
   Refresh as RefreshIcon,
   Settings as SettingsIcon,
   CheckCircle,
+  Payment,
 } from '@mui/icons-material';
 import ImageGrid from '../../components/ImageGrid';
 import PageHeader from '../../components/PageHeader';
@@ -397,7 +398,7 @@ const RequestsTable = ({
                   setPaymentPreviewRequest(params.row);
                   setImagePreviewOpen(true);
                 }}>
-                <DownloadIcon fontSize="small" />
+                <Payment fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
