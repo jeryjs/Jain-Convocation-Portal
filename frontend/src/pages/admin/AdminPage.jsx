@@ -99,6 +99,16 @@ const AdminPage = () => {
 
       if (!response.ok) throw new Error('Failed to update status: ' + response.statusText);
 
+      // If printing and has hardcopy images, download them
+      if (newStatus === 'printed') {
+        const request = requests.find(r => r.username === requestId);
+        if (request?.hardcopyImages?.length > 0) {
+          for (const img of request.hardcopyImages) {
+            await handleImageDownload(img, request.requestedImages);
+          }
+        }
+      }
+
       // Update requests locally instead of refreshing
       setRequests(prevRequests => 
         prevRequests.map(request => 
@@ -296,6 +306,7 @@ const getStatusChip = (status) => {
   const statusConfig = {
     pending: { color: 'warning', label: 'Pending' },
     approved: { color: 'success', label: 'Approved' },
+    printed: { color: 'secondary', label: 'Printed' },
     rejected: { color: 'error', label: 'Rejected' },
     completed: { color: 'info', label: 'Completed' }
   };
@@ -319,6 +330,7 @@ const RequestsTable = ({
   onRefresh,
   onRefreshCompleted
 }) => {
+  const { userData } = useAuth();
   const columns = [
     { 
       field: 'lastUpdated', headerName: 'Date', width: 180,
@@ -350,9 +362,9 @@ const RequestsTable = ({
               <ViewIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          {params.row.requestType !== REQUEST_TYPES.SOFTCOPY && params.row.status == 'pending' && (
+          {params.row.requestType !== REQUEST_TYPES.SOFTCOPY && params.row.status === 'pending' && (
             <>
-              <Tooltip title="Approve">
+              <Tooltip title="Approve Request">
                 <IconButton onClick={() => handleStatusChange(params.row.username, 'approved')} color="success" size="small">
                   <ApproveIcon fontSize="small" />
                 </IconButton>
@@ -364,7 +376,14 @@ const RequestsTable = ({
               </Tooltip>
             </>
           )}
-          {params.row.status === 'approved' && (
+          {params.row.status === 'approved' && (userData.username == "VENDOR" || userData.username == "ADMIN") && (
+            <Tooltip title="Mark as Printed and Download">
+              <IconButton onClick={() => handleStatusChange(params.row.username, 'printed')} color="secondary" size="small">
+                <DownloadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {params.row.status === 'printed' && (
             <Tooltip title="Mark as Completed">
               <IconButton onClick={() => handleStatusChange(params.row.username, 'completed')} color="info" size="small">
                 <CheckCircle fontSize="small" />
@@ -389,7 +408,7 @@ const RequestsTable = ({
 
   const filteredRequests = requests.filter(req => {
     if (selectedTab == 'all') return true;
-    if (selectedTab == 'pending') return (req.status == 'pending' || req.status == 'approved');
+    if (selectedTab == 'pending') return (req.status == 'pending' || req.status == 'approved' || req.status == 'printed');
     if (selectedTab == 'hardcopy') return req.requestType == REQUEST_TYPES.HARDCOPY || req.requestType == REQUEST_TYPES.BOTH;
     if (selectedTab == 'softcopy') return req.requestType == REQUEST_TYPES.SOFTCOPY || req.requestType == REQUEST_TYPES.BOTH;
     return true;
