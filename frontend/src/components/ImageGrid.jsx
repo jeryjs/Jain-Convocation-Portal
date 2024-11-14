@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useRef } from 'react';
 import {
   Card,
   CardMedia,
@@ -12,7 +12,8 @@ import {
   Box,
   Chip,
   Button,
-  CircularProgress
+  CircularProgress,
+  TextField
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -38,20 +39,51 @@ export default function ImageGrid({
   sx 
 }) {
   const [localColumns, setLocalColumns] = useState(columns);
+  const [searchTerm, setSearchTerm] = useState('');
+  const gridRefs = useRef({});
   const skeletonArray = Array.from(new Array(30));
   
+  const handleSearch = (event) => {
+    const term = event.target.value.toLowerCase();
+    setSearchTerm(term);
+    
+    if (term && !loading) {
+      const firstMatch = images.findIndex(item => 
+        getShortName(Object.keys(item)[0]).toLowerCase().includes(term)
+      );
+      
+      if (firstMatch !== -1) {
+        gridRefs.current[firstMatch]?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }
+  };
+
   return (
     <Card variant='elevation' elevation='4' sx={{ display:"flex", flexDirection: "column", ...sx }}>
-      {showColumnControls && (
-        <Box sx={{ mt:'-20px', mr: '-0px', mb:'10px', display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
-            <RemoveCircleOutlineIcon />
-          </IconButton>
-          <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
-            <AddCircleOutlineIcon />
-          </IconButton>
-        </Box>
-      )}
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search images..."
+          value={searchTerm}
+          onChange={handleSearch}
+          disabled={loading}
+        />
+        {showColumnControls && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
+              <RemoveCircleOutlineIcon />
+            </IconButton>
+            <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
+              <AddCircleOutlineIcon />
+            </IconButton>
+          </Box>
+        )}
+      </Box>
+      
       <Grid container spacing={{ xs: 0, md: 2}} sx={{ overflowY: 'auto' }}>
         {(loading ? skeletonArray : images).map((item, index) => {
           const imagePath = loading ? null : Object.keys(item)[0];
@@ -59,9 +91,16 @@ export default function ImageGrid({
           const isSelected = selectedImages.includes(imagePath);
           const isLocked = lockedImages.includes(imagePath);
           const canSelect = !isLocked && (isSelected || availableSlots > 0);
+          const isMatched = !loading && searchTerm && 
+            getShortName(imagePath).toLowerCase().includes(searchTerm.toLowerCase());
 
           return (
-            <Grid item xs={12 / (showColumnControls ? localColumns : columns)} key={index}>
+            <Grid 
+              item 
+              xs={12 / (showColumnControls ? localColumns : columns)} 
+              key={index}
+              ref={el => gridRefs.current[index] = el}
+            >
               <ImageCard
                 loading={loading}
                 imgPath={imagePath}
@@ -71,6 +110,7 @@ export default function ImageGrid({
                 canSelect={canSelect}
                 onSelect={onSelectImage}
                 onDownload={onDownload}
+                isMatched={isMatched}
               />
             </Grid>
           );
@@ -88,7 +128,8 @@ const ImageCard = memo(({
   isLocked, 
   canSelect, 
   onSelect,
-  onDownload 
+  onDownload,
+  isMatched
 }) => {
   const displayName = getShortName(imgPath);
   const [downloading, setDownloading] = useState(false);
@@ -111,7 +152,7 @@ const ImageCard = memo(({
         cursor: onDownload ? 'default' : (isLocked ? 'default' : 'pointer'),
         opacity: onDownload ? 1 : (canSelect ? 1 : 0.5),
         transition: '0.3s',
-        border: isSelected ? '2px solid #3f51b5' : '2px solid transparent',
+        border: isSelected ? '2px solid #3f51b5' : isMatched ? '2px solid #4caf50' : '2px solid transparent',
       }}>
       <CardActionArea>
         {loading ? (
