@@ -27,7 +27,7 @@ import { formatDate, downloadFile } from '../../utils/utils';
 
 const AdminPage = () => {
   const theme = useTheme();
-  const { getAuthHeaders, userData } = useAuth(); // Add user to destructuring
+  const { getAuthHeaders, userData } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -39,6 +39,8 @@ const AdminPage = () => {
   const [downloadingImages, setDownloadingImages] = useState({});
   const mounted = useRef(false);
   const navigate = useNavigate();
+  const [showCompletedConfirm, setShowCompletedConfirm] = useState(false);
+  const [isRefreshingCompleted, setIsRefreshingCompleted] = useState(false);
 
   useEffect(() => {
     if (mounted.current) return;
@@ -47,23 +49,36 @@ const AdminPage = () => {
     handleRefresh();
   }, []);
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (statusFilter = ['pending', 'approved']) => {
     setLoading(true);
     try {
-      const response = await fetch(`${config.API_BASE_URL}/admin/requests`, {
+      const params = new URLSearchParams();
+      statusFilter.forEach(s => params.append('status', s));
+      
+      const response = await fetch(`${config.API_BASE_URL}/admin/requests?${params}`, {
         headers: getAuthHeaders()
       });
       
       if (!response.ok) throw new Error('Failed to fetch requests');
       
       const data = await response.json();
-      setRequests(data.map(req => ({
-        ...req,
-        id: req.username,
-        lastUpdated: req.lastUpdated._seconds
-      })));
+      if (statusFilter.includes('completed')) {
+        // Merge with existing non-completed requests
+        setRequests(prev => {
+          const nonCompleted = prev.filter(r => r.status !== 'completed');
+          const completed = data.filter(r => r.status === 'completed');
+          return [...nonCompleted, ...completed];
+        });
+      } else {
+        // Replace only non-completed requests
+        setRequests(prev => {
+          const completed = prev.filter(r => r.status === 'completed');
+          return [...data, ...completed];
+        });
+      }
     } catch (error) {
       console.error('Error fetching requests:', error);
+      setSnackbar({ open: true, message: 'Error fetching requests', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -91,10 +106,18 @@ const AdminPage = () => {
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchRequests();
+  const handleRefresh = async (includeCompleted = false) => {
+    if (includeCompleted) {
+      setIsRefreshingCompleted(true);
+    } else {
+      setIsRefreshing(true);
+    }
+    
+    await fetchRequests(includeCompleted ? ['pending', 'approved', 'completed'] : ['pending', 'approved']);
+    
     setIsRefreshing(false);
+    setIsRefreshingCompleted(false);
+    setShowCompletedConfirm(false);
   };
 
   const handleSnackbarClose = () => {
@@ -186,6 +209,9 @@ const AdminPage = () => {
             isRefreshing={isRefreshing}
             setImagePreviewOpen={setPaymentPreviewOpen}
             setPaymentPreviewRequest={setPaymentPreviewRequest}
+            isRefreshingCompleted={isRefreshingCompleted}
+            onRefresh={() => handleRefresh(false)}
+            onRefreshCompleted={() => setShowCompletedConfirm(true)}
           />
         </Stack>
       </Box>
@@ -211,6 +237,24 @@ const AdminPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog 
+        open={showCompletedConfirm} 
+        onClose={() => setShowCompletedConfirm(false)}
+      >
+        <DialogTitle>Refresh Completed Requests?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will fetch all completed requests and significantly increase the database usage. Do you want to continue?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCompletedConfirm(false)}>Cancel</Button>
+          <Button onClick={() => {handleRefresh(true); setShowCompletedConfirm(false)}} variant="contained" color="primary">
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
@@ -259,18 +303,21 @@ const RequestsTable = ({
   handleRefresh,
   isRefreshing,
   setImagePreviewOpen,
-  setPaymentPreviewRequest
+  setPaymentPreviewRequest,
+  isRefreshingCompleted,
+  onRefresh,
+  onRefreshCompleted
 }) => {
   const columns = [
     { 
       field: 'lastUpdated', headerName: 'Date', width: 180,
-      renderCell: (params) => formatDate(params.value)
+      renderCell: (params) => formatDate(params.value._seconds)
     },
     { field: 'username', headerName: 'USN', width: 130 },
     { field: 'name', headerName: 'Name', width: 200 },
-    { field: 'course', headerName: 'Course', width: 180 },
+    { field: 'day', headerName: 'Day', width: 80 },
     { 
-      field: 'requestType', headerName: 'Type', width: 120,
+      field: 'requestType', headerName: 'Type', width: 150,
       renderCell: (params) => {
         let chipColor = 'secondary';
         if (params.value == REQUEST_TYPES.HARDCOPY) chipColor = 'primary';
@@ -284,7 +331,7 @@ const RequestsTable = ({
       field: 'status', headerName: 'Status', width: 120,
       renderCell: (params) => getStatusChip(params.value),
     },
-    { field: 'actions', headerName: 'Actions', width: 200, sortable: false,
+    { field: 'actions', headerName: 'Actions', width: 180, sortable: false,
       renderCell: (params) => (
         <ButtonGroup size="small">
           <Tooltip title="View Details">
@@ -350,27 +397,42 @@ const RequestsTable = ({
           <Tab label="Hard Copy" value="hardcopy" />
           <Tab label="Soft Copy" value="softcopy" />
         </Tabs>
-        <Tooltip title="Refresh">
-          <IconButton 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            sx={{
-              bgcolor: 'background.paper',
-              boxShadow: 1,
-              '&:hover': {
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Refresh Active Requests">
+            <IconButton 
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              sx={{
                 bgcolor: 'background.paper',
-                transform: 'rotate(180deg)',
-              },
-              transition: 'transform 0.5s',
-            }}
-          >
-            {isRefreshing ? (
-              <CircularProgress size={24} />
-            ) : (
-              <RefreshIcon />
-            )}
-          </IconButton>
-        </Tooltip>
+                boxShadow: 1,
+                '&:hover': {
+                  bgcolor: 'background.paper',
+                  transform: 'rotate(180deg)',
+                },
+                transition: 'transform 0.5s',
+              }}
+            >
+              {isRefreshing ? <CircularProgress size={24} /> : <RefreshIcon />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Refresh Including Completed">
+            <IconButton 
+              onClick={onRefreshCompleted}
+              disabled={isRefreshingCompleted}
+              sx={{
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                '&:hover': {
+                  bgcolor: 'background.paper',
+                  transform: 'rotate(180deg)',
+                },
+                transition: 'transform 0.5s',
+              }}
+            >
+              {isRefreshingCompleted ? <CircularProgress size={24} /> : <RefreshIcon color="secondary" />}
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Stack>
       <Box sx={{ height: 600, width: '100%', p: 2 }}>
         <DataGrid
@@ -388,7 +450,12 @@ const RequestsTable = ({
             },
           }}
           slots={{ toolbar: GridToolbar }}
-          pageSizeOptions={[10, 25, 50]}
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+            },
+          }}
+          pageSizeOptions={[10, 25, 50, 100]}
         />
       </Box>
     </Card>
@@ -416,7 +483,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest, downloading
                 ['Day', selectedRequest.day],
                 ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
                 ['Status', selectedRequest.status],
-                ['Date', formatDate(selectedRequest.lastUpdated)]
+                ['Date', formatDate(selectedRequest.lastUpdated._seconds)]
               ].filter(([_, value]) => value != null).map(([label, value]) => (
                 <React.Fragment key={label}>
                   <Typography color="text.secondary">{label}:</Typography>

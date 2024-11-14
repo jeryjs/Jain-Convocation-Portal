@@ -10,7 +10,10 @@ const getShareId = () => {
 const getCourseFolders = async () => {
   const cacheKey = "course_folders";
   const cached = cache.get(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+	console.log("📦 Serving cached sessions");
+	return cached;
+	}
 
   const shareId = getShareId();
   const getFolders = async (path = '') => {
@@ -37,7 +40,10 @@ const getCourseImages = async (day, time, batch) => {
 	const cacheKey = `course_images_${day}_${time}_${batch}`;
 	const cachedImages = cache.get(cacheKey);
 
-	if (cachedImages) return cachedImages;
+	if (cachedImages) {
+		console.log("📦 Serving cached images");
+		return cachedImages;
+	}
 
 	const shareId = getShareId();
 	const path = `${day}/${time}/${batch}`;
@@ -58,7 +64,10 @@ const getImageLinks = async (fullPaths) => {
 	const cacheKey = `image_links_${fullPaths.join(",")}`;
 	const cachedLinks = cache.get(cacheKey);
 
-	if (cachedLinks) return cachedLinks;
+	if (cachedLinks) {
+		console.log("📦 Serving cached Links");
+		return cachedLinks;
+	}
 
 	const shareId = getShareId();
 	try {

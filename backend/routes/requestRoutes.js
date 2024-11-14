@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { handleImageRequest, getAllRequests, updateRequestStatus } = require('../services/request');
@@ -23,11 +22,14 @@ router.post('/request', authMiddleware, async (req, res) => {
 
 // Admin request routes
 router.get('/admin/requests', authMiddleware, adminMiddleware, async (req, res) => {
-  log('info', 'FetchingAdminRequests');
+  const { status = ['pending', 'approved'], limit = 100 } = req.query;
+  const statusFilter = Array.isArray(status) ? status : [status];
+  
+  log('info', 'FetchingAdminRequests', { statusFilter });
 
   try {
-    const requests = await getAllRequests();
-    log('success', 'AdminRequestsFetched', { count: requests?.length || 0 });
+    const requests = await getAllRequests(statusFilter, parseInt(limit));
+    log('success', 'AdminRequestsFetched', { count: requests?.length || 0, filter: statusFilter });
     res.json(requests);
   } catch (e) {
     log('error', 'FetchRequestsFailed', { error: e.message, stack: e.stack });

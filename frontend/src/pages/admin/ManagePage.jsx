@@ -268,7 +268,7 @@ export default function ManagePage() {
               }}
               rowSelectionModel={selectionModel}
               slots={{
-                toolbar: GridToolbar, // Add this to enable column management
+                toolbar: GridToolbar,
               }}
               slotProps={{
                 toolbar: {

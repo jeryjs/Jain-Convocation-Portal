@@ -51,7 +51,7 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 		// Single update operation
 		transaction.update(userRef, updateData);
 
-		invalidateCache("requests");
+		invalidateCache("requests", "pending");
 
 		const waitingTime = requestType === REQUEST_TYPES.HARDCOPY ? await calculateWaitingTime() : 0;
 
@@ -66,24 +66,57 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 };
 
 // Function to get all requests with status > 0 
-const getAllRequests = async () => {
-	const cacheKey = "all_requests";
-	const cachedRequests = cache.get(cacheKey);
+const getAllRequests = async (statusFilter = ['pending', 'approved'], limit = 100) => {
+  const cacheKey = `requests_${statusFilter.join('_')}`;
+  const cachedRequests = cache.get(cacheKey);
 
-	if (cachedRequests) {
-		console.log("📦 Serving cached requests");
-		return cachedRequests;
-	}
+  if (cachedRequests) {
+    console.log("📦 Serving cached requests");
+    return cachedRequests;
+  }
 
-	const snapshot = await db.collection(COLLECTION_NAME).where("requestType", ">", 0).get();
+  // Base query with requestType > 0
+  let query = db.collection(COLLECTION_NAME)
+    .where("requestType", ">", 0);
 
-	const requests = snapshot.docs.map((doc) => {
-		const data = doc.data();
-		return { id: doc.id, ...data };
-	});
+  // Add status filter
+  if (statusFilter.length === 1) {
+    query = query.where("status", "==", statusFilter[0]);
+  } else if (statusFilter.length > 1) {
+    // Handle multiple statuses with a separate query for each status
+    const promises = statusFilter.map(status => 
+      db.collection(COLLECTION_NAME)
+        .where("requestType", ">", 0)
+        .where("status", "==", status)
+        .orderBy("lastUpdated", "desc")
+        .limit(limit)
+        .get()
+    );
 
-	cache.set(cacheKey, requests, TTL.REQUESTS);
-	return requests;
+    const snapshots = await Promise.all(promises);
+    let requests = [];
+    snapshots.forEach(snapshot => {
+      requests = [...requests, ...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))];
+    });
+
+    // Sort combined results by lastUpdated
+    requests.sort((a, b) => b.lastUpdated._seconds - a.lastUpdated._seconds);
+    
+    // Apply limit to final sorted results
+    requests = requests.slice(0, limit);
+    
+    cache.set(cacheKey, requests, TTL.REQUESTS);
+    return requests;
+  }
+
+  // For single status or no status filter
+  query = query.orderBy("lastUpdated", "desc").limit(limit);
+
+  const snapshot = await query.get();
+  const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  cache.set(cacheKey, requests, TTL.REQUESTS);
+  return requests;
 };
 
 // Update request status
@@ -103,7 +136,9 @@ const updateRequestStatus = async (username, status) => {
 	});
 
 	invalidateCache("user", username);
-	invalidateCache("requests");
+	invalidateCache("requests", "pending");
+	invalidateCache("requests", "approved");
+	invalidateCache("requests", "completed");
 	return { success: true };
 };
 

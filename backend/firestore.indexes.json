@@ -4,8 +4,17 @@
       "collectionGroup": "2024",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "requestType", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "timestamp", "order": "DESC" }
+        { "fieldPath": "requestType", "order": "ASCENDING" },
+        { "fieldPath": "lastUpdated", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "2024",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requestType", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "lastUpdated", "order": "DESCENDING" }
       ]
     }
   ]
