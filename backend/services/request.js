@@ -52,9 +52,9 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 		transaction.update(userRef, updateData);
 
 		invalidateCache("requests", "pending");
-		if (newRequestType === REQUEST_TYPES.HARDCOPY) invalidateCache();
+		if (requestType == REQUEST_TYPES.HARDCOPY) invalidateCache();
 
-		const waitingTime = requestType === REQUEST_TYPES.HARDCOPY ? await calculateWaitingTime() : 0;
+		const waitingTime = requestType == REQUEST_TYPES.HARDCOPY ? await calculateWaitingTime() : 0;
 
 		return {
 			success: true,
