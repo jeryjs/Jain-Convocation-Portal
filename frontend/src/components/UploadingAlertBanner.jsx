@@ -7,7 +7,7 @@ export default function UploadingAlertBanner() {
     if (config.SHOW_UPLOAD_ALERT) {
     return (
         <Alert
-            severity="info"
+            severity="warning"
             sx={{
                 mb: 3,
                 mx: 1,

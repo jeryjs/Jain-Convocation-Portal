@@ -7,6 +7,8 @@ import {
   DialogContent, DialogActions, useTheme,
   CircularProgress, Snackbar, Alert
 } from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { 
   CheckCircle as ApproveIcon,
@@ -383,8 +385,48 @@ const RequestsTable = ({
   const { userData } = useAuth();
   const columns = [
     { 
-      field: 'lastUpdated', headerName: 'Date', width: 180,
-      renderCell: (params) => formatDate(params.value._seconds)
+      field: 'lastUpdated', 
+      headerName: 'Date', 
+      width: 180,
+      renderCell: (params) => formatDate(params.value._seconds),
+      renderHeader: (params) => (
+        <Stack spacing={1} sx={{ width: '100%' }}>
+          <Typography>Date</Typography>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DateTimePicker
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: { width: '160px' }
+                }
+              }}
+              onChange={(newValue) => {
+                const timestamp = newValue ? Math.floor(newValue.valueOf() / 1000) : null;
+                const filterModel = params.api.getFilterModel();
+                if (timestamp) {
+                  filterModel.lastUpdated = {
+                    operatorValue: '>=',
+                    value: timestamp
+                  };
+                } else {
+                  delete filterModel.lastUpdated;
+                }
+                params.api.setFilterModel(filterModel);
+              }}
+            />
+          </LocalizationProvider>
+        </Stack>
+      ),
+      filterOperators: [{
+        label: 'After',
+        value: '>=',
+        getApplyFilterFn: (filterItem) => {
+          if (!filterItem.value) return null;
+          return (params) => {
+            return params.value._seconds >= filterItem.value;
+          };
+        }
+      }]
     },
     { field: 'username', headerName: 'USN', width: 130 },
     { field: 'name', headerName: 'Name', width: 200 },
