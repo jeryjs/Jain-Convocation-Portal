@@ -67,10 +67,8 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 };
 
 // Function to get all requests with status > 0 
-const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'], limit = 100) => {
-  // Sort statusFilter to ensure consistent cache keys
-  const sortedStatuses = [...statusFilter].sort();
-  const cacheKey = `requests_${sortedStatuses.join('_')}`;
+const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'], limit = 100, includeSoftcopy = false) => {
+  const cacheKey = `requests_${statusFilter.sort().join('_')}_${includeSoftcopy}`;
   const cachedRequests = cache.get(cacheKey);
 
   if (cachedRequests) {
@@ -78,49 +76,37 @@ const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'],
     return cachedRequests;
   }
 
-  // Base query with requestType > 0
-  let query = db.collection(COLLECTION_NAME)
-    .where("requestType", ">", 0);
+  try {
+    let query = db.collection(COLLECTION_NAME)
+      .where("requestType", ">", 0)
+      .where("status", "in", statusFilter);
 
-  // Add status filter
-  if (statusFilter.length === 1) {
-    query = query.where("status", "==", statusFilter[0]);
-  } else if (statusFilter.length > 1) {
-    // Handle multiple statuses with a separate query for each status
-    const promises = statusFilter.map(status => 
-      db.collection(COLLECTION_NAME)
-		.where("requestType", "!=", 2)
-        .where("requestType", ">", 0)
-        .where("status", "==", status)
-        .orderBy("lastUpdated", "desc")
-        .limit(limit)
-        .get()
-    );
+    if (!includeSoftcopy) query = query.where("requestType", "!=", 2);
 
-    const snapshots = await Promise.all(promises);
-    let requests = [];
-    snapshots.forEach(snapshot => {
-      requests = [...requests, ...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))];
-    });
+    query = query.orderBy("lastUpdated", "desc").limit(limit);
+    const snapshot = await query.get();
+    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Sort combined results by lastUpdated
-    requests.sort((a, b) => b.lastUpdated._seconds - a.lastUpdated._seconds);
-    
-    // Apply limit to final sorted results
-    requests = requests.slice(0, limit);
-    
     cache.set(cacheKey, requests, TTL.REQUESTS);
     return requests;
+
+  } catch (error) {
+    console.error('Error in getAllRequests:', error);
+    if (error.code === 'failed-precondition') {
+      console.log('Missing index - create composite index for:', {
+        collection: COLLECTION_NAME,
+        fields: ['requestType', 'status', 'lastUpdated']
+      });
+    }
+    
+    const expiredCache = cache.get(cacheKey, true);
+    if (expiredCache) {
+      console.log("⚠️ Serving expired cache due to error");
+      return expiredCache;
+    }
+
+    throw error;
   }
-
-  // For single status or no status filter
-  query = query.orderBy("lastUpdated", "desc").limit(limit);
-
-  const snapshot = await query.get();
-  const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-  cache.set(cacheKey, requests, TTL.REQUESTS);
-  return requests;
 };
 
 // Update request status

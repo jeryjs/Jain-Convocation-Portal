@@ -5,6 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "requestType", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "lastUpdated", "order": "DESCENDING" }
       ]
     },
@@ -12,7 +13,7 @@
       "collectionGroup": "2024",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "requestType", "order": "ASCENDING" },
+        { "fieldPath": "requestType", "mode": "NOT_EQUAL" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "lastUpdated", "order": "DESCENDING" }
       ]

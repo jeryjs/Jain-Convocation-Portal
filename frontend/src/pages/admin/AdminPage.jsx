@@ -42,6 +42,8 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const [showCompletedConfirm, setShowCompletedConfirm] = useState(false);
   const [isRefreshingCompleted, setIsRefreshingCompleted] = useState(false);
+  const [isRefreshingSoftcopy, setIsRefreshingSoftcopy] = useState(false);
+  const [showSoftcopyConfirm, setShowSoftcopyConfirm] = useState(false);
 
   useEffect(() => {
     if (mounted.current) return;
@@ -50,15 +52,18 @@ const AdminPage = () => {
     handleRefresh();
   }, []);
 
-  const fetchRequests = async (statusFilter = ['pending', 'approved', 'printed']) => {
+  const fetchRequests = async (statusFilter = ['pending', 'approved', 'printed'], includeSoftcopy = false) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       statusFilter.forEach(s => params.append('status', s));
       
       // Get the limit from user through a prompt
-      if (statusFilter.includes('completed'))
+      if (statusFilter.includes('completed') || includeSoftcopy)
         params.append('limit', prompt('Enter limit for completed requests (default: 100)', 100)??100);
+      
+      if (includeSoftcopy)
+        params.append('includeSoftcopy', true);
       
       const response = await fetch(`${config.API_BASE_URL}/admin/requests?${params}`, {
         headers: getAuthHeaders()
@@ -128,18 +133,25 @@ const AdminPage = () => {
     }
   };
 
-  const handleRefresh = async (includeCompleted = false) => {
+  const handleRefresh = async (includeCompleted = false, includeSoftcopy = false) => {
     if (includeCompleted) {
       setIsRefreshingCompleted(true);
+    } else if (includeSoftcopy) {
+      setIsRefreshingSoftcopy(true);
     } else {
       setIsRefreshing(true);
     }
     
-    await fetchRequests(includeCompleted ? ['pending', 'approved', 'printed', 'completed'] : ['pending', 'approved', 'printed']);
+    await fetchRequests(
+      includeCompleted ? ['pending', 'approved', 'printed', 'completed'] : ['pending', 'approved', 'printed'],
+      includeSoftcopy
+    );
     
     setIsRefreshing(false);
     setIsRefreshingCompleted(false);
+    setIsRefreshingSoftcopy(false);
     setShowCompletedConfirm(false);
+    setShowSoftcopyConfirm(false);
   };
 
   const handleSnackbarClose = () => {
@@ -234,6 +246,8 @@ const AdminPage = () => {
             isRefreshingCompleted={isRefreshingCompleted}
             onRefresh={() => handleRefresh(false)}
             onRefreshCompleted={() => setShowCompletedConfirm(true)}
+            isRefreshingSoftcopy={isRefreshingSoftcopy}
+            setShowSoftcopyConfirm={setShowSoftcopyConfirm}  // Add this line
           />
         </Stack>
       </Box>
@@ -273,6 +287,24 @@ const AdminPage = () => {
         <DialogActions>
           <Button onClick={() => setShowCompletedConfirm(false)}>Cancel</Button>
           <Button onClick={() => {handleRefresh(true); setShowCompletedConfirm(false)}} variant="contained" color="primary">
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog 
+        open={showSoftcopyConfirm} 
+        onClose={() => setShowSoftcopyConfirm(false)}
+      >
+        <DialogTitle>Refresh Everything?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will fetch everything including softcopy requests and SIGNIFICANTLY increase the database usage. Do you really want to continue?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSoftcopyConfirm(false)}>Cancel</Button>
+          <Button onClick={() => {handleRefresh(true, true); setShowSoftcopyConfirm(false)}} variant="contained" color="warning">
             Continue
           </Button>
         </DialogActions>
@@ -339,13 +371,14 @@ const RequestsTable = ({
   setSelectedTab,
   handleStatusChange,
   setSelectedRequest,
-  handleRefresh,
   isRefreshing,
   setImagePreviewOpen,
   setPaymentPreviewRequest,
   isRefreshingCompleted,
   onRefresh,
-  onRefreshCompleted
+  onRefreshCompleted,
+  isRefreshingSoftcopy,
+  setShowSoftcopyConfirm
 }) => {
   const { userData } = useAuth();
   const columns = [
@@ -463,7 +496,7 @@ const RequestsTable = ({
                 transition: 'transform 0.5s',
               }}
             >
-              {isRefreshing ? <CircularProgress size={24} /> : <RefreshIcon />}
+              {isRefreshing ? <CircularProgress size={24} /> : <RefreshIcon color='primary' />}
             </IconButton>
           </Tooltip>
           <Tooltip title="Refresh Including Completed">
@@ -481,6 +514,23 @@ const RequestsTable = ({
               }}
             >
               {isRefreshingCompleted ? <CircularProgress size={24} /> : <RefreshIcon color="secondary" />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Refresh Everything">
+            <IconButton 
+              onClick={() => setShowSoftcopyConfirm(true)}
+              disabled={isRefreshingSoftcopy}
+              sx={{
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                '&:hover': {
+                  bgcolor: 'background.paper',
+                  transform: 'rotate(180deg)',
+                },
+                transition: 'transform 0.5s',
+              }}
+            >
+              {isRefreshingSoftcopy ? <CircularProgress size={24} /> : <RefreshIcon color="warning" />}
             </IconButton>
           </Tooltip>
         </Stack>

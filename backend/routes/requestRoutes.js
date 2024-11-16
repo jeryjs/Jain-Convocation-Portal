@@ -22,13 +22,13 @@ router.post('/request', authMiddleware, async (req, res) => {
 
 // Admin request routes
 router.get('/admin/requests', authMiddleware, adminMiddleware, async (req, res) => {
-  const { status = ['pending', 'approved'], limit = 100 } = req.query;
+  const { status = ['pending', 'approved'], limit = 100, includeSoftcopy = false } = req.query;
   const statusFilter = Array.isArray(status) ? status : [status];
   
-  log('info', 'FetchingAdminRequests', { statusFilter });
+  log('info', 'FetchingAdminRequests', { statusFilter, includeSoftcopy });
 
   try {
-    const requests = await getAllRequests(statusFilter, parseInt(limit));
+    const requests = await getAllRequests(statusFilter, parseInt(limit), includeSoftcopy === 'true');
     log('success', 'AdminRequestsFetched', { count: requests?.length || 0, filter: statusFilter });
     res.json(requests);
   } catch (e) {
