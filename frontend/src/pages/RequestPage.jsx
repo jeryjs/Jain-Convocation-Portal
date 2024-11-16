@@ -286,6 +286,12 @@ export default function RequestPage() {
 
       <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', minWidth:{xs:'95vw', md:'70vw'} }}>
         <Stack spacing={{ xs: 2, sm: 3 }}>
+          {config.HARDCOPY_DISABLED && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Hardcopy requests are currently disabled. You can instead get hardcopies from the hardcopy area by showing the photo nunber near the entrance. We will be happy to help you anytime.
+            </Alert>
+          )}
+
           {hasExistingRequests && (
             <Alert severity="info" sx={{ mb: 2 }}>
               You have previously requested images. You can only request soft copies of these images again.
@@ -302,7 +308,7 @@ export default function RequestPage() {
             <Typography variant="h6" sx={{ mb: 2 }}>Request Type</Typography>
             <ToggleButtonGroup value={requestType} exclusive onChange={handleRequestTypeChange} sx={{ mb: 2 }}>
               <ToggleButton value={REQUEST_TYPES.SOFTCOPY}>Soft Copy</ToggleButton>
-              <ToggleButton value={REQUEST_TYPES.HARDCOPY} disabled={hasExistingHardcopyRequests}>
+              <ToggleButton value={REQUEST_TYPES.HARDCOPY} disabled={hasExistingHardcopyRequests || config.HARDCOPY_DISABLED}>
                 Hard Copy
               </ToggleButton>
             </ToggleButtonGroup>
