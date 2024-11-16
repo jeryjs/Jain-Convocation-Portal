@@ -14,7 +14,7 @@ const calculateWaitingTime = async () => {
     .get();
 
   const count = approvedRequests.data().count;
-  const baseWaitingTime = 60; // Base waiting time in minutes
+  const baseWaitingTime = 90; // Base waiting time in minutes
   const additionalTime = Math.floor(count / 50) * 15; // Add 15 mins for every 50 requests
   return baseWaitingTime + additionalTime;
 };
