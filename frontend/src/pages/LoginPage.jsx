@@ -76,14 +76,14 @@ function LoginPage() {
 
           <form onSubmit={handleLogin}>
             <TextField
-              label='UAN'
+              label='UAN/USN'
               variant='outlined'
               fullWidth
               value={username}
               onChange={(e) => setUsername(e.target.value.toUpperCase().replace(' ', ''))} // Convert to uppercase and remove spaces
               required
               margin='normal'
-              placeholder="Enter your UAN in caps"
+              placeholder="Enter your UAN/USN in caps"
             />
             <TextField
               label='Phone Number'
