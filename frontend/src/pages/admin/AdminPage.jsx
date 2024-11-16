@@ -292,11 +292,11 @@ const StatsCards = ({ requests, theme }) => {
   }, { total: 0, count: 0 });
 
   const defaultStats = [
-    { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
+    { label: 'Total Requests', value: requests.length, color: theme.palette.info.light },
     { label: 'Pending Review', value: requests.filter(r => r.status === 'pending').length, color: theme.palette.warning.main },
     { label: 'Approved', value: requests.filter(r => r.status === 'approved').length, color: theme.palette.success.main },
     { label: 'Ready to Collect', value: requests.filter(r => r.status === 'printed').length, color: theme.palette.secondary.main },
-    { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
+    { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.primary.main },
     { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.dark },
     { label: 'Average Rating', value: feedbackStats.count ? (feedbackStats.total / feedbackStats.count / 2).toFixed(1) + '★' : 'N/A', color: '#ff3d47'},
     { label: 'Total Ratings', value: feedbackStats.count, color: theme.palette.success.main }
