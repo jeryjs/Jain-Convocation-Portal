@@ -1,6 +1,6 @@
 {
 	"name": "jain-convocation-portal",
-	"version": "2.0.2",
+	"version": "2.2.0",
 	"description": "A web portal for managing Jain University Convocation Images.",
 	"main": "index.js",
 	"scripts": {

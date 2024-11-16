@@ -33,6 +33,7 @@ import { LoadingButton } from '@mui/lab';
 import DownloadIcon from '@mui/icons-material/Download';
 import SendIcon from '@mui/icons-material/Send';
 import { compressImage, generateUPILink, validatePhone, formatWaitingTime, sendRequestEmail } from '../utils/utils';
+import FeedbackDialog from '../components/FeedbackDialog';
 
 const MAX_FILE_SIZE = 250 * 1024; // 250KB
 
@@ -56,6 +57,8 @@ export default function RequestPage() {
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadLinks, setDownloadLinks] = useState([]);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     if (userData) {
@@ -84,6 +87,13 @@ export default function RequestPage() {
     }
   }, [requestType, getAuthHeaders]);
 
+  useEffect(() => {
+    // Initialize request counter if not exists
+    if (!localStorage.getItem('requestCount')) {
+      localStorage.setItem('requestCount', '0');
+    }
+  }, []);
+
   const handleRequestTypeChange = (event, newType) => {
     if (newType !== null && (!hasExistingHardcopyRequests || newType !== REQUEST_TYPES.HARDCOPY)) {
       setRequestType(parseInt(newType));
@@ -111,7 +121,18 @@ export default function RequestPage() {
 
   const handleSuccessDialogClose = () => {
     setSuccessDialog({ open: false, waitingTime: null });
-    window.location.reload();
+    
+    // Increment request count and check if feedback should be shown
+    const currentCount = parseInt(localStorage.getItem('requestCount') || '0');
+    const newCount = currentCount + 1;
+    localStorage.setItem('requestCount', newCount.toString());
+
+    // Show feedback dialog every 3rd request or if no previous feedback
+    if ((newCount % 3 == 0) || !userData?.feedback) {
+      setShowFeedback(true);
+    } else {
+      setNeedsRefresh(true);
+    }
   };
 
   const handleFormChange = (field, value) => {
@@ -230,6 +251,27 @@ export default function RequestPage() {
       setProcessing(false);
     }
   };
+
+  useEffect(() => {
+    if (needsRefresh) {
+      // Reset all relevant state
+      setSelectedHardcopyImages([]);
+      setPaymentProof(null);
+      setDownloadLinks([]);
+      setUserFormData({
+        email: userData?.email || '',
+        phone: userData?.phone || '',
+      });
+      setRequestType(REQUEST_TYPES.SOFTCOPY);
+      setNeedsRefresh(false);
+    }
+  }, [needsRefresh, userData]);
+
+  useEffect(() => {
+    if (!showFeedback && needsRefresh) {
+      setNeedsRefresh(true);
+    }
+  }, [showFeedback]);
 
   return (
     <>
@@ -391,6 +433,17 @@ export default function RequestPage() {
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
+
+      <FeedbackDialog
+        open={showFeedback}
+        onClose={(success) => {
+          setShowFeedback(false);
+          if (success) {
+            setNeedsRefresh(true);
+          }
+        }}
+        username={userData?.username}
+      />
     </>
   );
 }

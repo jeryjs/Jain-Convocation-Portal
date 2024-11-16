@@ -218,7 +218,11 @@ const AdminPage = () => {
 
       <Box sx={{ p: 3 }}>
         <Stack spacing={3}>
-          <StatsCards requests={requests} theme={theme} />
+          <StatsCards 
+            requests={requests} 
+            theme={theme} 
+            isAdmin={userData?.username === 'ADMIN'} 
+          />
 
           <RequestsTable
             requests={requests}
@@ -282,25 +286,51 @@ const AdminPage = () => {
 };
 
 // StatsCards component
-const StatsCards = ({ requests, theme }) => (
-  <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-    {[
-      { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
-      { label: 'Pending Requests', value: requests.filter(r => r.status === 'pending' || r.status === 'approved' || r.status == 'printed').length, color: theme.palette.warning.main },
-      { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.secondary.main },
-      { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
-    ].map((stat) => (
-      <Card key={stat.label} sx={{ p: 2 }}>
-        <Typography variant="h3" sx={{ color: stat.color, fontWeight: 'bold' }}>
-          {stat.value}
-        </Typography>
-        <Typography variant="subtitle2" color="text.secondary">
-          {stat.label}
-        </Typography>
-      </Card>
-    ))}
-  </Box>
-);
+const StatsCards = ({ requests, theme, isAdmin }) => {
+  // Calculate average feedback score
+  const feedbackStats = isAdmin ? requests.reduce((acc, req) => {
+    if (req.feedback) {
+      acc.total += req.feedback;
+      acc.count++;
+    }
+    return acc;
+  }, { total: 0, count: 0 }) : null;
+
+  const defaultStats = [
+    { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
+    { label: 'Pending Requests', value: requests.filter(r => r.status === 'pending' || r.status === 'approved' || r.status == 'printed').length, color: theme.palette.warning.main },
+    { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.secondary.main },
+    { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
+  ];
+
+  const feedbackMetrics = isAdmin ? [
+    { 
+      label: 'Average Rating', 
+      value: feedbackStats.count ? (feedbackStats.total / feedbackStats.count / 2).toFixed(1) + '★' : 'N/A',
+      color: '#ff3d47'
+    },
+    { 
+      label: 'Total Ratings', 
+      value: feedbackStats.count,
+      color: theme.palette.success.main 
+    }
+  ] : [];
+
+  return (
+    <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))` }}>
+      {[...defaultStats, ...feedbackMetrics].map((stat) => (
+        <Card key={stat.label} sx={{ p: 2 }}>
+          <Typography variant="h3" sx={{ color: stat.color, fontWeight: 'bold' }}>
+            {stat.value}
+          </Typography>
+          <Typography variant="subtitle2" color="text.secondary">
+            {stat.label}
+          </Typography>
+        </Card>
+      ))}
+    </Box>
+  );
+};
 
 // Move getStatusChip to be a standalone function or helper
 const getStatusChip = (status) => {
@@ -512,6 +542,7 @@ const RequestDetailsDialog = ({ selectedRequest, setSelectedRequest, downloading
                 ['Phone', selectedRequest.phone],
                 ['Program', selectedRequest.program],
                 ['Day', selectedRequest.day],
+                ['Feedback', selectedRequest.feedback ? `${selectedRequest.feedback/2} ♥` : 'N/A'],
                 ['Request Type', REQUEST_TYPE_LABELS[selectedRequest.requestType]],
                 ['Status', selectedRequest.status],
                 ['Date', formatDate(selectedRequest.lastUpdated._seconds)]

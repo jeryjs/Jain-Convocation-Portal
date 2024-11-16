@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
-const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -18,7 +18,7 @@ app.use(express.urlencoded({ limit: "500kb", extended: true }));
 app.use(bodyParser.json({ limit: "500kb" }));
 app.use(bodyParser.urlencoded({ limit: "500kb", extended: true }));
 
-app.use("/api", authRoutes);
+app.use("/api", userRoutes);
 app.use("/api", courseRoutes);
 app.use("/api", requestRoutes);
 app.use("/api", adminRoutes);

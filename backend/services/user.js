@@ -43,6 +43,17 @@ const getUserData = async (username) => {
 	return data;
 };
 
+// Update user feedback
+const updateUserFeedback = async (username, feedback) => {
+	const docRef = db.collection(COLLECTION_NAME).doc(username);
+	await docRef.update({
+		feedback,
+		lastUpdated: admin.firestore.Timestamp.now(),
+	});
+	invalidateCache(`user_${username}`);
+	return { success: true };
+};
+
 // Function to get all users
 const getAllUsers = async () => {
 	const snapshot = await db.collection(COLLECTION_NAME).get();
@@ -104,6 +115,7 @@ const deleteUsers = async (usernames) => {
 module.exports = {
 	authenticateUser,
 	getUserData,
+	updateUserFeedback,
 	getAllUsers,
 	importUsers,
 	deleteUsers,

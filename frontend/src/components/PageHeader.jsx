@@ -14,6 +14,12 @@ import {
   ListItemText,
   Breadcrumbs,
   Stack,
+  Rating,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  ListItemButton,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -24,11 +30,19 @@ import {
   Info as InfoIcon,
   QuestionAnswer as FaqIcon,
   Feedback as FeedbackIcon,
+  Favorite,
+  FavoriteBorder,
 } from '@mui/icons-material';
 import JGIBanner from '../assets/jain.webp';
 import JGILogo from '../assets/jain1.webp';
 import { useAuth } from '../config/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { LoadingButton } from '@mui/lab';
+import StarIcon from '@mui/icons-material/Star';
+import config from '../config';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { motion, AnimatePresence } from 'framer-motion';
+import FeedbackDialog from './FeedbackDialog';
 
 function PageHeader({
   pageTitle,
@@ -41,6 +55,7 @@ function PageHeader({
   const [anchorEl, setAnchorEl] = useState(null);
   const { userData, logout } = useAuth();
   const navigate = useNavigate();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const handleProfileClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -137,10 +152,10 @@ function PageHeader({
             <ListItemIcon><FaqIcon color="primary" /></ListItemIcon>
             <ListItemText primary="FAQ" />
           </ListItem>
-          {/* <ListItem button onClick={() => handleNavigate('/feedback')}>
+          <ListItem button onClick={() => setFeedbackOpen(true)}>
             <ListItemIcon><FeedbackIcon color="primary" /></ListItemIcon>
             <ListItemText primary="Feedback" />
-          </ListItem> */}
+          </ListItem>
           <ListItem button onClick={() => handleNavigate('/about')}>
             <ListItemIcon><InfoIcon color="primary" /></ListItemIcon>
             <ListItemText primary="About" />
@@ -197,6 +212,12 @@ function PageHeader({
           )}
         </Box>
       </Stack>
+
+      <FeedbackDialog
+        open={feedbackOpen}
+        onClose={(success) => setFeedbackOpen(false)}
+        username={userData?.username}
+      />
     </>
   );
 }

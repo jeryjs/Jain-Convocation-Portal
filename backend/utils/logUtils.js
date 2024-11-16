@@ -5,13 +5,13 @@ const log = (type, event, data = {}) => {
   
   switch (type) {
     case 'info':
-      console.log(`ℹ️ [${timestamp}] ${event}:`, data);
+      console.log(`ℹ️ ${event}:`, data);
       break;
     case 'error':
-      console.error(`❌ [${timestamp}] ${event}:`, data);
+      console.error(`❌ ${event}:`, data);
       break;
     case 'success':
-      console.log(`✅ [${timestamp}] ${event}:`, data);
+      console.log(`✅ ${event}:`, data);
       break;
   }
 };
