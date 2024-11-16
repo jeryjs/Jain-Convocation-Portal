@@ -218,11 +218,7 @@ const AdminPage = () => {
 
       <Box sx={{ p: 3 }}>
         <Stack spacing={3}>
-          <StatsCards 
-            requests={requests} 
-            theme={theme} 
-            isAdmin={userData?.username === 'ADMIN'} 
-          />
+          <StatsCards requests={requests} theme={theme}/>
 
           <RequestsTable
             requests={requests}
@@ -286,39 +282,29 @@ const AdminPage = () => {
 };
 
 // StatsCards component
-const StatsCards = ({ requests, theme, isAdmin }) => {
-  // Calculate average feedback score
-  const feedbackStats = isAdmin ? requests.reduce((acc, req) => {
+const StatsCards = ({ requests, theme }) => {
+  const feedbackStats = requests.reduce((acc, req) => {
     if (req.feedback) {
       acc.total += req.feedback;
       acc.count++;
     }
     return acc;
-  }, { total: 0, count: 0 }) : null;
+  }, { total: 0, count: 0 });
 
   const defaultStats = [
     { label: 'Total Requests', value: requests.length, color: theme.palette.primary.main },
-    { label: 'Pending Requests', value: requests.filter(r => r.status === 'pending' || r.status === 'approved' || r.status == 'printed').length, color: theme.palette.warning.main },
-    { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.secondary.main },
-    { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
+    { label: 'Pending Review', value: requests.filter(r => r.status === 'pending').length, color: theme.palette.warning.main },
+    { label: 'Approved', value: requests.filter(r => r.status === 'approved').length, color: theme.palette.success.main },
+    { label: 'Ready to Collect', value: requests.filter(r => r.status === 'printed').length, color: theme.palette.secondary.main },
+    { label: 'Hard Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.HARDCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.main },
+    { label: 'Soft Copy Requests', value: requests.filter(r => r.requestType === REQUEST_TYPES.SOFTCOPY || r.requestType === REQUEST_TYPES.BOTH).length, color: theme.palette.info.dark },
+    { label: 'Average Rating', value: feedbackStats.count ? (feedbackStats.total / feedbackStats.count / 2).toFixed(1) + '★' : 'N/A', color: '#ff3d47'},
+    { label: 'Total Ratings', value: feedbackStats.count, color: theme.palette.success.main }
   ];
-
-  const feedbackMetrics = isAdmin ? [
-    { 
-      label: 'Average Rating', 
-      value: feedbackStats.count ? (feedbackStats.total / feedbackStats.count / 2).toFixed(1) + '★' : 'N/A',
-      color: '#ff3d47'
-    },
-    { 
-      label: 'Total Ratings', 
-      value: feedbackStats.count,
-      color: theme.palette.success.main 
-    }
-  ] : [];
 
   return (
     <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))` }}>
-      {[...defaultStats, ...feedbackMetrics].map((stat) => (
+      {defaultStats.map((stat) => (
         <Card key={stat.label} sx={{ p: 2 }}>
           <Typography variant="h3" sx={{ color: stat.color, fontWeight: 'bold' }}>
             {stat.value}
