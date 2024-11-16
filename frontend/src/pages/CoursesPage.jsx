@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, Typography, Grid, Collapse, IconButton, Box, Paper, Chip, useTheme, alpha, LinearProgress } from '@mui/material';
+import { Card, CardContent, Typography, Grid, Collapse, IconButton, Box, Paper, Chip, useTheme, alpha, LinearProgress, Alert } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon, AccessTime as TimeIcon, Groups as GroupsIcon, Event as EventIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import config from '../config';
 import PageHeader from '../components/PageHeader';
 import { cacheManager } from '../utils/cache';
+import UploadingAlertBanner from '../components/UploadingAlertBanner';
 
 // Utility function for handling file name in the format "10AM to 11AM"
 const convertTimeToMinutes = (timeStr) => {
@@ -77,6 +78,8 @@ function CoursesPage() {
         breadcrumbs={['Sessions']} 
         sx={{ mb: 2 }}
       />
+
+      <UploadingAlertBanner />
 
       {loading ? (
         <Box sx={{ width: '100%', px: 3, mb: 3 }}>
