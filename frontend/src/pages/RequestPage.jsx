@@ -40,7 +40,7 @@ const MAX_FILE_SIZE = 250 * 1024; // 250KB
 export default function RequestPage() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
-  const { userData, updateUserAfterRequest, selectedImages, getAuthHeaders } = useAuth();
+  const { userData, updateUserAfterRequest, selectedImages, getAuthHeaders, feedback, updateFeedbackStatus } = useAuth();
   const hasExistingRequests = Object.keys(userData?.requestedImages || {}).length > 0;
   const hasExistingHardcopyRequests = userData?.hardcopyImages?.length > 0;
   const [paymentProof, setPaymentProof] = useState(null);
@@ -127,8 +127,8 @@ export default function RequestPage() {
     const newCount = currentCount + 1;
     localStorage.setItem('requestCount', newCount.toString());
 
-    // Show feedback dialog every 3rd request or if no previous feedback
-    if ((newCount % 3 == 0) || !userData?.feedback) {
+    // Show feedback dialog every 3rd request OR if no feedback given yet
+    if ((newCount % 3 == 0) || !feedback) {
       setShowFeedback(true);
     } else {
       setNeedsRefresh(true);
@@ -439,6 +439,7 @@ export default function RequestPage() {
         onClose={(success) => {
           setShowFeedback(false);
           if (success) {
+            updateFeedbackStatus(true);
             setNeedsRefresh(true);
           }
         }}

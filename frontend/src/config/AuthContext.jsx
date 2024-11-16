@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
     const [userData, setUserData] = useState(secureStorage.get()?.userData || null);
     const [token, setToken] = useState(secureStorage.get()?.token || null);
     const [selectedImages, setSelectedImages] = useState(secureStorage.get()?.selectedImages || {});
+    const [feedback, setFeedback] = useState(secureStorage.get()?.feedback || false);
 
     // When userData changes, restore selected images from requested images
     useEffect(() => {
@@ -19,12 +20,12 @@ export function AuthProvider({ children }) {
 
     // Persist state changes to secure storage
     useEffect(() => {
-        if (userData || Object.keys(selectedImages).length > 0) {
-            secureStorage.set({ userData, token, selectedImages });
+        if (userData || Object.keys(selectedImages).length > 0 || feedback) {
+            secureStorage.set({ userData, token, selectedImages, feedback });
         } else {
             secureStorage.clear();
         }
-    }, [userData, selectedImages, token]);
+    }, [userData, selectedImages, token, feedback]);
 
     const login = (data, authToken) => {
         setUserData(data);
@@ -62,16 +63,22 @@ export function AuthProvider({ children }) {
         'Content-Type': 'application/json'
     });
 
+    const updateFeedbackStatus = (status) => {
+        setFeedback(status);
+    };
+
     return (
         <AuthContext.Provider value={{
             userData,
             selectedImages,
+            feedback,
             login,
             logout,
             updateSelectedImages,
             getAvailableSlots,
             updateUserAfterRequest,
-            getAuthHeaders
+            getAuthHeaders,
+            updateFeedbackStatus
         }}>
             {children}
         </AuthContext.Provider>
