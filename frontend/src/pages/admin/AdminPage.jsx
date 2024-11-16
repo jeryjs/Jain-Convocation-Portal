@@ -461,6 +461,7 @@ const RequestsTable = ({
     if (selectedTab == 'pending') return req.status == 'pending';
     if (selectedTab == 'approved') return req.status == 'approved';
     if (selectedTab == 'printed') return req.status == 'printed';
+    if (selectedTab == 'rejected') return req.status == 'rejected';
     if (selectedTab == 'hardcopy') return req.requestType == REQUEST_TYPES.HARDCOPY || req.requestType == REQUEST_TYPES.BOTH;
     if (selectedTab == 'softcopy') return req.requestType == REQUEST_TYPES.SOFTCOPY || req.requestType == REQUEST_TYPES.BOTH;
     return true;
@@ -478,6 +479,7 @@ const RequestsTable = ({
           <Tab label="Pending" value="pending" />
           <Tab label="Approved" value="approved" />
           <Tab label="Printed" value="printed" />
+          <Tab label="Rejected" value="rejected" />
           <Tab label="Hard Copy" value="hardcopy" />
           <Tab label="Soft Copy" value="softcopy" />
         </Tabs>
