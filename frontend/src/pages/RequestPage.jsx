@@ -286,7 +286,7 @@ export default function RequestPage() {
 
       <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', minWidth:{xs:'95vw', md:'70vw'} }}>
         <Stack spacing={{ xs: 2, sm: 3 }}>
-          {config.HARDCOPY_DISABLED && (
+          {!config.REMOVE_HARDCOPY && config.HARDCOPY_DISABLED && (
             <Alert severity="warning" sx={{ mb: 2 }}>
               Hardcopy requests are currently disabled. You can instead get hardcopies from the hardcopy area by showing the photo nunber near the entrance. We will be happy to help you anytime.
             </Alert>
@@ -298,28 +298,30 @@ export default function RequestPage() {
             </Alert>
           )}
 
-          {hasExistingHardcopyRequests && (
+          {!config.REMOVE_HARDCOPY && hasExistingHardcopyRequests && (
             <Alert severity="warning" sx={{ mb: 2 }}>
               You have already requested hardcopies. Please wait for your existing request to be processed.
             </Alert>
           )}
 
-          <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Request Type</Typography>
-            <ToggleButtonGroup value={requestType} exclusive onChange={handleRequestTypeChange} sx={{ mb: 2 }}>
-              <ToggleButton value={REQUEST_TYPES.SOFTCOPY}>Soft Copy</ToggleButton>
-              <ToggleButton value={REQUEST_TYPES.HARDCOPY} disabled={hasExistingHardcopyRequests || config.HARDCOPY_DISABLED}>
-                Hard Copy
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Card>
+          {!config.REMOVE_HARDCOPY && (
+            <Card sx={{ p: { xs: 1.5, sm: 2 } }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Request Type</Typography>
+              <ToggleButtonGroup value={requestType} exclusive onChange={handleRequestTypeChange} sx={{ mb: 2 }}>
+                <ToggleButton value={REQUEST_TYPES.SOFTCOPY}>Soft Copy</ToggleButton>
+                <ToggleButton value={REQUEST_TYPES.HARDCOPY} disabled={hasExistingHardcopyRequests || config.HARDCOPY_DISABLED}>
+                  Hard Copy
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Card>
+          )}
 
           <UserForm
             userData={userData}
             userFormData={userFormData}
             onFormChange={handleFormChange}
             requestType={requestType}
-            hasExistingHardcopy={requestType == REQUEST_TYPES.HARDCOPY || requestType == REQUEST_TYPES.BOTH}
+            hasExistingHardcopy={!config.REMOVE_HARDCOPY && (requestType == REQUEST_TYPES.HARDCOPY || requestType == REQUEST_TYPES.BOTH)}
           />
 
           <ImagesSection
@@ -330,7 +332,7 @@ export default function RequestPage() {
             amount={paymentSettings?.amount?? 0}
           />
 
-          {requestType === REQUEST_TYPES.HARDCOPY && paymentSettings && (
+          {!config.REMOVE_HARDCOPY && requestType === REQUEST_TYPES.HARDCOPY && paymentSettings && (
             <PaymentDetails
               paymentSettings={{
                 ...paymentSettings,
