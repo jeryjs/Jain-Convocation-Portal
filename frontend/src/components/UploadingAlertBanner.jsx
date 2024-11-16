@@ -17,7 +17,7 @@ export default function UploadingAlertBanner() {
                 }
             }}
         >
-            Dear all, we are currently in the process of uploading the photos. This may take approximately 10 minutes to complete. Thank you for your patience.
+            Dear all, we are currently in the process of uploading the photos. This may take approximately 45 minutes to complete. Thank you for your patience.
         </Alert>
     );
     }
