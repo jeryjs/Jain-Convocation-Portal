@@ -15,7 +15,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../config/AuthContext';
 import { cacheManager } from '../utils/cache';
 import { downloadFile } from '../utils/utils';
-import UploadingAlertBanner from '../components/UploadingAlertBanner';
+import DemoPageBanner from '../components/DemoPageBanner';
 
 
 function GalleryPage() {
@@ -139,7 +139,7 @@ function GalleryPage() {
         sx={{ mb: 2 }}
       />
 
-      <UploadingAlertBanner />
+      <DemoPageBanner />
 
       <Box sx={{ width: {xs:'100vw', md:'90vw'}, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (

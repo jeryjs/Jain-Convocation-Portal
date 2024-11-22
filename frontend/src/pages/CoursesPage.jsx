@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import config from '../config';
 import PageHeader from '../components/PageHeader';
 import { cacheManager } from '../utils/cache';
-import UploadingAlertBanner from '../components/UploadingAlertBanner';
+import DemoPageBanner from '../components/DemoPageBanner';
 
 // Utility function for handling file name in the format "10AM to 11AM"
 const convertTimeToMinutes = (timeStr) => {
@@ -79,7 +79,7 @@ function CoursesPage() {
         sx={{ mb: 2 }}
       />
 
-      <UploadingAlertBanner />
+      <DemoPageBanner />
 
       {loading ? (
         <Box sx={{ width: '100%', px: 3, mb: 3 }}>
