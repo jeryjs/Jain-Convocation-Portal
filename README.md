@@ -1,9 +1,9 @@
 # Jain Convocation Portal
 > https://jain-convocation-portal.vercel.app/
-> | Account Type | Username | Password |
-> |-------------|----------|----------|
-> | Test Account | TEST001  | 12345678 |
-> | Admin Account| ADMIN    | 12345678 |
+> | Test Account | Username | Password |
+> |--------------|----------|----------|
+> | Regular user | TEST006  | 12345678 |
+> | Admin        | ADMIN    | 12345678 |
 
 
 A React app with UI in MUI and Express.js backend for hosting the pictures taken during Jain University’s 14th convocation, which expects up to 17,000 visitors.
@@ -49,11 +49,14 @@ npm install
 ### Environment Variables Setup
 
 #### Required Variables
-1. Gmail Setup
-2. Port Configuration 
-3. OneDrive Setup
-4. JWT Secret
-5. Firebase Setup
+```properties
+GMAIL_USER=
+GMAIL_APP_PASS=
+PORT=
+ONEDRIVE_SHAREID=
+JWT_SECRET=
+FIREBASE_ACCOUNT_KEY_JSON=
+```
 
 #### Step-by-Step Instructions
 
