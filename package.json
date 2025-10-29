@@ -4,9 +4,9 @@
 	"description": "A web portal for managing Jain University Convocation Images.",
 	"main": "index.js",
 	"scripts": {
-		"start:frontend": "cd frontend && npm run dev",
-		"start:backend": "cd backend && npm run dev",
-		"dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+		"start:frontend": "cd frontend && pnpm run dev",
+		"start:backend": "cd backend && pnpm run dev",
+		"dev": "pnpx concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\""
 	},
 	"keywords": [],
 	"author": "Jery",
