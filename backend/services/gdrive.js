@@ -4,23 +4,8 @@ const { getSettings } = require("../config/settings");
 const { cache, TTL } = require("../config/cache");
 
 const getAuth = async () => {
-    const settings = getSettings();
-    
-    // Fix typo and add error handling
-    let credentials;
-    try {
-        credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
-    } catch (error) {
-        console.error("Error parsing Google Service Account credentials:", error);
-        throw new Error("Invalid Google Service Account credentials");
-    }
-
-    if (!credentials) {
-        throw new Error("Google Service Account credentials not found");
-    }
-
     const auth = new google.auth.GoogleAuth({
-        apiKey: "AIzaSyDH2EQTrAEq9kP0yS_PuFS61mllUk0pDeo",
+        apiKey: process.env.GDRIVE_API_KEY,
         scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
     

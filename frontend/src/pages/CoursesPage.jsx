@@ -198,9 +198,9 @@ const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
           </Box>
           <Grid container spacing={1}>
             {time.batches.map(stage => (
-              <Grid item xs={12} key={stage}>
+              <Grid item xs={12} key={stage.name}>
                 <Card 
-                  onClick={() => onStageSelect(stage)} 
+                  onClick={() => onStageSelect(stage.name)} 
                   sx={{ 
                     p: { xs: 1, sm: 1.5 },
                     cursor: 'pointer',
@@ -211,7 +211,7 @@ const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
                   }}
                 >
                   <Typography sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {stage}
+                    {stage.name}
                   </Typography>
                 </Card>
               </Grid>

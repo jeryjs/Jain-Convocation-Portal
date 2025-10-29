@@ -135,7 +135,7 @@ const SettingsPage = () => {
               <Typography variant="h6" sx={{ mb: 3 }}>Course Settings</Typography>
               <Stack spacing={3}>
                 <TextField
-                  label="OneDrive Share ID"
+                  label="Google Drive Share ID"
                   value={settings.courses?.folderId || ''}
                   onChange={(e) => {
                     const inputValue = e.target.value;
@@ -143,7 +143,7 @@ const SettingsPage = () => {
                     const folderId = match ? match[1] : inputValue?.replace(/[^A-Za-z0-9_-]/g, '');
                     handleCategoryChange('courses', 'folderId', folderId);
                   }}
-                  helperText="The share ID from your OneDrive folder URL"
+                  helperText="The share ID from your Google Drive folder URL"
                   fullWidth
                 />
               </Stack>
