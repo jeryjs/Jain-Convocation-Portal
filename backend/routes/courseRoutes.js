@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/onedrive');
+const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/gdrive');
 const { log } = require('../utils/logUtils');
 
 // Route to get list of courses (OneDrive folders)
