@@ -5,4 +5,4 @@ node_modules/
 
 test/
 backend/.env.bak
-face-search-web/
+face-search-web/__pycache__
