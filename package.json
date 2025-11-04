@@ -1,12 +1,13 @@
 {
 	"name": "jain-convocation-portal",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"description": "A web portal for managing Jain University Convocation Images.",
 	"main": "index.js",
 	"scripts": {
 		"start:frontend": "cd frontend && pnpm run dev",
 		"start:backend": "cd backend && pnpm run dev",
-		"dev": "pnpx concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\""
+		"dev": "npx concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\"",
+		"init": "npx concurrently \"cd backend && pnpm install\" \"cd frontend && pnpm install\""
 	},
 	"keywords": [],
 	"author": "Jery",
