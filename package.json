@@ -6,8 +6,8 @@
 	"scripts": {
 		"start:frontend": "cd frontend && pnpm run dev",
 		"start:backend": "cd backend && pnpm run dev",
-		"dev": "npx concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\"",
-		"init": "npx concurrently \"cd backend && pnpm install\" \"cd frontend && pnpm install\""
+		"dev": "pnpx concurrently \"pnpm run start:backend\" \"pnpm run start:frontend\"",
+		"init": "pnpx concurrently \"cd backend && pnpm install\" \"cd frontend && pnpm install\""
 	},
 	"keywords": [],
 	"author": "Jery",
