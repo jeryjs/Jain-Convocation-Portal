@@ -201,9 +201,20 @@ function GalleryPage() {
               sx={{ p: 2, height: { xs: '80vh' }, flex: { md: '4' } }}
             />
 
+            <WebcamPanel
+              isCameraOn={isCameraOn}
+              imgSrc={imgSrc}
+              webcamRef={webcamRef}
+              videoConstraints={videoConstraints}
+              onStartCamera={handleStartCamera}
+              onStopCamera={handleStopCamera}
+              onCapture={capture}
+              onRetake={handleRetake}
+              sx={{ flex: { md: '1' }, display: { xs: 'none', md: 'block' } }}
+            />
+
             <SelectedImagesPanel
               selectedImages={selectedImages}
-              updateSelectedImages={updateSelectedImages}
               existingImages={userData?.requestedImages || {}}
               onRequestPressed={handleRequestPressed}
               availableSlots={getAvailableSlots()}
@@ -213,24 +224,72 @@ function GalleryPage() {
         )}
       </Box>
 
-      {/* Webcam Panel for both mobile and desktop */}
-      <Box sx={{ p: 2 }}>
-        <WebcamPanel
-          isCameraOn={isCameraOn}
-          imgSrc={imgSrc}
-          webcamRef={webcamRef}
-          videoConstraints={videoConstraints}
-          onStartCamera={handleStartCamera}
-          onStopCamera={handleStopCamera}
-          onCapture={capture}
-          onRetake={handleRetake}
-          sx={{ display: { xs: 'flex', md: 'none' } }} // Show on mobile, hide on desktop
-        />
+      <Box sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        bgcolor: 'background.paper',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        display: { xs: 'block', md: 'none' },
+        zIndex: 1000
+      }}
+      >
+        <Box
+          sx={{
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            px: 2,
+            pt: 1,
+            pb: 0.5,
+            '&::-webkit-scrollbar': { display: 'none' },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {!isCameraOn && !imgSrc && (
+            <button onClick={handleStartCamera}>Start Camera </button>
+          )}
+          {isCameraOn && (
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={videoConstraints}
+              minScreenshotWidth={180}
+              minScreenshotHeight={180}
+            />
+          )}
+          <div className="flex justify-start items-center gap-10">
+            {isCameraOn && !imgSrc && <button onClick={capture}> Capture Photo </button>}
+            {isCameraOn && <button onClick={handleStopCamera}> Stop Camera </button>}
+          </div>
+
+          {imgSrc && (
+            <img src={imgSrc} alt="Captured" />
+          )}
+          <div className="flex justify-start items-center gap-10">
+            {imgSrc && <button onClick={handleRetake}> Retake Photo </button>}
+          </div>
+        </Box>
       </Box>
 
       {/* Mobile Selected Images Strip & Request Button */}
-      {!isGroupPhotos && !isCameraOn && !imgSrc && (
-        <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider', display: { xs: 'block', md: 'none' }, zIndex: 1000 }}>
+      {!isGroupPhotos && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: { xs: 'block', md: 'none' },
+            zIndex: 1000
+          }}
+        >
           {/* Horizontal Scrollable Selected Images */}
           <Box
             sx={{
@@ -299,7 +358,9 @@ function GalleryPage() {
 
 export default GalleryPage;
 
+
 function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx }) {
+  const { updateSelectedImages } = useAuth();
 
   // Transform selectedImages back to array of objects format
   const selectedImagesArray = Object.entries(selectedImages).map(([path, url]) => ({ [path]: url }));
@@ -372,11 +433,7 @@ const WebcamPanel = ({
   sx
 }) => {
   return (
-    <Card
-      elevation={2}
-      // Combine passed sx with default styles. Show on desktop by default.
-      sx={{ ...sx, p: 2, display: sx?.display || { xs: 'none', md: 'flex' }, flexDirection: 'column' }}
-    >
+    <Card elevation={2} sx={{ ...sx, p: 2 }}>
       <Stack spacing={2} alignItems="center">
         <Typography variant="h6">Find by Selfie</Typography>
         <Paper variant="outlined" sx={{ width: '100%', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'black', borderRadius: 1, overflow: 'hidden' }}>
@@ -385,13 +442,13 @@ const WebcamPanel = ({
               Start Camera
             </Button>
           )}
-          {isCameraOn && !imgSrc && (
+          {isCameraOn && (
             <Webcam
               audio={false}
               ref={webcamRef}
               screenshotFormat="image/jpeg"
               videoConstraints={videoConstraints}
-              style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           )}
           {imgSrc && (
@@ -399,36 +456,38 @@ const WebcamPanel = ({
           )}
         </Paper>
 
-        <Stack spacing={2} sx={{ width: '100%' }}>
-          <Stack direction="row" spacing={1} justifyContent="center">
-            {isCameraOn && !imgSrc && (
-              <Button variant="contained" onClick={onCapture} startIcon={<CameraAlt />}>
-                Capture
+        <Stack direction="row" spacing={1} justifyContent="center" sx={{ width: '100%' }}>
+          {isCameraOn && !imgSrc && (
+            <Button variant="contained" onClick={onCapture} startIcon={<CameraAlt />}>
+              Capture
+            </Button>
+          )}
+          {isCameraOn && (
+            <Button variant="outlined" color="secondary" onClick={onStopCamera} startIcon={<StopCircle />}>
+              Stop
+            </Button>
+          )}
+          {imgSrc && (
+            <>
+              <Button variant="outlined" onClick={onRetake} startIcon={<Replay />}>
+                Retake
               </Button>
-            )}
-            {isCameraOn && (
-              <Button variant="outlined" color="secondary" onClick={onStopCamera} startIcon={<StopCircle />}>
-                Stop
-              </Button>
-            )}
-            {imgSrc && (
-              <>
-                <Button variant="outlined" onClick={onRetake} startIcon={<Replay />}>
-                  Retake
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => alert('Search functionality to be implemented!')}
-                >
-                  Search with this image
-                </Button>
-              </>
-            )}
-          </Stack>
+            </>
+          )}
         </Stack>
 
-        {!isCameraOn && !imgSrc && !isCameraOn && (
+        {imgSrc && (
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            onClick={() => alert('Search functionality to be implemented!')}
+          >
+            Search with this image
+          </Button>
+        )}
+
+        {!isCameraOn && !imgSrc && (
           <Alert severity="info" sx={{ width: '100%' }}>
             Use your selfie to quickly find your photos from the gallery.
           </Alert>
