@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, Fragment } from 'react';
+import Webcam from 'react-webcam';
 import { useParams, useNavigate } from 'react-router-dom';
 import config from '../config';
 import ImageGrid from '../components/ImageGrid';
@@ -9,14 +10,16 @@ import {
   Typography,
   Card,
   Button,
-  Alert
+  Alert,
+  IconButton,
+  Paper,
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
+import { CameraAlt, Replay, GetApp, StopCircle } from '@mui/icons-material';
 import { useAuth } from '../config/AuthContext';
 import { cacheManager } from '../utils/cache';
 import { downloadFile } from '../utils/utils';
 import DemoPageBanner from '../components/DemoPageBanner';
-
 
 function GalleryPage() {
   const { sessionId } = useParams();
@@ -32,7 +35,7 @@ function GalleryPage() {
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
-    
+
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
 
@@ -49,10 +52,10 @@ function GalleryPage() {
         //   setLoading(false);
         //   return;
         // }
-        
+
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
-        
+
         setImages(data);
         // Cache the new data
         cacheManager.set(cacheKey, data, isRetry);
@@ -93,7 +96,7 @@ function GalleryPage() {
           headers: getAuthHeaders()
         });
         links = await response.json();
-        
+
         // Cache the links with a 30-day expiry
         localStorage.setItem('group_photos_links', JSON.stringify({
           data: links,
@@ -128,6 +131,37 @@ function GalleryPage() {
   const handleRequestPressed = () => {
     navigate(`/gallery/${sessionId}/request`);
   };
+  
+  // web cam
+  const videoConstraints = {
+    width: 640,
+    height: 480,
+    facingMode: "user",
+  };
+
+  const webcamRef = useRef(null);
+  const [imgSrc, setImgSrc] = useState(null);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+
+  const capture = useCallback(() => {
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      setImgSrc(imageSrc);
+    }
+  }, [webcamRef, setImgSrc]);
+
+  const handleStartCamera = () => {
+    setImgSrc(null); // Clear previous image
+    setIsCameraOn(true);
+  };
+
+  const handleStopCamera = () => {
+    setIsCameraOn(false);
+  };
+
+  const handleRetake = () => {
+    setImgSrc(null);
+  };
 
   return (
     <>
@@ -141,21 +175,20 @@ function GalleryPage() {
 
       <DemoPageBanner />
 
-      <Box sx={{ width: {xs:'100vw', md:'90vw'}, pb: { xs: '60px', md: 0 } }}>
+      <Box sx={{ width: { xs: '100vw', md: '90vw' }, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (
           <ImageGrid
             loading={loading || loadingLinks}
             images={images}
             columns={3}
             showColumnControls={true}
-            onDownload={handleImageDownload}
             sx={{ p: 2, height: 'calc(100vh - 200px)', flex: 1 }}
           />
         ) : (
-          <Stack 
-            direction={{ xs: "column", md: "row" }} 
+          <Stack
+            direction={{ xs: "column", md: "row" }}
             spacing={2}
-            sx={{ height: {md: '80vh'} }}
+            sx={{ height: { md: '80vh' } }}
           >
             <ImageGrid
               loading={loading}
@@ -165,7 +198,19 @@ function GalleryPage() {
               onSelectImage={handleSelectImage}
               availableSlots={getAvailableSlots()}
               searchEnabled={true}
-              sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
+              sx={{ p: 2, height: { xs: '80vh' }, flex: { md: '4' } }}
+            />
+
+            <WebcamPanel
+              isCameraOn={isCameraOn}
+              imgSrc={imgSrc}
+              webcamRef={webcamRef}
+              videoConstraints={videoConstraints}
+              onStartCamera={handleStartCamera}
+              onStopCamera={handleStopCamera}
+              onCapture={capture}
+              onRetake={handleRetake}
+              sx={{ flex: { md: '1' }, display: { xs: 'none', md: 'block' } }}
             />
 
             <SelectedImagesPanel
@@ -173,10 +218,61 @@ function GalleryPage() {
               existingImages={userData?.requestedImages || {}}
               onRequestPressed={handleRequestPressed}
               availableSlots={getAvailableSlots()}
-              sx={{ flex: {md: '1'}, display: { xs: 'none', md: 'block' } }}
+              sx={{ flex: { md: '1' }, display: { xs: 'none', md: 'block' } }}
             />
           </Stack>
         )}
+      </Box>
+
+      <Box sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        bgcolor: 'background.paper',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        display: { xs: 'block', md: 'none' },
+        zIndex: 1000
+      }}
+      >
+        <Box
+          sx={{
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            px: 2,
+            pt: 1,
+            pb: 0.5,
+            '&::-webkit-scrollbar': { display: 'none' },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {!isCameraOn && !imgSrc && (
+            <button onClick={handleStartCamera}>Start Camera </button>
+          )}
+          {isCameraOn && (
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={videoConstraints}
+              minScreenshotWidth={180}
+              minScreenshotHeight={180}
+            />
+          )}
+          <div className="flex justify-start items-center gap-10">
+            {isCameraOn && !imgSrc && <button onClick={capture}> Capture Photo </button>}
+            {isCameraOn && <button onClick={handleStopCamera}> Stop Camera </button>}
+          </div>
+
+          {imgSrc && (
+            <img src={imgSrc} alt="Captured" />
+          )}
+          <div className="flex justify-start items-center gap-10">
+            {imgSrc && <button onClick={handleRetake}> Retake Photo </button>}
+          </div>
+        </Box>
       </Box>
 
       {/* Mobile Selected Images Strip & Request Button */}
@@ -195,8 +291,8 @@ function GalleryPage() {
           }}
         >
           {/* Horizontal Scrollable Selected Images */}
-          <Box 
-            sx={{ 
+          <Box
+            sx={{
               overflowX: 'auto',
               whiteSpace: 'nowrap',
               px: 2,
@@ -277,7 +373,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             Selected Images ({Object.entries(selectedImages).length}/4)
           </Typography>
         </Box>
-        
+
         {availableSlots > 0 && (
           <Alert severity="info" sx={{ mb: 2 }}>
             You can select {availableSlots} more image{availableSlots !== 1 ? 's' : ''}
@@ -312,7 +408,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             variant="contained"
             onClick={onRequestPressed}
             disabled={Object.keys(selectedImages).length < 0}
-            sx={{ 
+            sx={{
               flex: 1,
               height: { xs: '32px', md: '36px' },
               fontSize: { xs: '0.75rem', md: '0.875rem' }
@@ -324,3 +420,79 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
     </Card>
   );
 }
+
+const WebcamPanel = ({
+  isCameraOn,
+  imgSrc,
+  webcamRef,
+  videoConstraints,
+  onStartCamera,
+  onStopCamera,
+  onCapture,
+  onRetake,
+  sx
+}) => {
+  return (
+    <Card elevation={2} sx={{ ...sx, p: 2 }}>
+      <Stack spacing={2} alignItems="center">
+        <Typography variant="h6">Find by Selfie</Typography>
+        <Paper variant="outlined" sx={{ width: '100%', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'black', borderRadius: 1, overflow: 'hidden' }}>
+          {!isCameraOn && !imgSrc && (
+            <Button variant="outlined" onClick={onStartCamera} startIcon={<CameraAlt />}>
+              Start Camera
+            </Button>
+          )}
+          {isCameraOn && (
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={videoConstraints}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          )}
+          {imgSrc && (
+            <img src={imgSrc} alt="Captured" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+        </Paper>
+
+        <Stack direction="row" spacing={1} justifyContent="center" sx={{ width: '100%' }}>
+          {isCameraOn && !imgSrc && (
+            <Button variant="contained" onClick={onCapture} startIcon={<CameraAlt />}>
+              Capture
+            </Button>
+          )}
+          {isCameraOn && (
+            <Button variant="outlined" color="secondary" onClick={onStopCamera} startIcon={<StopCircle />}>
+              Stop
+            </Button>
+          )}
+          {imgSrc && (
+            <>
+              <Button variant="outlined" onClick={onRetake} startIcon={<Replay />}>
+                Retake
+              </Button>
+            </>
+          )}
+        </Stack>
+
+        {imgSrc && (
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            onClick={() => alert('Search functionality to be implemented!')}
+          >
+            Search with this image
+          </Button>
+        )}
+
+        {!isCameraOn && !imgSrc && (
+          <Alert severity="info" sx={{ width: '100%' }}>
+            Use your selfie to quickly find your photos from the gallery.
+          </Alert>
+        )}
+      </Stack>
+    </Card>
+  );
+};
