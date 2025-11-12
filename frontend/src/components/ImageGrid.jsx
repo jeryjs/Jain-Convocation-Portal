@@ -19,6 +19,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import DownloadIcon from '@mui/icons-material/Download';
+import FaceIcon from '@mui/icons-material/Face';
 
 // Helper function to get short name from full path
 const getShortName = (fullPath) => {
@@ -37,6 +38,8 @@ export default function ImageGrid({
   columns = 3,
   showColumnControls = true,
   searchEnabled = false,
+  showFaceFilterButton = false,
+  onFaceFilterClick,
   sx 
 }) {
   const [localColumns, setLocalColumns] = useState(columns);
@@ -65,7 +68,7 @@ export default function ImageGrid({
   return (
     <Card variant='elevation' elevation='4' sx={{ display:"flex", flexDirection: "column", ...sx }}>
       {(searchEnabled || showColumnControls) && (
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ py: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
           {searchEnabled && (
             <TextField
               fullWidth
@@ -84,6 +87,16 @@ export default function ImageGrid({
               <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
                 <AddCircleOutlineIcon />
               </IconButton>
+              {showFaceFilterButton && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FaceIcon />}
+                  onClick={onFaceFilterClick}
+                >
+                  Face Filter
+                </Button>
+              )}
             </Box>
           )}
         </Box>
