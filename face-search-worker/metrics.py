@@ -1,3 +1,5 @@
+# pyright: reportPossiblyUnboundVariable=false
+
 """System metrics collection for worker monitoring"""
 
 import psutil
@@ -19,6 +21,7 @@ class MetricsCollector:
         self.gpu_index = gpu_index
         self.has_gpu = False
         self.gpu_handle = None
+        self.gpu_error_logged = False  # Track if we've logged GPU errors
         
         if NVML_AVAILABLE:
             try:
@@ -50,6 +53,10 @@ class MetricsCollector:
         try:
             # Utilization
             util = nvml.nvmlDeviceGetUtilizationRates(self.gpu_handle)
+            if hasattr(util, 'gpu') and not isinstance(util, str):
+                gpu_utilization = util.gpu
+            else:
+                gpu_utilization = 0  # fallback if util is not as expected
             
             # Temperature
             temp = nvml.nvmlDeviceGetTemperature(self.gpu_handle, nvml.NVML_TEMPERATURE_GPU)
@@ -61,18 +68,60 @@ class MetricsCollector:
             gpu_name = nvml.nvmlDeviceGetName(self.gpu_handle)
             if isinstance(gpu_name, bytes):
                 gpu_name = gpu_name.decode('utf-8')
+
+            # Defensive: check mem_info type and ensure it's not a string
+            if (
+                mem_info is not None
+                and not isinstance(mem_info, str)
+                and hasattr(mem_info, 'used')
+                and hasattr(mem_info, 'free')
+                and hasattr(mem_info, 'total')
+            ):
+                memory_used_mb = mem_info.used / (1024 ** 2)
+                memory_free_mb = mem_info.free / (1024 ** 2)
+                memory_total_mb = mem_info.total / (1024 ** 2)
+            else:
+                memory_used_mb = 0
+                memory_free_mb = 0
+                memory_total_mb = 0
             
             return {
                 'name': gpu_name,
-                'utilization': util.gpu,
-                'memory_utilization': util.memory,
+                'utilization': gpu_utilization,
                 'temperature': temp,
-                'memory_used_mb': mem_info.used / (1024 ** 2),
-                'memory_free_mb': mem_info.free / (1024 ** 2),
-                'memory_total_mb': mem_info.total / (1024 ** 2)
+                'memory_used_mb': memory_used_mb,
+                'memory_free_mb': memory_free_mb,
+                'memory_total_mb': memory_total_mb
             }
+        except nvml.NVMLError as e:
+            if not self.gpu_error_logged:
+                print(f"⚠️  NVML Error getting GPU metrics: {e}")
+                self.gpu_error_logged = True
+            return None
+        except AttributeError as e:
+            if not self.gpu_error_logged:
+                print(f"⚠️  GPU attribute error (may not support this metric): {e}")
+                self.gpu_error_logged = True
+            # Return partial metrics
+            try:
+                gpu_name = nvml.nvmlDeviceGetName(self.gpu_handle)
+                if isinstance(gpu_name, bytes):
+                    gpu_name = gpu_name.decode('utf-8')
+                return {
+                    'name': gpu_name,
+                    'utilization': 0,
+                    'memory_utilization': 0,
+                    'temperature': 0,
+                    'memory_used_mb': 0,
+                    'memory_free_mb': 0,
+                    'memory_total_mb': 0
+                }
+            except:
+                return None
         except Exception as e:
-            print(f"⚠️  Error getting GPU metrics: {e}")
+            if not self.gpu_error_logged:
+                print(f"⚠️  Unexpected error getting GPU metrics: {type(e).__name__}: {e}")
+                self.gpu_error_logged = True
             return None
     
     def get_all_metrics(self) -> Dict:
