@@ -201,10 +201,22 @@ export default function Home() {
     const interval = setInterval(() => {
       fetchQueueData();
       fetchWorkers();
+      fetchPauseStatus();
     }, 2000);
     
     return () => clearInterval(interval);
   }, [autoRefresh]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-lg font-medium text-gray-400">Initializing Dashboard</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-6">
@@ -247,6 +259,12 @@ export default function Home() {
 
         {/* Stats Overview */}
         {queueData && <StatsOverview stats={queueData.stats} isPaused={isPaused} />}
+
+        {/* Workers */}
+        <WorkerManagement workers={workers} onRemoveWorker={handleRemoveWorker} />
+
+        {/* Bulk Actions */}
+        <BulkActions onAction={handleBulkAction} />
 
         {/* Analytics Charts */}
         {queueData && <AnalyticsCharts stats={queueData.stats} jobs={queueData.jobs} />}
