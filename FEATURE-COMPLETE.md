@@ -83,25 +83,49 @@
 
 ---
 
-### 🐍 **Worker Module (Python)**
+### 🐍 **Worker Modules (Python)**
 
-#### **Worker Files (6)**
+#### **Worker 1 (DeepFace) - 6 Files**
 - [x] `worker.py` - Main worker process
-- [x] `face_search.py` - DeepFace integration
+- [x] `face_search.py` - DeepFace integration (Facenet512)
 - [x] `metrics.py` - System metrics collection
 - [x] `requirements.txt` - Dependencies
 - [x] `.env.example` - Configuration template
 - [x] `start.bat` - Windows quick start
 - [x] `README.md` - Full documentation
 
-#### **Worker Features**
+#### **Worker 2 (face_recognition) - 8 Files**
+- [x] `worker.py` - Main worker process
+- [x] `face_search.py` - face_recognition integration (dlib)
+- [x] `metrics.py` - System metrics collection
+- [x] `requirements.txt` - Dependencies (conda ml env)
+- [x] `.env.example` - Configuration template
+- [x] `start.bat` - Windows quick start (conda activate ml)
+- [x] `.gitignore` - Git ignore rules
+- [x] `README.md` - Full documentation
+
+#### **Worker Comparison**
+
+| Feature | Worker 1 (DeepFace) | Worker 2 (face_recognition) |
+|---------|---------------------|----------------------------|
+| **Library** | DeepFace + Facenet512 | face_recognition + dlib |
+| **Model** | Facenet512 (512-dim) | dlib ResNet (128-dim) |
+| **Accuracy** | ★★★★★ Very High | ★★★★☆ High |
+| **Speed** | ★★★☆☆ Moderate | ★★★★☆ Fast |
+| **Memory** | ★★☆☆☆ High (~2GB) | ★★★★☆ Low (~1GB) |
+| **GPU** | TensorFlow CUDA | dlib CUDA |
+| **Best For** | High accuracy | High throughput |
+| **Worker ID** | `hostname_gpu0` | `hostname_gpu0_fr` |
+
+#### **Worker Features (Both Workers)**
 - [x] Pull-based architecture (no port forwarding!)
-- [x] Stable worker IDs (`hostname_gpu0`)
+- [x] Stable worker IDs (`hostname_gpu0` / `hostname_gpu0_fr`)
 - [x] Auto-registration with Redis
 - [x] Heartbeat system (5s interval)
 - [x] Multi-GPU support
 - [x] CPU fallback
 - [x] Multiple workers per device
+- [x] Engine identification (DeepFace vs face_recognition)
 - [x] System metrics collection:
   - CPU usage %
   - RAM usage % and GB
@@ -115,18 +139,31 @@
 - [x] Jobs processed counter
 - [x] Current job tracking
 
-#### **Face Search**
+#### **Face Search (Worker 1 - DeepFace)**
 - [x] DeepFace integration (Facenet512)
+- [x] 512-dimensional face embeddings
+- [x] Cosine similarity (higher accuracy)
 - [x] Base64 image decoding
 - [x] Face detection
-- [x] Face embedding extraction
-- [x] Similarity calculation (cosine)
 - [x] Threshold filtering (0.6)
 - [x] Result sorting by score
 - [x] Progress callbacks
 - [x] Error handling
 
----
+#### **Face Search (Worker 2 - face_recognition)**
+- [x] face_recognition integration (dlib)
+- [x] 128-dimensional face encodings
+- **Total Components**: 9
+- **Total API Endpoints**: 13
+- **Total Files Created**: 40+
+- **Total Worker Modules**: 2 (DeepFace + face_recognition)
+- **Lines of Code**: ~4000+
+- **Keyboard Shortcuts**: 5
+- **Toast Notifications**: All actions
+- **Worker Metrics**: 10 types
+- **Bulk Operations**: 3
+- **Color Schemes**: 5 state colors
+- **Auto-refresh Interval**: 2 seconds (configurable)
 
 ### 📊 **Dashboard Statistics**
 
@@ -250,21 +287,24 @@
 - ✅ SSE status streaming
 - ✅ Rate limiting
 - ✅ Error handling
-
 ### **Ready to Deploy:**
 - ✅ Queue module (Next.js)
-- ✅ Worker module (Python)
+- ✅ Worker 1 module (Python - DeepFace)
+- ✅ Worker 2 module (Python - face_recognition)
 - ✅ Admin dashboard
 - ✅ Documentation
 
 ### **Testing Checklist:**
 - [ ] Start queue module: `cd face-search-queue && pnpm dev`
-- [ ] Start worker: `cd face-search-worker && python worker.py`
+- [ ] Start worker 1: `cd face-search-worker && python worker.py`
+- [ ] Start worker 2: `cd face-search-worker-2 && start.bat`
 - [ ] Create test job via API
 - [ ] Monitor in dashboard
-- [ ] Check worker appears
+- [ ] Check both workers appear
 - [ ] Test bulk operations
 - [ ] Test keyboard shortcuts
+- [ ] Test all toast notifications
+- [ ] Compare worker performance (DeepFace vs face_recognition)
 - [ ] Test all toast notifications
 
 ---

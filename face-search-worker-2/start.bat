@@ -1,21 +1,12 @@
 @echo off
 echo ========================================
-echo Face Search Worker - Quick Start
+echo Face Search Worker 2 - face_recognition
 echo ========================================
 echo.
 
-REM Check if venv exists
-@REM if not exist "venv\" (
-@REM     echo Creating virtual environment...
-@REM     python -m venv venv
-@REM     echo.
-@REM )
-
-@REM echo Activating virtual environment...
-@REM call venv\Scripts\activate
-@REM echo.
-
-conda activate ml
+echo Activating conda ml environment...
+call conda activate ml
+echo.
 
 REM Check if .env exists
 if not exist ".env" (
@@ -25,12 +16,8 @@ if not exist ".env" (
     pause
 )
 
-echo Installing dependencies...
-@REM pip install -r requirements.txt
-echo.
-
 echo ========================================
-echo Starting Worker...
+echo Starting Worker 2 (face_recognition)...
 echo ========================================
 echo.
 

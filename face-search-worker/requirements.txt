@@ -1,5 +1,5 @@
 redis==5.2.0
-python-bullmq==0.1.2
+bullmq==0.1.2
 deepface==0.0.93
 tensorflow==2.18.0
 opencv-python==4.10.0.84
