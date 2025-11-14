@@ -15,7 +15,7 @@ REM Check if venv exists
 @REM call venv\Scripts\activate
 @REM echo.
 
-conda activate ml
+conda activate tf
 
 REM Check if .env exists
 if not exist ".env" (
@@ -25,9 +25,9 @@ if not exist ".env" (
     pause
 )
 
-echo Installing dependencies...
-@REM pip install -r requirements.txt
-echo.
+@REM echo Installing dependencies...
+@REM @REM pip install -r requirements.txt
+@REM echo.
 
 echo ========================================
 echo Starting Worker...
