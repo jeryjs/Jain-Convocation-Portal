@@ -17,6 +17,15 @@ import { cacheManager } from '../utils/cache';
 import { downloadFile } from '../utils/utils';
 import DemoPageBanner from '../components/DemoPageBanner';
 import FaceFilterDialog from '../components/FaceFilterDialog';
+import FaceFilterBanner from '../components/FaceFilterBanner';
+import { 
+  useFaceFilterJob, 
+  getJobForStage, 
+  saveJobForStage, 
+  clearFilterStateForStage,
+  enableFilterForStage,
+  clearJobForStage
+} from '../hooks/useFaceFilterJob';
 
 function GalleryPage() {
   const { sessionId } = useParams();
@@ -28,6 +37,45 @@ function GalleryPage() {
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
   const [loadingLinks, setLoadingLinks] = useState(false);
   const isGroupPhotos = pathData.batch === 'Group Photos';
+  const [faceFilterDialogOpen, setFaceFilterDialogOpen] = useState(false);
+
+  // Face filter state
+  const currentStage = sessionId; // Use sessionId as stage identifier
+  const [currentJob, setCurrentJob] = useState(null);
+  const [filterActive, setFilterActive] = useState(false);
+
+  // Load job from localStorage on mount
+  useEffect(() => {
+    const job = getJobForStage(currentStage);
+    if (job) {
+      setCurrentJob(job);
+      setFilterActive(job.filterActive !== false); // Default to true if not specified
+    }
+  }, [currentStage]);
+
+  // SSE hook for monitoring job status
+  const { status, result, error, isComplete } = useFaceFilterJob(
+    currentJob?.jobId,
+    (completionData) => {
+      // Update localStorage when job completes
+      saveJobForStage(currentStage, {
+        ...currentJob,
+        ...completionData,
+        filterActive: completionData.result ? true : false,
+      });
+      
+      // Update local state
+      setCurrentJob(prev => ({
+        ...prev,
+        ...completionData,
+      }));
+      
+      // Auto-enable filter if we have results
+      if (completionData.result && completionData.result.length > 0) {
+        setFilterActive(true);
+      }
+    }
+  );
 
   useEffect(() => {
     if (mounted.current) return;
@@ -129,7 +177,60 @@ function GalleryPage() {
     navigate(`/gallery/${sessionId}/request`);
   };
 
-  const [faceFilterDialogOpen, setFaceFilterDialogOpen] = useState(false);
+  // Face filter handlers
+  const handleFaceFilterClose = (jobCreated) => {
+    setFaceFilterDialogOpen(false);
+    
+    // If job was created, reload current job state
+    if (jobCreated) {
+      const job = getJobForStage(currentStage);
+      setCurrentJob(job);
+      setFilterActive(true);
+    }
+  };
+
+  const handleDisableFilter = () => {
+    clearFilterStateForStage(currentStage);
+    setFilterActive(false);
+  };
+
+  const handleEnableFilter = () => {
+    enableFilterForStage(currentStage);
+    setFilterActive(true);
+  };
+
+  const handleRetry = () => {
+    // Clear current job and open dialog
+    clearJobForStage(currentStage);
+    setCurrentJob(null);
+    setFilterActive(false);
+    setFaceFilterDialogOpen(true);
+  };
+
+  // Filter images based on face filter results
+  const getFilteredImages = () => {
+    if (!filterActive || !result || !result.length) {
+      return images;
+    }
+
+    // Create a map for quick lookup and score retrieval
+    const resultMap = new Map(result.map(r => [r.id, r.score]));
+
+    return images.filter(img => {
+      const imageId = Object.keys(img)[0];
+      return resultMap.has(imageId);
+    });
+  };
+
+  // Get score for an image
+  const getScoreForImage = (imageId) => {
+    if (!result || !filterActive) return null;
+    const match = result.find(r => r.id === imageId);
+    return match ? Math.round(match.score * 100) : null;
+  };
+
+  const displayImages = getFilteredImages();
+  const filteredCount = filterActive && result ? displayImages.length : null;
 
   return (
     <>
@@ -143,11 +244,26 @@ function GalleryPage() {
 
       <DemoPageBanner />
 
+      {/* Face Filter Banner */}
+      {!isGroupPhotos && (
+        <FaceFilterBanner
+          status={status}
+          result={result}
+          error={error}
+          isComplete={isComplete}
+          filterActive={filterActive}
+          filteredCount={filteredCount}
+          onDisableFilter={handleDisableFilter}
+          onEnableFilter={handleEnableFilter}
+          onRetry={handleRetry}
+        />
+      )}
+
       <Box sx={{ width: { xs: '100vw', md: '90vw' }, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (
           <ImageGrid
             loading={loading || loadingLinks}
-            images={images}
+            images={displayImages}
             columns={3}
             showColumnControls={true}
             sx={{ p: 2, height: 'calc(100vh - 200px)', flex: 1 }}
@@ -160,7 +276,7 @@ function GalleryPage() {
           >
             <ImageGrid
               loading={loading}
-              images={images}
+              images={displayImages}
               selectedImages={Object.keys(selectedImages)}
               lockedImages={Object.keys(userData?.requestedImages || {})}
               onSelectImage={handleSelectImage}
@@ -169,6 +285,7 @@ function GalleryPage() {
               showColumnControls={true}
               showFaceFilterButton={!isGroupPhotos}
               onFaceFilterClick={() => setFaceFilterDialogOpen(true)}
+              getImageScore={getScoreForImage}
               sx={{ p: 2, height: { xs: '80vh' }, flex: { md: '4' } }}
             />
 
@@ -264,7 +381,9 @@ function GalleryPage() {
       {/* Face Filter Dialog */}
       <FaceFilterDialog 
         open={faceFilterDialogOpen} 
-        onClose={() => setFaceFilterDialogOpen(false)} 
+        onClose={handleFaceFilterClose}
+        stage={currentStage}
+        uid={userData?.email}
       />
     </>
   );

@@ -21,133 +21,22 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import DownloadIcon from '@mui/icons-material/Download';
 import FaceIcon from '@mui/icons-material/Face';
 
-// Helper function to get short name from full path
 const getShortName = (fullPath) => {
   if (!fullPath) return '';
   return fullPath.split('/').pop().replace(/\.[^/.]+$/, '');
 };
 
-export default function ImageGrid({ 
-  images, // format: [{ 'path/to/image.jpg': 'thumbimglink' }]
-  selectedImages = [],
-  lockedImages = [], 
-  onSelectImage, 
-  onDownload,
+const ImageCard = memo(({
   loading,
-  availableSlots,
-  columns = 3,
-  showColumnControls = true,
-  searchEnabled = false,
-  showFaceFilterButton = false,
-  onFaceFilterClick,
-  sx 
-}) {
-  const [localColumns, setLocalColumns] = useState(columns);
-  const [searchTerm, setSearchTerm] = useState('');
-  const gridRefs = useRef({});
-  const skeletonArray = Array.from(new Array(30));
-  
-  const handleSearch = (event) => {
-    const term = event.target.value.toLowerCase();
-    setSearchTerm(term);
-    
-    if (term && !loading) {
-      const firstMatch = images.findIndex(item => 
-        getShortName(Object.keys(item)[0]).toLowerCase().includes(term)
-      );
-      
-      if (firstMatch !== -1) {
-        gridRefs.current[firstMatch]?.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }
-    }
-  };
-
-  return (
-    <Card variant='elevation' elevation='4' sx={{ display:"flex", flexDirection: "column", ...sx }}>
-      {(searchEnabled || showColumnControls) && (
-        <Box sx={{ py: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          {searchEnabled && (
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search images..."
-              value={searchTerm}
-              onChange={handleSearch}
-              disabled={loading}
-            />
-          )}
-          {showColumnControls && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
-                <RemoveCircleOutlineIcon />
-              </IconButton>
-              <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
-                <AddCircleOutlineIcon />
-              </IconButton>
-              {showFaceFilterButton && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<FaceIcon />}
-                  onClick={onFaceFilterClick}
-                >
-                  Face Filter
-                </Button>
-              )}
-            </Box>
-          )}
-        </Box>
-      )}
-      
-      <Grid container spacing={{ xs: 0, md: 2}} sx={{ overflowY: 'auto' }}>
-        {(loading ? skeletonArray : images).map((item, index) => {
-          const imagePath = loading ? null : Object.keys(item)[0];
-          const imageUrl = loading ? null : item[imagePath];
-          const isSelected = selectedImages.includes(imagePath);
-          const isLocked = lockedImages.includes(imagePath);
-          const canSelect = !isLocked && (isSelected || availableSlots > 0);
-          const isMatched = !loading && searchTerm && 
-            getShortName(imagePath).toLowerCase().includes(searchTerm.toLowerCase());
-
-          return (
-            <Grid 
-              item 
-              xs={12 / (showColumnControls ? localColumns : columns)} 
-              key={index}
-              ref={el => gridRefs.current[index] = el}
-            >
-              <ImageCard
-                loading={loading}
-                imgPath={imagePath}
-                imgThumbLink={imageUrl}
-                isSelected={isSelected}
-                isLocked={isLocked}
-                canSelect={canSelect}
-                onSelect={onSelectImage}
-                onDownload={onDownload}
-                isMatched={isMatched}
-              />
-            </Grid>
-          );
-        })}
-      </Grid>
-    </Card>
-  );
-}
-
-const ImageCard = memo(({ 
-  loading, 
-  imgPath, 
-  imgThumbLink, 
-  isSelected, 
-  isLocked, 
-  canSelect, 
+  imgPath,
+  imgThumbLink,
+  isSelected,
+  isLocked,
+  canSelect,
   onSelect,
   onDownload,
-  isMatched
+  isMatched,
+  scorePercentage
 }) => {
   const displayName = getShortName(imgPath);
   const [downloading, setDownloading] = useState(false);
@@ -188,7 +77,7 @@ const ImageCard = memo(({
           )}
         </CardContent>
       </CardActionArea>
-      
+
       {!loading && onDownload && (
         <CardActions sx={{ justifyContent: 'center', p: 1 }}>
           <Button
@@ -202,7 +91,7 @@ const ImageCard = memo(({
           </Button>
         </CardActions>
       )}
-      
+
       {!loading && onSelect && !onDownload && (
         <CardActions sx={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#ffffffcc', borderRadius: '50%', p: 0, m: 1 }}>
           <IconButton aria-label="select image" sx={{ p: 0 }} >
@@ -210,10 +99,139 @@ const ImageCard = memo(({
           </IconButton>
         </CardActions>
       )}
-      
       {isLocked && !onDownload && (
         <Chip label="Already Requested" size="small" color="primary" sx={{ position: 'absolute', top: 8, right: 8 }} />
+      )}
+
+      {scorePercentage !== null && !loading && (
+        <Chip
+          label={`${scorePercentage}% Match`}
+          size="small"
+          color="success"
+          sx={{
+            position: 'absolute',
+            top: isLocked ? 44 : 8,
+            left: 8,
+            fontWeight: 'bold',
+            backgroundColor: 'success.main',
+            color: 'white'
+          }}
+        />
       )}
     </Card>
   );
 });
+
+export default function ImageGrid({
+  images,
+  selectedImages = [],
+  lockedImages = [],
+  onSelectImage,
+  onDownload,
+  loading,
+  availableSlots,
+  columns = 3,
+  showColumnControls = true,
+  searchEnabled = false,
+  showFaceFilterButton = false,
+  onFaceFilterClick,
+  getImageScore,
+  sx
+}) {
+  const [localColumns, setLocalColumns] = useState(columns);
+  const [searchTerm, setSearchTerm] = useState('');
+  const gridRefs = useRef({});
+  const skeletonArray = Array.from(new Array(30));
+
+  const handleSearch = (event) => {
+    const term = event.target.value.toLowerCase();
+    setSearchTerm(term);
+
+    if (term && !loading) {
+      const firstMatch = images.findIndex(item =>
+        getShortName(Object.keys(item)[0]).toLowerCase().includes(term)
+      );
+
+      if (firstMatch !== -1) {
+        gridRefs.current[firstMatch]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }
+  };
+
+  return (
+    <Card variant='elevation' elevation='4' sx={{ display: "flex", flexDirection: "column", ...sx }}>
+      {(searchEnabled || showColumnControls) && (
+        <Box sx={{ py: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          {searchEnabled && (
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search images..."
+              value={searchTerm}
+              onChange={handleSearch}
+              disabled={loading}
+            />
+          )}
+          {showColumnControls && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
+                <RemoveCircleOutlineIcon />
+              </IconButton>
+              <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
+                <AddCircleOutlineIcon />
+              </IconButton>
+              {showFaceFilterButton && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FaceIcon />}
+                  onClick={onFaceFilterClick}
+                >
+                  Face Filter
+                </Button>
+              )}
+            </Box>
+          )}
+        </Box>
+      )}
+
+      <Grid container spacing={{ xs: 0, md: 2 }} sx={{ overflowY: 'auto' }}>
+        {(loading ? skeletonArray : images).map((item, index) => {
+          const imagePath = loading ? null : Object.keys(item)[0];
+          const imageUrl = loading ? null : item[imagePath];
+          const isSelected = selectedImages.includes(imagePath);
+          const isLocked = lockedImages.includes(imagePath);
+          const canSelect = !isLocked && (isSelected || availableSlots > 0);
+          const isMatched = !loading && searchTerm &&
+            getShortName(imagePath).toLowerCase().includes(searchTerm.toLowerCase());
+          const scorePercentage = !loading && getImageScore ? getImageScore(imagePath) : null;
+
+          return (
+            <Grid
+              item
+              xs={12 / (showColumnControls ? localColumns : columns)}
+              key={index}
+              ref={el => gridRefs.current[index] = el}
+            >
+              <ImageCard
+                loading={loading}
+                imgPath={imagePath}
+                imgThumbLink={imageUrl}
+                isSelected={isSelected}
+                isLocked={isLocked}
+                canSelect={canSelect}
+                onSelect={onSelectImage}
+                onDownload={onDownload}
+                isMatched={isMatched}
+                scorePercentage={scorePercentage}
+              />
+            </Grid>
+          );
+        })}
+      </Grid>
+    </Card>
+  );
+}
