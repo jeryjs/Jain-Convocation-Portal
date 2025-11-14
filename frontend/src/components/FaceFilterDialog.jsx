@@ -14,14 +14,12 @@ import {
   Select,
   FormControl,
   InputLabel,
-  CircularProgress,
 } from '@mui/material';
 import { CameraAlt, Replay, Videocam } from '@mui/icons-material';
-import { submitFaceSearch } from '../services/faceSearch';
 
 const CAMERA_STORAGE_KEY = 'face-filter-camera-id';
 
-function FaceFilterDialog({ open, onClose, galleryPath }) {
+function FaceFilterDialog({ open, onClose }) {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -29,7 +27,6 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
   const [selectedDevice, setSelectedDevice] = useState('');
   const [permissionState, setPermissionState] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [error, setError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load devices and check permissions
   useEffect(() => {
@@ -39,30 +36,29 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
       try {
         // Check if permission was previously granted
         const savedCamera = localStorage.getItem(CAMERA_STORAGE_KEY);
-
+        
         // Request permission and get devices
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately
-
+        
         setPermissionState('granted');
-
+        
         // Get available devices
         const deviceList = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = deviceList.filter(device => device.kind === 'videoinput');
         setDevices(videoDevices);
-
+        
         // Set selected device (use saved or first device)
         if (savedCamera && videoDevices.find(d => d.deviceId === savedCamera)) {
           setSelectedDevice(savedCamera);
         } else if (videoDevices.length > 0) {
           setSelectedDevice(videoDevices[0].deviceId);
         }
-
+        
         // Auto-start camera if permission already granted
         if (videoDevices.length > 0) {
           setIsCameraOn(true);
         }
-        setError(null);
       } catch (err) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setPermissionState('denied');
@@ -89,14 +85,14 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach(track => track.stop());
-
+      
       setPermissionState('granted');
       setError(null);
-
+      
       const deviceList = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = deviceList.filter(device => device.kind === 'videoinput');
       setDevices(videoDevices);
-
+      
       if (videoDevices.length > 0) {
         setSelectedDevice(videoDevices[0].deviceId);
         setIsCameraOn(true);
@@ -117,29 +113,9 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
     setImgSrc(null);
   };
 
-  const handleSearch = async () => {
-    if (!imgSrc || !galleryPath) {
-      setError('Missing image or gallery path');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-
-      // Submit face search job
-      const { jobId } = await submitFaceSearch(imgSrc, galleryPath);
-
-      // Close dialog after successful submission
-      setImgSrc(null);
-      onClose();
-      
-    } catch (err) {
-      console.error('Face search submission error:', err);
-      setError('Failed to submit face search. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSearch = () => {
+    // TODO: Implement face search functionality
+    alert('Search functionality to be implemented!');
   };
 
   const handleClose = () => {
@@ -203,16 +179,16 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
                 <Typography variant="body2" color="grey.300">
                   Camera permission is needed to capture your selfie
                 </Typography>
-                <Button
-                  variant="contained"
-                  onClick={handleRequestPermission}
+                <Button 
+                  variant="contained" 
+                  onClick={handleRequestPermission} 
                   startIcon={<CameraAlt />}
                 >
                   Allow Camera Access
                 </Button>
               </Stack>
             )}
-
+            
             {permissionState === 'denied' && (
               <Stack spacing={2} alignItems="center" sx={{ p: 3, textAlign: 'center' }}>
                 <Videocam sx={{ fontSize: 48, color: 'error.main' }} />
@@ -221,7 +197,7 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
                 </Typography>
               </Stack>
             )}
-
+            
             {isCameraOn && permissionState === 'granted' && !imgSrc && (
               <Webcam
                 audio={false}
@@ -232,7 +208,7 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
                 onUserMediaError={() => setError('Failed to access camera')}
               />
             )}
-
+            
             {imgSrc && (
               <img src={imgSrc} alt="Captured" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             )}
@@ -247,17 +223,17 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
 
           {/* Action Buttons */}
           <Stack direction="row" spacing={1} justifyContent="center" sx={{ width: '100%' }}>
-            {/* Action Buttons */}
-            {isCameraOn && !imgSrc && (
-              <Button variant="contained" onClick={capture} startIcon={<CameraAlt />} fullWidth>
-                Capture
-              </Button>
-            )}
-            {imgSrc && (
-              <Button variant="outlined" onClick={handleRetake} startIcon={<Replay />} fullWidth>
-                Retake
-              </Button>
-            )}
+          {/* Action Buttons */}
+          {isCameraOn && !imgSrc && (
+            <Button variant="contained" onClick={capture} startIcon={<CameraAlt />} fullWidth>
+              Capture
+            </Button>
+          )}
+          {imgSrc && (
+            <Button variant="outlined" onClick={handleRetake} startIcon={<Replay />} fullWidth>
+              Retake
+            </Button>
+          )}
           </Stack>
 
           {/* Search Button */}
@@ -267,10 +243,8 @@ function FaceFilterDialog({ open, onClose, galleryPath }) {
               color="primary"
               fullWidth
               onClick={handleSearch}
-              disabled={isSubmitting}
-              startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
             >
-              {isSubmitting ? 'Submitting...' : 'Search with this image'}
+              Search with this image
             </Button>
           )}
 

@@ -17,8 +17,6 @@ import { cacheManager } from '../utils/cache';
 import { downloadFile } from '../utils/utils';
 import DemoPageBanner from '../components/DemoPageBanner';
 import FaceFilterDialog from '../components/FaceFilterDialog';
-import { useFaceSearch } from '../hooks/useFaceSearch';
-import { clearFaceSearchJob } from '../services/faceSearch';
 
 function GalleryPage() {
   const { sessionId } = useParams();
@@ -30,19 +28,6 @@ function GalleryPage() {
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
   const [loadingLinks, setLoadingLinks] = useState(false);
   const isGroupPhotos = pathData.batch === 'Group Photos';
-  const [faceFilterEnabled, setFaceFilterEnabled] = useState(false);
-  const [faceFilterDialogOpen, setFaceFilterDialogOpen] = useState(false);
-  
-  // Get the gallery path for face search
-  const galleryPath = sessionId ? atob(sessionId) : '';
-  const { isActive, jobStatus, queuePosition, results, error: faceSearchError, clearSearch } = useFaceSearch(galleryPath);
-
-  // Auto-enable filter when results are ready
-  useEffect(() => {
-    if (results && results.length > 0) {
-      setFaceFilterEnabled(true);
-    }
-  }, [results]);
 
   useEffect(() => {
     if (mounted.current) return;
@@ -144,21 +129,7 @@ function GalleryPage() {
     navigate(`/gallery/${sessionId}/request`);
   };
 
-  const handleClearFaceFilter = () => {
-    setFaceFilterEnabled(false);
-    clearSearch();
-    clearFaceSearchJob(galleryPath);
-  };
-
-  // Filter images based on face search results
-  const displayedImages = faceFilterEnabled && results && results.length > 0
-    ? images.filter(img => {
-        const imagePath = Object.keys(img)[0];
-        // Extract just the filename from the path for comparison
-        const filename = imagePath.split('/').pop();
-        return results.some(resultId => resultId.includes(filename) || filename.includes(resultId));
-      })
-    : images;
+  const [faceFilterDialogOpen, setFaceFilterDialogOpen] = useState(false);
 
   return (
     <>
@@ -173,41 +144,10 @@ function GalleryPage() {
       <DemoPageBanner />
 
       <Box sx={{ width: { xs: '100vw', md: '90vw' }, pb: { xs: '60px', md: 0 } }}>
-        {/* Face Search Status Alert */}
-        {!isGroupPhotos && (isActive || (results && faceFilterEnabled)) && (
-          <Alert 
-            severity={isActive ? 'info' : 'success'}
-            onClose={isActive ? undefined : handleClearFaceFilter}
-            sx={{ mx: 2, mb: 2 }}
-          >
-            {isActive && queuePosition && (
-              <Stack spacing={0.5}>
-                <Typography variant="body2" fontWeight="bold">
-                  {queuePosition.message}
-                </Typography>
-                <Typography variant="caption">
-                  Position in queue: {queuePosition.position} of {queuePosition.total}
-                </Typography>
-              </Stack>
-            )}
-            {!isActive && results && faceFilterEnabled && (
-              <Typography variant="body2">
-                Face search complete! Showing {displayedImages.length} matching images.
-                {results.length === 0 && ' No matches found.'}
-              </Typography>
-            )}
-          </Alert>
-        )}
-        {faceSearchError && (
-          <Alert severity="error" sx={{ mx: 2, mb: 2 }} onClose={handleClearFaceFilter}>
-            {faceSearchError}
-          </Alert>
-        )}
-
         {isGroupPhotos ? (
           <ImageGrid
             loading={loading || loadingLinks}
-            images={displayedImages}
+            images={images}
             columns={3}
             showColumnControls={true}
             sx={{ p: 2, height: 'calc(100vh - 200px)', flex: 1 }}
@@ -220,7 +160,7 @@ function GalleryPage() {
           >
             <ImageGrid
               loading={loading}
-              images={displayedImages}
+              images={images}
               selectedImages={Object.keys(selectedImages)}
               lockedImages={Object.keys(userData?.requestedImages || {})}
               onSelectImage={handleSelectImage}
@@ -324,8 +264,7 @@ function GalleryPage() {
       {/* Face Filter Dialog */}
       <FaceFilterDialog 
         open={faceFilterDialogOpen} 
-        onClose={() => setFaceFilterDialogOpen(false)}
-        galleryPath={galleryPath}
+        onClose={() => setFaceFilterDialogOpen(false)} 
       />
     </>
   );
