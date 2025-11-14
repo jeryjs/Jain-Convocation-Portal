@@ -18,41 +18,41 @@ export default function QueueControls({
   onManualRefresh,
 }: QueueControlsProps) {
   return (
-    <div className="flex gap-3">
+    <div className="flex flex-wrap gap-2">
       <button
         onClick={onPauseToggle}
-        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+        className={`px-4 py-2 rounded-lg font-medium transition-all backdrop-blur-sm ${
           isPaused
-            ? 'bg-green-500 hover:bg-green-600 text-white'
-            : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+            ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50'
+            : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50'
         }`}
       >
-        {isPaused ? '▶ Resume Queue' : '⏸ Pause Queue'}
+        {isPaused ? '▶ Resume' : '⏸ Pause'}
       </button>
 
       <button
         onClick={onRefreshToggle}
-        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+        className={`px-4 py-2 rounded-lg font-medium transition-all backdrop-blur-sm ${
           autoRefresh
-            ? 'bg-blue-500 hover:bg-blue-600 text-white'
-            : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+            ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50'
+            : 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border border-gray-500/50'
         }`}
       >
-        {autoRefresh ? '🔄 Auto-Refresh ON' : '⏸ Auto-Refresh OFF'}
+        {autoRefresh ? '🔄 Auto' : '⏸ Manual'}
       </button>
 
       <button
         onClick={onManualRefresh}
-        className="px-4 py-2 rounded-lg font-medium bg-purple-500 hover:bg-purple-600 text-white transition-colors"
+        className="px-4 py-2 rounded-lg font-medium bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/50 transition-all backdrop-blur-sm"
       >
-        🔃 Refresh Now
+        ↻ Sync
       </button>
 
       <button
         onClick={onCleanQueue}
-        className="px-4 py-2 rounded-lg font-medium bg-red-500 hover:bg-red-600 text-white transition-colors"
+        className="px-4 py-2 rounded-lg font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 transition-all backdrop-blur-sm"
       >
-        🗑 Clean Queue
+        ⌫ Clean
       </button>
     </div>
   );

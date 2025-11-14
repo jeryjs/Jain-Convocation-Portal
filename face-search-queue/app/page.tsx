@@ -131,23 +131,26 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-2xl font-semibold text-gray-600">Loading Dashboard...</div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-lg font-medium text-gray-400">Initializing Dashboard</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-[1800px] mx-auto space-y-6">
+    <div className="min-h-screen bg-black text-white p-4 md:p-6">
+      <div className="max-w-[1920px] mx-auto space-y-4">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-          <div className="flex justify-between items-center">
+        <div className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Face Search Queue
               </h1>
-              <p className="text-gray-600 mt-2">Real-time queue management and monitoring</p>
+              <p className="text-gray-400 mt-1 text-sm md:text-base">Real-time queue orchestration</p>
             </div>
             
             <QueueControls

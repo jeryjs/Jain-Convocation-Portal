@@ -1,0 +1,10 @@
+redis==5.2.0
+python-bullmq==0.1.2
+deepface==0.0.93
+tensorflow==2.18.0
+opencv-python==4.10.0.84
+psutil==6.1.0
+py3nvml==0.2.7
+python-dotenv==1.0.1
+pillow==11.0.0
+numpy==1.26.4
