@@ -1,4 +1,4 @@
-import { Queue, Worker, QueueEvents } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 import redis from './redis';
 
 export interface FaceSearchJobData {
@@ -40,12 +40,12 @@ export async function checkRateLimit(uid: string): Promise<{ allowed: boolean; r
   
   if (lastJobTime) {
     const elapsed = Date.now() - parseInt(lastJobTime);
-    const FIVE_MINUTES = 5 * 60 * 1000;
+    const TWO_MINUTES = 2 * 60 * 1000;
     
-    if (elapsed < FIVE_MINUTES) {
+    if (elapsed < TWO_MINUTES) {
       return {
         allowed: false,
-        retryAfter: Math.ceil((FIVE_MINUTES - elapsed) / 1000),
+        retryAfter: Math.ceil((TWO_MINUTES - elapsed) / 1000),
       };
     }
   }
@@ -78,7 +78,7 @@ export async function createJob(data: FaceSearchJobData) {
   });
   
   // Set rate limit
-  await redis.set(RATE_LIMIT_KEY(data.uid), data.timestamp.toString(), 'EX', 5 * 60);
+  await redis.set(RATE_LIMIT_KEY(data.uid), data.timestamp.toString(), 'EX', 2 * 60);
   
   // Track active job
   await redis.set(
