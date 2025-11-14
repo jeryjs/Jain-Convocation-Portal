@@ -1,8 +1,12 @@
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportOptionalMemberAccess=false
+
 """
 Face Search Worker
 GPU-powered Python worker for processing face search jobs from BullMQ queue
 """
 
+import asyncio
 import os
 import sys
 import time
@@ -10,7 +14,7 @@ import json
 import socket
 import signal
 import threading
-from typing import Dict, Any
+from typing import Dict, Any, List
 from dotenv import load_dotenv
 import redis
 from bullmq import Worker, Job
@@ -31,7 +35,8 @@ USE_CPU = os.getenv('USE_CPU', '0') == '1'
 
 # Worker identification
 HOSTNAME = socket.gethostname()
-WORKER_ID = f"{HOSTNAME}_{'cpu' if USE_CPU else 'gpu'}{GPU_INDEX}"
+PROCESS_ID = os.getpid()  # Add process ID for uniqueness
+WORKER_ID = f"{HOSTNAME}_{'cpu' if USE_CPU else 'gpu'}{GPU_INDEX}_{PROCESS_ID}"
 
 # Global instances
 redis_client = None
@@ -125,7 +130,7 @@ def heartbeat_loop():
         time.sleep(5)
 
 
-async def process_job(job: Job, token: str) -> Dict[str, Any]:
+async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
     """
     Process a face search job
     
@@ -209,7 +214,7 @@ def cleanup_worker():
     # Mark worker as offline
     try:
         worker_info_str = redis_client.hget('workers', WORKER_ID)
-        if worker_info_str:
+        if worker_info_str and isinstance(worker_info_str, str):
             worker_info = json.loads(worker_info_str)
             worker_info['status'] = 'offline'
             worker_info['last_heartbeat'] = time.time()
@@ -230,7 +235,7 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
-def main():
+async def main():
     """Main worker entry point"""
     global redis_client, face_engine, metrics_collector
     
@@ -275,8 +280,8 @@ def main():
         print("⚙️  Starting BullMQ worker...\n")
         
         worker = Worker(
-            queue_name='face-search',
-            processor=process_job,
+            name='face-search',
+            processor=process_job, # pyright: ignore[reportArgumentType]
             opts={
                 'connection': {
                     'host': REDIS_HOST,
@@ -293,7 +298,8 @@ def main():
         print("Press Ctrl+C to stop\n")
         
         # Run worker (blocking)
-        worker.run()
+        while True:
+            await asyncio.sleep(1)
         
     except KeyboardInterrupt:
         print("\n\n⚠️  Interrupted by user")
@@ -307,4 +313,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

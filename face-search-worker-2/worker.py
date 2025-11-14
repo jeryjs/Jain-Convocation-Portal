@@ -41,7 +41,8 @@ USE_CPU = os.getenv('USE_CPU', '0') == '1'
 
 # Worker identification
 HOSTNAME = socket.gethostname()
-WORKER_ID = f"{HOSTNAME}_{'cpu' if USE_CPU else 'gpu'}{GPU_INDEX}_fr"  # _fr for face_recognition
+PROCESS_ID = os.getpid()  # Add process ID for uniqueness
+WORKER_ID = f"{HOSTNAME}_{'cpu' if USE_CPU else 'gpu'}{GPU_INDEX}_fr_{PROCESS_ID}"  # _fr for face_recognition
 
 # Global instances
 redis_client: Optional[redis.Redis] = None
