@@ -16,11 +16,7 @@ export interface FaceSearchResult {
 export const faceSearchQueue = new Queue<FaceSearchJobData>('face-search', {
   connection: redis,
   defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
+    attempts: 1,  // No retries - each job runs once only
     removeOnComplete: {
       age: 24 * 3600, // Keep completed jobs for 24 hours
       count: 1000,

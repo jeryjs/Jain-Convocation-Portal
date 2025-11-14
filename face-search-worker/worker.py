@@ -166,9 +166,6 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
         if not selfie_image:
             raise ValueError("No image provided")
         
-        # Update progress
-        await job.update_progress(5)
-        
         # For testing, return mock results
         # TODO: Replace with actual gallery images from your backend
         # gallery_images = fetch_gallery_images(stage)
@@ -179,18 +176,10 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
         ]
         
         # Perform face search
-        def progress_callback(progress: int):
-            # Update job progress
-            try:
-                import asyncio
-                asyncio.create_task(job.update_progress(progress))
-            except:
-                pass
-        
         results = face_engine.search_faces(
             selfie_base64=selfie_image,
             gallery_images=gallery_images,
-            progress_callback=progress_callback
+            progress_callback=None  # Progress callback not supported in this version
         )
         
         print(f"\n✅ Job completed: {len(results)} matches found\n")

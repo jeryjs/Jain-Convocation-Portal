@@ -16,13 +16,27 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let isClosed = false;
+
       const sendEvent = (event: string, data: any) => {
-        const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(message));
+        if (isClosed) return;
+        try {
+          const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(message));
+        } catch (err) {
+          console.error('Error sending event:', err);
+          isClosed = true;
+        }
       };
 
       const closeConnection = () => {
-        controller.close();
+        if (isClosed) return;
+        isClosed = true;
+        try {
+          controller.close();
+        } catch (err) {
+          // Already closed, ignore
+        }
       };
 
       try {
@@ -71,8 +85,6 @@ export async function GET(request: NextRequest) {
         }
 
         // Job is still in queue or processing, send position updates
-        let isClosed = false;
-
         const sendPositionUpdate = async () => {
           if (isClosed) return;
 
@@ -81,7 +93,6 @@ export async function GET(request: NextRequest) {
             const job = await faceSearchQueue.getJob(jobId);
             
             if (!job) {
-              isClosed = true;
               closeConnection();
               return;
             }
@@ -114,8 +125,9 @@ export async function GET(request: NextRequest) {
         const completedListener = async ({ jobId: completedJobId }: { jobId: string }) => {
           if (completedJobId !== jobId || isClosed) return;
 
-          isClosed = true;
           clearInterval(positionInterval);
+          queueEvents.off('completed', completedListener);
+          queueEvents.off('failed', failedListener);
 
           const job = await faceSearchQueue.getJob(jobId);
           if (!job) return;
@@ -136,8 +148,9 @@ export async function GET(request: NextRequest) {
         const failedListener = async ({ jobId: failedJobId, failedReason }: { jobId: string; failedReason: string }) => {
           if (failedJobId !== jobId || isClosed) return;
 
-          isClosed = true;
           clearInterval(positionInterval);
+          queueEvents.off('completed', completedListener);
+          queueEvents.off('failed', failedListener);
 
           const job = await faceSearchQueue.getJob(jobId);
           const error: JobError = {
@@ -153,11 +166,9 @@ export async function GET(request: NextRequest) {
         };
 
         queueEvents.on('completed', completedListener);
-        queueEvents.on('failed', failedListener);
-
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {
-          isClosed = true;
+          if (isClosed) return;
           clearInterval(positionInterval);
           queueEvents.off('completed', completedListener);
           queueEvents.off('failed', failedListener);
