@@ -14,6 +14,11 @@
 - ✅ **Real-time Stats**: Auto-refreshing every 2 seconds
 - ✅ **Queue Controls**: Pause, Resume, Clean, Manual Refresh
 - ✅ **Statistics Overview**: 6 stat cards showing all queue states
+- ✅ **Worker Management**: Live worker monitoring with metrics
+- ✅ **Bulk Operations**: Retry/delete all failed, delete completed
+- ✅ **Toast Notifications**: User-friendly action feedback
+- ✅ **Keyboard Shortcuts**: Productivity shortcuts (Ctrl+P, Ctrl+R, etc.)
+- ✅ **Help Modal**: Built-in documentation and API reference
 - ✅ **Analytics Section**:
   - Queue distribution pie chart
   - Success rate percentage
@@ -36,25 +41,53 @@
 
 #### Admin Endpoints (for dashboard)
 1. `GET /api/admin/queue` - Get all queue stats and jobs
-2. `DELETE /api/admin/queue?jobId={jobId}` - Delete specific job
-3. `PATCH /api/admin/queue` - Update job (promote, retry, setPriority)
-4. `POST /api/admin/pause` - Pause queue processing
-5. `DELETE /api/admin/pause` - Resume queue processing
-6. `GET /api/admin/pause` - Check pause status
-7. `POST /api/admin/clean` - Clean completed/failed jobs
-
+2. `GET /api/admin/workers` - Get all connected workers
+3. `GET /api/admin/stats` - Combined stats + workers (optimized)
+4. `DELETE /api/admin/queue?jobId={jobId}` - Delete specific job
+5. `PATCH /api/admin/queue` - Update job (promote, retry, setPriority)
+6. `POST /api/admin/pause` - Pause queue processing
+7. `DELETE /api/admin/pause` - Resume queue processing
+8. `GET /api/admin/pause` - Check pause status
 ## 🎨 Dashboard Features
 
 ### Ultra-Responsive Design
+- Sleek dark mode aesthetic
+- Glassmorphism effects (backdrop-blur + transparency)
 - Gradient backgrounds with modern UI
 - Tailwind CSS for styling
 - Responsive grid layouts
-- Hover effects and transitions
-- Color-coded states (Yellow: Waiting, Blue: Active, Green: Completed, Red: Failed, Purple: Delayed)
+- Hover effects and smooth transitions
+- Custom minimalist scrollbars
+- Color-coded states (Amber: Waiting, Blue: Active, Emerald: Completed, Red: Failed, Purple: Delayed)
 
 ### Interactive Components
-1. **Stats Cards**: Visual counters with icons and color indicators
-2. **Control Panel**: Action buttons for queue management
+1. **Stats Cards**: Visual counters with icons, gradients, and pulsing indicators
+2. **Control Panel**: Action buttons with glassmorphism styling
+3. **Worker Cards**: Live metrics with GPU temp, CPU/RAM/GPU gauges
+4. **Bulk Actions**: One-click operations for multiple jobs
+5. **Pie Chart**: SVG-based visualization of queue distribution
+6. **Performance Metrics**: Success rate, avg processing time, health badges
+7. **Activity Feed**: Recent completions with timestamps
+8. **Kanban Columns**: Expandable cards with detailed info
+9. **Toast Notifications**: Real-time action feedback
+10. **Help Modal**: Keyboard shortcuts and API documentation
+
+### Keyboard Shortcuts
+- `Ctrl/Cmd + P` - Pause/Resume queue
+- `Ctrl/Cmd + R` - Refresh data manually
+- `Ctrl/Cmd + K` - Clean queue
+- `Ctrl/Cmd + A` - Toggle auto-refresh
+- `ESC` - Close modals
+- `?` (click help button) - Show shortcuts
+
+### Worker Monitoring
+- **Real-time Metrics**: CPU, RAM, GPU utilization
+- **Temperature Monitoring**: Color-coded temperature warnings
+- **Job Tracking**: Current job, jobs processed/failed
+- **Uptime Display**: Worker uptime in human-readable format
+- **Online/Offline Status**: Auto-detection with heartbeat
+- **GPU Info**: Model name, memory usage, temperature
+- **Remove Worker**: Clean up offline workers
 3. **Pie Chart**: SVG-based visualization of queue distribution
 4. **Performance Metrics**: Success rate, avg processing time, health badges
 5. **Activity Feed**: Recent completions with timestamps

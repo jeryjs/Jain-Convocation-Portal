@@ -5,6 +5,11 @@ import StatsOverview from '@/components/StatsOverview';
 import QueueKanban from '@/components/QueueKanban';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import QueueControls from '@/components/QueueControls';
+import WorkerManagement from '@/components/WorkerManagement';
+import BulkActions from '@/components/BulkActions';
+import KeyboardShortcuts from '@/components/KeyboardShortcuts';
+import HelpModal from '@/components/HelpModal';
+import { useToast } from '@/components/ToastProvider';
 
 interface QueueStats {
   waiting: number;
@@ -27,6 +32,28 @@ interface Job {
   returnvalue?: any;
 }
 
+interface WorkerInfo {
+  id: string;
+  hostname: string;
+  status: 'online' | 'offline';
+  gpu_index?: number;
+  gpu_name: string;
+  use_cpu: boolean;
+  concurrency: number;
+  start_time: number;
+  uptime: number;
+  last_heartbeat: number;
+  jobs_processed: number;
+  jobs_failed: number;
+  current_job: string | null;
+  cpu_percent: number;
+  ram_percent: number;
+  ram_available_gb: number;
+  gpu_utilization?: number;
+  gpu_memory_used_mb?: number;
+  gpu_temperature?: number;
+}
+
 interface QueueData {
   stats: QueueStats;
   jobs: {
@@ -40,9 +67,11 @@ interface QueueData {
 
 export default function Home() {
   const [queueData, setQueueData] = useState<QueueData | null>(null);
+  const [workers, setWorkers] = useState<WorkerInfo[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const { showToast } = useToast();
 
   const fetchQueueData = async () => {
     try {
@@ -51,6 +80,17 @@ export default function Home() {
       setQueueData(data);
     } catch (error) {
       console.error('Error fetching queue data:', error);
+      showToast('Failed to fetch queue data', 'error');
+    }
+  };
+
+  const fetchWorkers = async () => {
+    try {
+      const response = await fetch('/api/admin/workers');
+      const data = await response.json();
+      setWorkers(data.workers || []);
+    } catch (error) {
+      console.error('Error fetching workers:', error);
     }
   };
 
@@ -68,20 +108,9 @@ export default function Home() {
 
   useEffect(() => {
     fetchQueueData();
+    fetchWorkers();
     fetchPauseStatus();
   }, []);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      fetchQueueData();
-      fetchPauseStatus();
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
-
   const handlePauseToggle = async () => {
     try {
       const endpoint = '/api/admin/pause';
@@ -89,8 +118,10 @@ export default function Home() {
       
       await fetch(endpoint, { method });
       setIsPaused(!isPaused);
+      showToast(isPaused ? 'Queue resumed' : 'Queue paused', 'success');
     } catch (error) {
       console.error('Error toggling pause:', error);
+      showToast('Failed to toggle pause', 'error');
     }
   };
 
@@ -100,8 +131,10 @@ export default function Home() {
     try {
       await fetch('/api/admin/clean', { method: 'POST' });
       fetchQueueData();
+      showToast('Queue cleaned successfully', 'success');
     } catch (error) {
       console.error('Error cleaning queue:', error);
+      showToast('Failed to clean queue', 'error');
     }
   };
 
@@ -113,8 +146,10 @@ export default function Home() {
         body: JSON.stringify({ jobId, action, priority }),
       });
       fetchQueueData();
+      showToast(`Job ${action}d successfully`, 'success');
     } catch (error) {
       console.error('Error performing job action:', error);
+      showToast('Failed to perform action', 'error');
     }
   };
 
@@ -124,24 +159,67 @@ export default function Home() {
     try {
       await fetch(`/api/admin/queue?jobId=${jobId}`, { method: 'DELETE' });
       fetchQueueData();
+      showToast('Job deleted successfully', 'success');
     } catch (error) {
       console.error('Error deleting job:', error);
+      showToast('Failed to delete job', 'error');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-lg font-medium text-gray-400">Initializing Dashboard</div>
-        </div>
-      </div>
-    );
-  }
+  const handleBulkAction = async (action: string) => {
+    try {
+      const response = await fetch('/api/admin/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await response.json();
+      fetchQueueData();
+      showToast(data.message || 'Action completed', 'success');
+    } catch (error) {
+      console.error('Error performing bulk action:', error);
+      showToast('Failed to perform bulk action', 'error');
+    }
+  };
+
+  const handleRemoveWorker = async (workerId: string) => {
+    if (!confirm('Are you sure you want to remove this worker?')) return;
+    
+    try {
+      await fetch(`/api/admin/workers?workerId=${workerId}`, { method: 'DELETE' });
+      fetchWorkers();
+      showToast('Worker removed successfully', 'success');
+    } catch (error) {
+      console.error('Error removing worker:', error);
+      showToast('Failed to remove worker', 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      fetchQueueData();
+      fetchWorkers();
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-6">
+      <KeyboardShortcuts
+        onPauseToggle={handlePauseToggle}
+        onRefresh={() => {
+          fetchQueueData();
+          fetchWorkers();
+          fetchPauseStatus();
+        }}
+        onCleanQueue={handleCleanQueue}
+        onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+      />
+      <HelpModal />
+      
       <div className="max-w-[1920px] mx-auto space-y-4">
         {/* Header */}
         <div className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-4 md:p-6">
