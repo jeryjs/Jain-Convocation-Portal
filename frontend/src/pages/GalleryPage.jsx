@@ -40,7 +40,7 @@ function GalleryPage() {
   const [faceFilterDialogOpen, setFaceFilterDialogOpen] = useState(false);
 
   // Face filter state
-  const currentStage = sessionId; // Use sessionId as stage identifier
+  const currentStage = atob(sessionId); // decode sessionId to stage identifier
   const [currentJob, setCurrentJob] = useState(null);
   const [filterActive, setFilterActive] = useState(false);
 

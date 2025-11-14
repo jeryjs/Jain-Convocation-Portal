@@ -39,10 +39,9 @@ GPU_INDEX = int(os.getenv('GPU_INDEX', 0))
 WORKER_CONCURRENCY = int(os.getenv('WORKER_CONCURRENCY', 1))
 USE_CPU = os.getenv('USE_CPU', '0') == '1'
 
-# Worker identification
+# Worker identification - will be set after Redis connection
 HOSTNAME = socket.gethostname()
-PROCESS_ID = os.getpid()  # Add process ID for uniqueness
-WORKER_ID = f"{HOSTNAME}_{'cpu' if USE_CPU else 'gpu'}{GPU_INDEX}_fr_{PROCESS_ID}"  # _fr for face_recognition
+WORKER_ID = None  # Will be generated using Redis counter
 
 # Global instances
 redis_client: Optional[redis.Redis] = None
@@ -58,6 +57,8 @@ worker_stats = {
 
 def initialize_redis() -> redis.Redis:
     """Initialize Redis connection"""
+    global WORKER_ID
+    
     logger.info(f"🔌 Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}...")
     
     client = redis.Redis(
@@ -72,6 +73,11 @@ def initialize_redis() -> redis.Redis:
     # Test connection
     client.ping()
     logger.info("✅ Redis connected!")
+    
+    # Generate unique worker ID using Redis counter
+    worker_type = 'cpu' if USE_CPU else f'gpu{GPU_INDEX}'
+    worker_num = client.incr(f'worker_counter:{HOSTNAME}_{worker_type}_fr')
+    WORKER_ID = f"{HOSTNAME}_{worker_type}_fr_{worker_num}"
     
     return client
 
@@ -100,6 +106,9 @@ def register_worker():
     }
     
     redis_client.hset('workers', WORKER_ID, json.dumps(worker_info))
+    logger.info(f"✅ Worker registered: {WORKER_ID}")
+
+
 def heartbeat_loop():
     """Send heartbeat to Redis every 5 seconds"""
     while True:
@@ -225,7 +234,7 @@ def cleanup_worker():
     # Mark worker as offline
     try:
         if redis_client:
-            worker_info_str = redis_client.hget('workers', WORKER_ID)
+            worker_info_str = redis_client.hget('workers', WORKER_ID)   # type: ignore
             if isinstance(worker_info_str, str):
                 worker_info = json.loads(worker_info_str)
                 worker_info['status'] = 'offline'

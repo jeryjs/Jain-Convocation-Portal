@@ -33,10 +33,9 @@ GPU_INDEX = int(os.getenv('GPU_INDEX', 0))
 WORKER_CONCURRENCY = int(os.getenv('WORKER_CONCURRENCY', 1))
 USE_CPU = os.getenv('USE_CPU', '0') == '1'
 
-# Worker identification
+# Worker identification - will be set after Redis connection
 HOSTNAME = socket.gethostname()
-PROCESS_ID = os.getpid()  # Add process ID for uniqueness
-WORKER_ID = f"{HOSTNAME}_{'cpu' if USE_CPU else 'gpu'}{GPU_INDEX}_{PROCESS_ID}"
+WORKER_ID = None  # Will be generated using Redis counter
 
 # Global instances
 redis_client = None
@@ -52,6 +51,8 @@ worker_stats = {
 
 def initialize_redis() -> redis.Redis:
     """Initialize Redis connection"""
+    global WORKER_ID
+    
     print(f"🔌 Connecting to Redis at {REDIS_HOST}:{REDIS_PORT}...")
     
     client = redis.Redis(
@@ -67,6 +68,11 @@ def initialize_redis() -> redis.Redis:
     # Test connection
     client.ping()
     print("✅ Redis connected!")
+    
+    # Generate unique worker ID using Redis counter
+    worker_type = 'cpu' if USE_CPU else f'gpu{GPU_INDEX}'
+    worker_num = client.incr(f'worker_counter:{HOSTNAME}_{worker_type}')
+    WORKER_ID = f"{HOSTNAME}_{worker_type}_{worker_num}"
     
     return client
 
@@ -202,7 +208,7 @@ def cleanup_worker():
     
     # Mark worker as offline
     try:
-        worker_info_str = redis_client.hget('workers', WORKER_ID)
+        worker_info_str = redis_client.hget('workers', WORKER_ID) # type: ignore
         if worker_info_str and isinstance(worker_info_str, str):
             worker_info = json.loads(worker_info_str)
             worker_info['status'] = 'offline'
