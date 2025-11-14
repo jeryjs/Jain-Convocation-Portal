@@ -7,7 +7,7 @@ interface BulkActionsProps {
 export default function BulkActions({ onAction }: BulkActionsProps) {
   return (
     <div className="backdrop-blur-xl bg-white/5 rounded-xl p-4 border border-white/10">
-      <h3 className="text-sm font-semibold text-gray-200 mb-3">Bulk Operations</h3>
+      <h3 className="text-sm font-semibold text-gray-800 mb-3">Bulk Operations</h3>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => {

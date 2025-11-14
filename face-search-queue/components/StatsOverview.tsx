@@ -29,18 +29,18 @@ export default function StatsOverview({ stats, isPaused }: StatsOverviewProps) {
       {statCards.map((stat) => (
         <div
           key={stat.label}
-          className={`backdrop-blur-xl bg-white/5 rounded-xl p-4 border ${stat.border} hover:bg-white/10 transition-all group`}
+          className={`backdrop-blur-xl bg-white rounded-xl p-4 border ${stat.border} hover:bg-gray-100 transition-all group`}
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-2xl opacity-70 group-hover:opacity-100 transition-opacity">{stat.icon}</span>
             <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${stat.color} animate-pulse`}></div>
           </div>
           <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
-          <div className="text-xs text-gray-400 mt-1 uppercase tracking-wider">{stat.label}</div>
+          <div className="text-xs text-gray-900 mt-1 uppercase tracking-wider">{stat.label}</div>
         </div>
       ))}
 
-      <div className="backdrop-blur-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl p-4 border border-indigo-500/50 relative overflow-hidden">
+      <div className="backdrop-blur-xl bg-white rounded-xl p-4 border border-indigo-500/50 relative overflow-hidden">
         {isPaused && (
           <div className="absolute top-2 right-2 text-[10px] bg-red-500/30 border border-red-500/50 px-2 py-0.5 rounded-full text-red-300 uppercase tracking-wider">Paused</div>
         )}

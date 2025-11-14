@@ -49,15 +49,15 @@ export default function QueueKanban({ jobs, onJobAction, onDeleteJob }: QueueKan
 
   return (
     <div className="backdrop-blur-xl bg-white/5 rounded-xl p-4 md:p-6 border border-white/10">
-      <h2 className="text-xl font-bold mb-4 text-gray-200">Queue Pipeline</h2>
+      <h2 className="text-xl font-bold mb-4 text-gray-800">Queue Pipeline</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {columns.map((column) => (
           <div key={column.title} className="flex flex-col">
             <div className={`backdrop-blur-sm bg-gradient-to-br ${column.gradient} rounded-t-lg px-3 py-2 border-b-2 ${column.border}`}>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-200 text-sm">{column.title}</h3>
-                <div className="px-2 py-0.5 rounded-full bg-white/10 text-gray-300 text-xs font-mono">
+                <h3 className="font-semibold text-gray-800 text-sm">{column.title}</h3>
+                <div className="px-2 py-0.5 rounded-full bg-white/10 text-gray-600 text-xs font-mono">
                   {column.jobs.length}
                 </div>
               </div>
@@ -119,13 +119,13 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
             <div className="text-[10px] font-mono text-gray-500 truncate" title={job.id}>
               {job.id.slice(-12)}
             </div>
-            <div className="text-xs font-semibold text-gray-200 mt-1">
+            <div className="text-xs font-semibold text-gray-600 mt-1">
               {job.data?.stage || 'N/A'}
             </div>
           </div>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-gray-500 hover:text-gray-300 ml-2 text-xs transition-transform"
+            className="text-gray-700 hover:text-gray-500 ml-2 text-xs transition-transform"
             style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
           >
             ▶
@@ -140,13 +140,13 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
           )}
           {job.progress > 0 && job.progress < 100 && (
             <div className="mt-2">
-              <div className="w-full bg-gray-700/50 rounded-full h-1 overflow-hidden">
+              <div className="w-full bg-gray-300/50 rounded-full h-1 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 h-1 rounded-full transition-all duration-300"
                   style={{ width: `${job.progress}%` }}
                 ></div>
               </div>
-              <div className="text-[9px] text-gray-500 mt-0.5">{job.progress}%</div>
+              <div className="text-[9px] text-gray-700 mt-0.5">{job.progress}%</div>
             </div>
           )}
         </div>

@@ -56,7 +56,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
       <div className="backdrop-blur-xl bg-white/5 rounded-xl p-6 border border-white/10">
         <h2 className="text-xl font-bold mb-4 text-gray-200">Workers</h2>
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">🤖</div>
+          <div className="text-6xl mb-4">🤖</div> 
           <div className="text-gray-400 mb-2">No workers connected</div>
           <div className="text-xs text-gray-500">Start a worker to process jobs</div>
         </div>
@@ -67,7 +67,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
   return (
     <div className="backdrop-blur-xl bg-white/5 rounded-xl p-4 md:p-6 border border-white/10">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-200">
+        <h2 className="text-xl font-bold text-black">
           Workers ({onlineWorkers.length}/{workers.length})
         </h2>
         <div className="flex gap-2">
@@ -97,7 +97,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <div className={`w-2 h-2 rounded-full ${worker.status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                  <div className="text-sm font-semibold text-gray-200 truncate">{worker.hostname}</div>
+                  <div className="text-sm font-semibold text-black truncate">{worker.hostname}</div>
                 </div>
                 <div className="text-[10px] text-gray-400 font-mono truncate" title={worker.id}>
                   {worker.id}
@@ -114,7 +114,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
             
             {/* GPU/CPU Info */}
             <div className="mb-3 pb-3 border-b border-white/10">
-              <div className="text-xs text-gray-300 truncate" title={worker.gpu_name}>
+              <div className="text-xs text-black truncate" title={worker.gpu_name}>
                 {worker.use_cpu ? '💻' : '🎮'} {worker.gpu_name}
               </div>
               {worker.gpu_temperature && (
@@ -129,8 +129,8 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
               {/* CPU */}
               <div>
                 <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="text-gray-400">CPU</span>
-                  <span className="text-gray-300">{worker.cpu_percent.toFixed(1)}%</span>
+                  <span className="text-gray-700">CPU</span>
+                  <span className="text-gray-600">{worker.cpu_percent.toFixed(1)}%</span>
                 </div>
                 <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                   <div
@@ -143,8 +143,8 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
               {/* RAM */}
               <div>
                 <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="text-gray-400">RAM</span>
-                  <span className="text-gray-300">{worker.ram_percent.toFixed(1)}%</span>
+                  <span className="text-gray-700">RAM</span>
+                  <span className="text-gray-600">{worker.ram_percent.toFixed(1)}%</span>
                 </div>
                 <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                   <div
@@ -158,8 +158,8 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
               {worker.gpu_utilization !== undefined && (
                 <div>
                   <div className="flex items-center justify-between text-[10px] mb-1">
-                    <span className="text-gray-400">GPU</span>
-                    <span className="text-gray-300">{worker.gpu_utilization}%</span>
+                    <span className="text-gray-700">GPU</span>
+                    <span className="text-gray-600">{worker.gpu_utilization}%</span>
                   </div>
                   <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                     <div
@@ -175,15 +175,15 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="bg-black/20 rounded p-2 text-center">
                 <div className="text-xs text-emerald-400 font-bold">{worker.jobs_processed}</div>
-                <div className="text-[9px] text-gray-500">Processed</div>
+                <div className="text-[9px] text-gray-700">Processed</div>
               </div>
               <div className="bg-black/20 rounded p-2 text-center">
                 <div className="text-xs text-red-400 font-bold">{worker.jobs_failed}</div>
-                <div className="text-[9px] text-gray-500">Failed</div>
+                <div className="text-[9px] text-gray-700">Failed</div>
               </div>
               <div className="bg-black/20 rounded p-2 text-center">
                 <div className="text-xs text-blue-400 font-bold">{formatUptime(worker.uptime)}</div>
-                <div className="text-[9px] text-gray-500">Uptime</div>
+                <div className="text-[9px] text-gray-700">Uptime</div>
               </div>
             </div>
             
@@ -197,7 +197,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
               </div>
             ) : (
               <div className="bg-gray-500/10 border border-gray-500/30 rounded p-2 text-center">
-                <div className="text-[10px] text-gray-500">Idle</div>
+                <div className="text-[10px] text-black">Idle</div>
               </div>
             )}
           </div>

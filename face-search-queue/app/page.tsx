@@ -209,7 +209,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <div className="text-lg font-medium text-gray-400">Initializing Dashboard</div>
@@ -219,7 +219,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-6">
+    <div className="min-h-screen bg-white text-black p-4 md:p-6">
       <KeyboardShortcuts
         onPauseToggle={handlePauseToggle}
         onRefresh={() => {
@@ -234,7 +234,7 @@ export default function Home() {
       
       <div className="max-w-[1920px] mx-auto space-y-4">
         {/* Header */}
-        <div className="backdrop-blur-xl bg-white/5 rounded-xl border border-white/10 p-4 md:p-6">
+        <div className="backdrop-blur-xl bg-white rounded-xl border border-white/10 p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">

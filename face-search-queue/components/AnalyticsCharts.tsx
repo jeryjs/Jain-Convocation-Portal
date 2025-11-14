@@ -62,7 +62,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Distribution Chart */}
       <div className="backdrop-blur-xl bg-white/5 rounded-xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold mb-4 text-gray-200">Distribution</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Distribution</h3>
         
         <div className="flex justify-center mb-4">
           <div className="relative w-40 h-40">
@@ -103,8 +103,8 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <div className="text-2xl font-bold text-white">{totalJobs}</div>
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Jobs</div>
+                <div className="text-2xl font-bold text-black">{totalJobs}</div>
+                <div className="text-[10px] text-gray-600 uppercase tracking-wider">Jobs</div>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
             <div key={item.label} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${item.color}`}></div>
-                <span className="text-gray-300 text-xs">{item.label}</span>
+                <span className="text-gray-700 text-xs">{item.label}</span>
               </div>
               <span className="font-semibold text-gray-200 text-xs">
                 {item.value} <span className="text-gray-500">({totalJobs > 0 ? ((item.value / totalJobs) * 100).toFixed(0) : 0}%)</span>
@@ -127,11 +127,11 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
 
       {/* Metrics */}
       <div className="backdrop-blur-xl bg-white/5 rounded-xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold mb-4 text-gray-200">Performance</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Performance</h3>
         
         <div className="space-y-6">
           <div>
-            <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Success Rate</div>
+            <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Success Rate</div>
             <div className="flex items-baseline gap-2">
               <div className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">{completionRate}%</div>
             </div>
@@ -144,12 +144,12 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
           </div>
 
           <div>
-            <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Avg Processing</div>
+            <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Avg Processing</div>
             <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{avgProcessingTime}</div>
           </div>
 
           <div>
-            <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Status</div>
+            <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Status</div>
             <div className="flex flex-wrap gap-2">
               {stats.active > 0 && (
                 <div className="px-2 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-300 rounded text-[10px] font-medium uppercase tracking-wider">
@@ -178,7 +178,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
 
       {/* Activity Feed */}
       <div className="backdrop-blur-xl bg-white/5 rounded-xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold mb-4 text-gray-200">Recent Activity</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Recent Activity</h3>
         
         <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
           {[...jobs.completed, ...jobs.failed]
@@ -192,10 +192,10 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
                 <div key={job.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded transition-colors group">
                   <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSuccess ? 'bg-emerald-500' : 'bg-red-500'} ${isSuccess ? 'animate-pulse' : ''}`}></div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-mono text-gray-400 truncate group-hover:text-gray-300 transition-colors">{job.id}</div>
-                    <div className="text-[10px] text-gray-500">{duration}s</div>
+                    <div className="text-[10px] font-mono text-gray-700 truncate group-hover:text-gray-600 transition-colors">{job.id}</div>
+                    <div className="text-[10px] text-gray-700">{duration}s</div>
                   </div>
-                  <div className="text-[10px] text-gray-500">
+                  <div className="text-[10px] text-gray-700">
                     {new Date(job.finishedOn || 0).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
@@ -203,7 +203,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
             })}
           
           {[...jobs.completed, ...jobs.failed].length === 0 && (
-            <div className="text-center text-gray-500 py-8 text-sm">
+            <div className="text-center text-gray-700 py-8 text-sm">
               No activity yet
             </div>
           )}
