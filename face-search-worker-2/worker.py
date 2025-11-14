@@ -147,7 +147,7 @@ def heartbeat_loop():
         except Exception as e:
             logger.warning(f"⚠️  Heartbeat error: {e}")
 
-def process_job(job: Job, token: str):
+async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
     """
     Process a face search job
     
@@ -166,6 +166,11 @@ def process_job(job: Job, token: str):
         ...
     ]
     """
+    # Check if worker is paused
+    if redis_client and redis_client.get(f'worker:{WORKER_ID}:paused') == '1':
+        logger.info(f"⏸️  Worker is paused, requeueing job {job.id}")
+        raise Exception("Worker is paused")
+    
     worker_stats['current_job'] = job.id
     
     try:
@@ -191,23 +196,29 @@ def process_job(job: Job, token: str):
         # TODO: Replace with actual gallery images from your backend
         # gallery_images = fetch_gallery_images(stage)
         
+        # Fetch excluded images from Redis
+        excluded_images = set()
+        if redis_client:
+            excluded_list = redis_client.smembers('excluded_images')
+            if excluded_list:
+                excluded_images = set(excluded_list) # type: ignore
+        
         # Mock gallery for testing
+        # TODO: Fetch from backend API
         gallery_images = [
             {'id': 'img_001', 'image': selfie_image},  # Same image = high score
         ]
         
-        # Perform face search
-        def progress_callback(progress: int):
-            # Update job progress
-            try:
-                pass
-            except Exception:
-                pass
+        # Filter out excluded images
+        gallery_images = [img for img in gallery_images if img['id'] not in excluded_images]
         
+        logger.info(f"📊 Processing {len(gallery_images)} images (excluded: {len(excluded_images)})")
+        
+        # Perform face search
         results = face_engine.search_faces(
             selfie_base64=selfie_image,
             gallery_images=gallery_images,
-            progress_callback=progress_callback
+            progress_callback=None
         )
         
         logger.info(f"\n✅ Job completed: {len(results)} matches found\n")

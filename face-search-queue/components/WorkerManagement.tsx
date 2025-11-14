@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 interface WorkerInfo {
   id: string;
   hostname: string;
@@ -20,6 +22,7 @@ interface WorkerInfo {
   gpu_utilization?: number;
   gpu_memory_used_mb?: number;
   gpu_temperature?: number;
+  paused?: boolean;
 }
 
 interface WorkerManagementProps {
@@ -28,6 +31,8 @@ interface WorkerManagementProps {
 }
 
 export default function WorkerManagement({ workers, onRemoveWorker }: WorkerManagementProps) {
+  const [pausingWorker, setPausingWorker] = useState<string | null>(null);
+  
   const onlineWorkers = workers.filter(w => w.status === 'online');
   const offlineWorkers = workers.filter(w => w.status === 'offline');
   
@@ -49,6 +54,29 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
     if (util < 50) return 'from-emerald-500 to-green-500';
     if (util < 80) return 'from-yellow-500 to-amber-500';
     return 'from-red-500 to-rose-500';
+  };
+  
+  const toggleWorkerPause = async (workerId: string, currentlyPaused: boolean) => {
+    setPausingWorker(workerId);
+    try {
+      const endpoint = currentlyPaused ? '/api/admin/workers/resume' : '/api/admin/workers/pause';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle worker pause');
+      }
+      
+      // Refresh will happen via polling
+    } catch (error) {
+      console.error('Error toggling worker pause:', error);
+      alert('Failed to toggle worker pause');
+    } finally {
+      setPausingWorker(null);
+    }
   };
   
   if (workers.length === 0) {
@@ -103,13 +131,29 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
                   {worker.id}
                 </div>
               </div>
-              <button
-                onClick={() => onRemoveWorker(worker.id)}
-                className="text-gray-500 hover:text-red-400 text-xs transition-colors"
-                title="Remove worker"
-              >
-                ✗
-              </button>
+              <div className="flex items-center gap-1">
+                {worker.status === 'online' && (
+                  <button
+                    onClick={() => toggleWorkerPause(worker.id, worker.paused || false)}
+                    disabled={pausingWorker === worker.id}
+                    className={`text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      worker.paused
+                        ? 'text-emerald-400 hover:text-emerald-300'
+                        : 'text-yellow-400 hover:text-yellow-300'
+                    }`}
+                    title={worker.paused ? 'Resume worker' : 'Pause worker'}
+                  >
+                    {pausingWorker === worker.id ? '⏳' : worker.paused ? '▶️' : '⏸️'}
+                  </button>
+                )}
+                <button
+                  onClick={() => onRemoveWorker(worker.id)}
+                  className="text-gray-500 hover:text-red-400 text-xs transition-colors"
+                  title="Remove worker"
+                >
+                  ✗
+                </button>
+              </div>
             </div>
             
             {/* GPU/CPU Info */}
@@ -170,8 +214,8 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
                 </div>
               )}
             </div>
-            
-            {/* Stats */}
+
+            {/* Metrics Summary */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="bg-black/20 rounded p-2 text-center">
                 <div className="text-xs text-emerald-400 font-bold">{worker.jobs_processed}</div>
@@ -186,7 +230,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
                 <div className="text-[9px] text-gray-700">Uptime</div>
               </div>
             </div>
-            
+
             {/* Current Job */}
             {worker.current_job ? (
               <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2">

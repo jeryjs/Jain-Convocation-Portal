@@ -29,16 +29,22 @@ export async function GET() {
   try {
     const workersData = await redis.hgetall('workers');
     
-    const workers: WorkerInfo[] = Object.entries(workersData).map(([id, data]) => {
-      const worker = JSON.parse(data);
-      const now = Date.now() / 1000; // Convert to seconds
-      const isOnline = (now - worker.last_heartbeat) < 15; // 15 seconds timeout
-      
-      return {
-        ...worker,
-        status: isOnline ? 'online' : 'offline',
-      };
-    });
+    const workers: WorkerInfo[] = await Promise.all(
+      Object.entries(workersData).map(async ([id, data]) => {
+        const worker = JSON.parse(data);
+        const now = Date.now() / 1000; // Convert to seconds
+        const isOnline = (now - worker.last_heartbeat) < 15; // 15 seconds timeout
+        
+        // Check if worker is paused
+        const isPaused = await redis.get(`worker:${id}:paused`) === '1';
+        
+        return {
+          ...worker,
+          status: isOnline ? 'online' : 'offline',
+          paused: isPaused,
+        };
+      })
+    );
     
     // Sort by status (online first) then by ID
     workers.sort((a, b) => {
