@@ -7,6 +7,7 @@ GPU-powered Python worker for processing face search jobs from BullMQ queue
 """
 
 import asyncio
+import base64
 import os
 import sys
 import time
@@ -69,9 +70,18 @@ def initialize_redis() -> redis.Redis:
     client.ping()
     print("✅ Redis connected!")
     
-    # Generate unique worker ID using Redis counter
+    # Generate unique worker ID using active worker count
     worker_type = 'cpu' if USE_CPU else f'gpu{GPU_INDEX}'
-    worker_num = client.incr(f'worker_counter:{HOSTNAME}_{worker_type}')
+    
+    # Get current active workers to determine next available number
+    workers_data = client.hgetall('workers')
+    existing_workers = [k for k in workers_data.keys() if k.startswith(f"{HOSTNAME}_{worker_type}_")]
+    
+    # Find the next available number (1, 2, 3, etc.)
+    worker_num = 1
+    while f"{HOSTNAME}_{worker_type}_{worker_num}" in existing_workers:
+        worker_num += 1
+    
     WORKER_ID = f"{HOSTNAME}_{worker_type}_{worker_num}"
     
     return client
@@ -136,7 +146,7 @@ def heartbeat_loop():
         time.sleep(5)
 
 
-async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
+async def process_job(job: Job, token: str) -> List[Dict[str, float]] | None:
     """
     Process a face search job
     
@@ -157,8 +167,10 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
     """
     # Check if worker is paused
     if redis_client and redis_client.get(f'worker:{WORKER_ID}:paused') == '1':
-        print(f"⏸️  Worker is paused, requeueing job {job.id}")
-        raise Exception("Worker is paused")
+        print(f"⏸️  Worker is paused, moving job {job.id} back to waiting")
+        # Move job back to waiting by retrying it immediately
+        await job.moveToWaitingChildren(token, opts={})  # Delay 1 second before retry
+        return None  # Return None to indicate job wasn't processed
     
     worker_stats['current_job'] = job.id
     
@@ -182,13 +194,21 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
         if redis_client:
             excluded_list = redis_client.smembers('excluded_images')
             if excluded_list:
-                excluded_images = set(excluded_list)
+                excluded_images = set(excluded_list) # type: ignore
         
-        # Mock gallery for testing
-        # TODO: Fetch from backend API
-        gallery_images = [
-            {'id': 'img_001', 'image': selfie_image},  # Same image = high score
-        ]
+        gallery_path = "Z:/Downloads/jain 14th convo"
+        #  {'id': 'img_001', 'image': selfie_image},  # Same image = high score
+        gallery_images = []
+        for root, _, files in os.walk(gallery_path):
+            for filename in files:
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    file_path = os.path.join(root, filename)
+                    with open(file_path, 'rb') as f:
+                        img_bytes = f.read()
+                        img_base64 = f"data:image/{filename.split('.')[-1]};base64," + base64.b64encode(img_bytes).decode('utf-8')
+                        # Use relative path from gallery_path as id for uniqueness
+                        rel_path = os.path.relpath(file_path, gallery_path)
+                        gallery_images.append({'id': rel_path, 'image': img_base64})
         
         # Filter out excluded images
         gallery_images = [img for img in gallery_images if img['id'] not in excluded_images]

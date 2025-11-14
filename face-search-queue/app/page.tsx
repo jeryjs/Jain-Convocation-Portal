@@ -71,6 +71,7 @@ export default function Home() {
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
   const { showToast } = useToast();
 
   const fetchQueueData = async () => {
@@ -110,6 +111,17 @@ export default function Home() {
     fetchQueueData();
     fetchWorkers();
     fetchPauseStatus();
+    
+    // Handle page visibility changes
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
   const handlePauseToggle = async () => {
     try {
@@ -196,7 +208,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !isPageVisible) return;
     
     const interval = setInterval(() => {
       fetchQueueData();
@@ -205,7 +217,7 @@ export default function Home() {
     }, 2000);
     
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, [autoRefresh, isPageVisible]);
 
   if (loading) {
     return (

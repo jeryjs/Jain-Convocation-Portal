@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import redis
 from bullmq import Worker, Job
 import logging
+import base64
 
 from face_search import FaceSearchEngine
 from metrics import MetricsCollector
@@ -74,9 +75,18 @@ def initialize_redis() -> redis.Redis:
     client.ping()
     logger.info("✅ Redis connected!")
     
-    # Generate unique worker ID using Redis counter
+    # Generate unique worker ID using active worker count
     worker_type = 'cpu' if USE_CPU else f'gpu{GPU_INDEX}'
-    worker_num = client.incr(f'worker_counter:{HOSTNAME}_{worker_type}_fr')
+    
+    # Get current active workers to determine next available number
+    workers_data = client.hgetall('workers')
+    existing_workers = [k for k in workers_data.keys() if k.startswith(f"{HOSTNAME}_{worker_type}_fr_")]
+    
+    # Find the next available number (1, 2, 3, etc.)
+    worker_num = 1
+    while f"{HOSTNAME}_{worker_type}_fr_{worker_num}" in existing_workers:
+        worker_num += 1
+    
     WORKER_ID = f"{HOSTNAME}_{worker_type}_fr_{worker_num}"
     
     return client
@@ -147,7 +157,7 @@ def heartbeat_loop():
         except Exception as e:
             logger.warning(f"⚠️  Heartbeat error: {e}")
 
-async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
+async def process_job(job: Job, token: str) -> List[Dict[str, float]] | None:
     """
     Process a face search job
     
@@ -168,8 +178,10 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
     """
     # Check if worker is paused
     if redis_client and redis_client.get(f'worker:{WORKER_ID}:paused') == '1':
-        logger.info(f"⏸️  Worker is paused, requeueing job {job.id}")
-        raise Exception("Worker is paused")
+        logger.info(f"⏸️  Worker is paused, moving job {job.id} back to waiting")
+        # Move job back to waiting by retrying it immediately
+        await job.moveToWaitingChildren(token, {})
+        return None  # Return None to indicate job wasn't processed
     
     worker_stats['current_job'] = job.id
     
@@ -203,11 +215,19 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
             if excluded_list:
                 excluded_images = set(excluded_list) # type: ignore
         
-        # Mock gallery for testing
-        # TODO: Fetch from backend API
-        gallery_images = [
-            {'id': 'img_001', 'image': selfie_image},  # Same image = high score
-        ]
+        gallery_path = "Z:/Downloads/jain 14th convo"
+        #  {'id': 'img_001', 'image': selfie_image},  # Same image = high score
+        gallery_images = []
+        for root, _, files in os.walk(gallery_path):
+            for filename in files:
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    file_path = os.path.join(root, filename)
+                    with open(file_path, 'rb') as f:
+                        img_bytes = f.read()
+                        img_base64 = f"data:image/{filename.split('.')[-1]};base64," + base64.b64encode(img_bytes).decode('utf-8')
+                        # Use relative path from gallery_path as id for uniqueness
+                        rel_path = os.path.relpath(file_path, gallery_path)
+                        gallery_images.append({'id': rel_path, 'image': img_base64})
         
         # Filter out excluded images
         gallery_images = [img for img in gallery_images if img['id'] not in excluded_images]
@@ -236,7 +256,8 @@ async def process_job(job: Job, token: str) -> List[Dict[str, float]]:
         
 def signal_handler(signum, frame):
     """Handle shutdown signals"""
-    raise KeyboardInterrupt()
+    cleanup_worker()
+    sys.exit(0)
 
 def cleanup_worker():
     """Cleanup worker on shutdown"""

@@ -40,7 +40,7 @@ export async function checkRateLimit(uid: string): Promise<{ allowed: boolean; r
   
   if (lastJobTime) {
     const elapsed = Date.now() - parseInt(lastJobTime);
-    const TWO_MINUTES = 2 * 60 * 1000;
+    const TWO_MINUTES = 0 * 60 * 1000;
     
     if (elapsed < TWO_MINUTES) {
       return {
