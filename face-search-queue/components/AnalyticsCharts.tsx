@@ -114,7 +114,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
           {chartData.map((item) => (
             <div key={item.label} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${item.color}`}></div>
+                <div className={`w-2 h-2 rounded-full bg-linear-to-r ${item.color}`}></div>
                 <span className="text-gray-700 text-xs">{item.label}</span>
               </div>
               <span className="font-semibold text-gray-200 text-xs">
@@ -133,11 +133,11 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
           <div>
             <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Success Rate</div>
             <div className="flex items-baseline gap-2">
-              <div className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">{completionRate}%</div>
+              <div className="text-3xl font-bold bg-linear-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">{completionRate}%</div>
             </div>
             <div className="mt-2 w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-emerald-500 to-green-500 h-1.5 rounded-full transition-all duration-500"
+                className="bg-linear-to-r from-emerald-500 to-green-500 h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${completionRate}%` }}
               ></div>
             </div>
@@ -145,7 +145,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
 
           <div>
             <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Avg Processing</div>
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{avgProcessingTime}</div>
+            <div className="text-3xl font-bold bg-linear-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{avgProcessingTime}</div>
           </div>
 
           <div>
@@ -190,7 +190,7 @@ export default function AnalyticsCharts({ stats, jobs }: AnalyticsChartsProps) {
               
               return (
                 <div key={job.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded transition-colors group">
-                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSuccess ? 'bg-emerald-500' : 'bg-red-500'} ${isSuccess ? 'animate-pulse' : ''}`}></div>
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSuccess ? 'bg-emerald-500' : 'bg-red-500'} ${isSuccess ? 'animate-pulse' : ''}`}></div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[10px] font-mono text-gray-700 truncate group-hover:text-gray-600 transition-colors">{job.id}</div>
                     <div className="text-[10px] text-gray-700">{duration}s</div>

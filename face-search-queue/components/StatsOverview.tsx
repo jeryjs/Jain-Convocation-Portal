@@ -33,9 +33,9 @@ export default function StatsOverview({ stats, isPaused }: StatsOverviewProps) {
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-2xl opacity-70 group-hover:opacity-100 transition-opacity">{stat.icon}</span>
-            <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${stat.color} animate-pulse`}></div>
+            <div className={`w-2 h-2 rounded-full bg-linear-to-r ${stat.color} animate-pulse`}></div>
           </div>
-          <div className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
+          <div className={`text-3xl font-bold bg-linear-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value}</div>
           <div className="text-xs text-gray-900 mt-1 uppercase tracking-wider">{stat.label}</div>
         </div>
       ))}
@@ -47,7 +47,7 @@ export default function StatsOverview({ stats, isPaused }: StatsOverviewProps) {
         <div className="flex items-center justify-between mb-3">
           <span className="text-2xl">∑</span>
         </div>
-        <div className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{total}</div>
+        <div className="text-3xl font-bold bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{total}</div>
         <div className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Total</div>
       </div>
     </div>

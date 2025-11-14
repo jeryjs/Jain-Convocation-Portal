@@ -54,7 +54,7 @@ export default function QueueKanban({ jobs, onJobAction, onDeleteJob }: QueueKan
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {columns.map((column) => (
           <div key={column.title} className="flex flex-col">
-            <div className={`backdrop-blur-sm bg-gradient-to-br ${column.gradient} rounded-t-lg px-3 py-2 border-b-2 ${column.border}`}>
+            <div className={`backdrop-blur-sm bg-linear-to-br ${column.gradient} rounded-t-lg px-3 py-2 border-b-2 ${column.border}`}>
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-800 text-sm">{column.title}</h3>
                 <div className="px-2 py-0.5 rounded-full bg-white/10 text-gray-600 text-xs font-mono">
@@ -142,7 +142,7 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
             <div className="mt-2">
               <div className="w-full bg-gray-300/50 rounded-full h-1 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 h-1 rounded-full transition-all duration-300"
+                  className="bg-linear-to-r from-blue-500 to-cyan-500 h-1 rounded-full transition-all duration-300"
                   style={{ width: `${job.progress}%` }}
                 ></div>
               </div>

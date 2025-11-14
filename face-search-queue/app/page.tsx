@@ -237,7 +237,7 @@ export default function Home() {
         <div className="backdrop-blur-xl bg-white rounded-xl border border-white/10 p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Face Search Queue
               </h1>
               <p className="text-gray-400 mt-1 text-sm md:text-base">Real-time queue orchestration</p>

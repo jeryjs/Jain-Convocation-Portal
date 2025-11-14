@@ -134,7 +134,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
                 </div>
                 <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className={`bg-gradient-to-r ${getUtilizationColor(worker.cpu_percent)} h-1.5 rounded-full transition-all duration-300`}
+                    className={`bg-linear-to-r ${getUtilizationColor(worker.cpu_percent)} h-1.5 rounded-full transition-all duration-300`}
                     style={{ width: `${Math.min(worker.cpu_percent, 100)}%` }}
                   ></div>
                 </div>
@@ -148,7 +148,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
                 </div>
                 <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className={`bg-gradient-to-r ${getUtilizationColor(worker.ram_percent)} h-1.5 rounded-full transition-all duration-300`}
+                    className={`bg-linear-to-r ${getUtilizationColor(worker.ram_percent)} h-1.5 rounded-full transition-all duration-300`}
                     style={{ width: `${Math.min(worker.ram_percent, 100)}%` }}
                   ></div>
                 </div>
@@ -163,7 +163,7 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
                   </div>
                   <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className={`bg-gradient-to-r ${getUtilizationColor(worker.gpu_utilization)} h-1.5 rounded-full transition-all duration-300`}
+                      className={`bg-linear-to-r ${getUtilizationColor(worker.gpu_utilization)} h-1.5 rounded-full transition-all duration-300`}
                       style={{ width: `${Math.min(worker.gpu_utilization, 100)}%` }}
                     ></div>
                   </div>
