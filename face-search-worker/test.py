@@ -76,19 +76,19 @@ def load_image_base64(image_path: str) -> str:
         return base64.b64encode(buffer.getvalue()).decode('utf-8')
     
 def convert_gallery_to_base64(gallery_images: list) -> list:
-    """Convert gallery images to base64 format expected by engine"""
+    """Convert gallery images to base64 format expected by engine (FAST)"""
     gallery_for_engine = []
+    valid_extensions = ('.png', '.jpg', '.jpeg')
     for img_data in gallery_images:
-        with Image.open(img_data['image_path']) as img:
-            if img.mode == "RGBA":
-                img = img.convert("RGB")
-            buffer = io.BytesIO()
-            img.save(buffer, format='JPEG')
+        try:
+            with open(img_data['image_path'], 'rb') as f:
+                img_bytes = f.read()
             gallery_for_engine.append({
                 'id': img_data['id'],
-                'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
+                'image': base64.b64encode(img_bytes).decode('utf-8')
             })
-    
+        except Exception as e:
+            print(f"⚠️  Skipping {img_data['image_path']}: {e}")
     print(f"✓ Prepared {len(gallery_for_engine)} gallery images for search")
     return gallery_for_engine
 

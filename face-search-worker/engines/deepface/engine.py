@@ -7,6 +7,7 @@ import os
 import cv2
 import gc
 import numpy as np
+import hashlib
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
@@ -44,6 +45,13 @@ class DeepFaceEngine(BaseEngine):
         self.max_workers = max_workers  # Lower than face_recognition due to TF overhead
         self.batch_size = batch_size  # Smaller batches for TF
         self.max_image_size = max_image_size
+
+        # Initialize cache with separate sections
+        self.cache = {
+            'selfie_embeddings': {},     # hash -> embedding
+            'gallery_embeddings': {},    # hash -> list of embeddings
+            'exclude_embeddings': {},    # hash -> list of embeddings
+        }
         
         # Configure GPU
         if not use_gpu:
@@ -60,6 +68,35 @@ class DeepFaceEngine(BaseEngine):
                 # No need to reset default graph in TF 2.x; just clear session
                 pass
         gc.collect()
+
+    def _compute_image_hash(self, img_data: str) -> str:
+        """Compute SHA256 hash of image data for caching"""
+        if isinstance(img_data, str):
+            # For base64 strings
+            if ',' in img_data:
+                img_data = img_data.split(',')[1]
+            return hashlib.sha256(img_data.encode()).hexdigest()
+        else:
+            # For file paths
+            return hashlib.sha256(str(img_data).encode()).hexdigest()
+
+    def _get_cached_embedding(self, cache_key: str, img_data: str, cache_type: str = 'gallery'):
+        """Get cached embedding or compute and cache it"""
+        img_hash = self._compute_image_hash(img_data)
+        
+        # Check cache
+        if img_hash in self.cache[cache_type]:
+            logger.debug(f"Cache hit for {cache_type}: {img_hash[:8]}...")
+            return self.cache[cache_type][img_hash]
+        
+        # Not in cache, compute it
+        return None
+
+    def _cache_embedding(self, img_data: str, embedding, cache_type: str = 'gallery'):
+        """Cache an embedding"""
+        img_hash = self._compute_image_hash(img_data)
+        self.cache[cache_type][img_hash] = embedding
+        logger.debug(f"Cached {cache_type}: {img_hash[:8]}...")
 
     def _preprocess_image(self, img_array: np.ndarray) -> np.ndarray:
         """Preprocess image for faster face recognition"""
@@ -92,33 +129,43 @@ class DeepFaceEngine(BaseEngine):
         img_id, img_path_or_base64, selfie_embedding, exclude_embeddings = args
         
         try:
-            # Load image from path or decode from base64
-            if isinstance(img_path_or_base64, str) and (img_path_or_base64.startswith('/') or img_path_or_base64.startswith('\\') or ':' in img_path_or_base64):
-                # It's a file path
-                gallery_img = self.load_image_from_path(img_path_or_base64)
+            # Check cache first
+            cached_embeddings = self._get_cached_embedding(img_id, img_path_or_base64, 'gallery_embeddings')
+            
+            if cached_embeddings is not None:
+                processed_embeddings = cached_embeddings
             else:
-                # It's base64
-                gallery_img = self.decode_base64_image(img_path_or_base64)
-            gallery_img = self._preprocess_image(gallery_img)
-            
-            # Get embeddings
-            gallery_embeddings = DeepFace.represent(
-                img_path=gallery_img,
-                model_name=self.model_name,
-                enforce_detection=False
-            )
-            del gallery_img  # Release memory immediately
-            
-            if not gallery_embeddings:
-                return None
-            
-            # Extract embeddings from results
-            processed_embeddings = []
-            for emb_data in gallery_embeddings:
-                if isinstance(emb_data, dict) and "embedding" in emb_data:
-                    processed_embeddings.append(emb_data["embedding"])
+                # Load image from path or decode from base64
+                if isinstance(img_path_or_base64, str) and (img_path_or_base64.startswith('/') or img_path_or_base64.startswith('\\') or ':' in img_path_or_base64):
+                    # It's a file path
+                    gallery_img = self.load_image_from_path(img_path_or_base64)
                 else:
-                    processed_embeddings.append(emb_data)
+                    # It's base64
+                    gallery_img = self.decode_base64_image(img_path_or_base64)
+                gallery_img = self._preprocess_image(gallery_img)
+                
+                # Get embeddings
+                gallery_embeddings = DeepFace.represent(
+                    img_path=gallery_img,
+                    model_name=self.model_name,
+                    enforce_detection=False
+                )
+                del gallery_img  # Release memory immediately
+            
+                if not gallery_embeddings:
+                    return None
+                
+                # Extract embeddings from results
+                processed_embeddings = []
+                for emb_data in gallery_embeddings:
+                    if isinstance(emb_data, dict) and "embedding" in emb_data:
+                        processed_embeddings.append(emb_data["embedding"])
+                    else:
+                        processed_embeddings.append(emb_data)
+                
+                # Cache the embeddings
+                if processed_embeddings:
+                    self._cache_embedding(img_path_or_base64, processed_embeddings, 'gallery_embeddings')
             
             # Check exclusion
             if exclude_embeddings:
@@ -190,53 +237,75 @@ class DeepFaceEngine(BaseEngine):
         
         Returns list sorted by similarity in descending order
         """
-        # Decode and preprocess selfie
-        selfie_img = self.decode_base64_image(selfie_base64)
-        selfie_img = self._preprocess_image(selfie_img)
-        logger.info("✓ Selfie decoded and preprocessed")
+        # Check cache for selfie embedding
+        cached_selfie_embedding = self._get_cached_embedding('selfie', selfie_base64, 'selfie_embeddings')
         
-        # Extract selfie embedding
-        try:
-            selfie_embeddings = DeepFace.represent(
-                img_path=selfie_img,
-                model_name=self.model_name,
-                enforce_detection=True
-            )
-            del selfie_img  # Release memory
+        if cached_selfie_embedding is not None:
+            selfie_embedding = cached_selfie_embedding
+            logger.info("✓ Selfie embedding retrieved from cache")
+        else:
+            # Decode and preprocess selfie
+            selfie_img = self.decode_base64_image(selfie_base64)
+            selfie_img = self._preprocess_image(selfie_img)
+            logger.info("✓ Selfie decoded and preprocessed")
             
-            if not selfie_embeddings or not isinstance(selfie_embeddings, list):
-                raise ValueError("No face embedding found in the provided selfie.")
-            
-            # Extract embedding
-            if isinstance(selfie_embeddings[0], dict) and "embedding" in selfie_embeddings[0]:
-                selfie_embedding = selfie_embeddings[0]["embedding"]
-            else:
-                selfie_embedding = selfie_embeddings[0]
-            
-            del selfie_embeddings
-            logger.info("✓ Selfie face encoded")
-        except Exception as e:
-            raise ValueError(f"No face detected in the provided selfie: {e}")
+            # Extract selfie embedding
+            try:
+                selfie_embeddings = DeepFace.represent(
+                    img_path=selfie_img,
+                    model_name=self.model_name,
+                    enforce_detection=True
+                )
+                del selfie_img  # Release memory
+                
+                if not selfie_embeddings or not isinstance(selfie_embeddings, list):
+                    raise ValueError("No face embedding found in the provided selfie.")
+                
+                # Extract embedding
+                if isinstance(selfie_embeddings[0], dict) and "embedding" in selfie_embeddings[0]:
+                    selfie_embedding = selfie_embeddings[0]["embedding"]
+                else:
+                    selfie_embedding = selfie_embeddings[0]
+                
+                del selfie_embeddings
+                
+                # Cache the selfie embedding
+                self._cache_embedding(selfie_base64, selfie_embedding, 'selfie_embeddings')
+                logger.info("✓ Selfie face encoded and cached")
+            except Exception as e:
+                raise ValueError(f"No face detected in the provided selfie: {e}")
         
-        # Load exclude embeddings
+        # Load exclude embeddings with caching
         exclude_embeddings = []
         if exclude_images:
             for img_path in exclude_images:
                 try:
-                    img = self.load_image_from_path(img_path)
-                    img = self._preprocess_image(img)
-                    embeddings = DeepFace.represent(
-                        img_path=img,
-                        model_name=self.model_name,
-                        enforce_detection=False
-                    )
-                    del img
+                    # Check cache first
+                    cached_embeddings = self._get_cached_embedding(img_path, img_path, 'exclude_embeddings')
                     
-                    for emb_data in embeddings:
-                        if isinstance(emb_data, dict) and "embedding" in emb_data:
-                            exclude_embeddings.append(emb_data["embedding"])
-                        else:
-                            exclude_embeddings.append(emb_data)
+                    if cached_embeddings is not None:
+                        exclude_embeddings.extend(cached_embeddings)
+                    else:
+                        img = self.load_image_from_path(img_path)
+                        img = self._preprocess_image(img)
+                        embeddings = DeepFace.represent(
+                            img_path=img,
+                            model_name=self.model_name,
+                            enforce_detection=False
+                        )
+                        del img
+                        
+                        processed_embeddings = []
+                        for emb_data in embeddings:
+                            if isinstance(emb_data, dict) and "embedding" in emb_data:
+                                processed_embeddings.append(emb_data["embedding"])
+                            else:
+                                processed_embeddings.append(emb_data)
+                        
+                        if processed_embeddings:
+                            # Cache the embeddings
+                            self._cache_embedding(img_path, processed_embeddings, 'exclude_embeddings')
+                            exclude_embeddings.extend(processed_embeddings)
                 except Exception as e:
                     logger.warning(f"Failed to load exclude image {img_path}: {e}")
             

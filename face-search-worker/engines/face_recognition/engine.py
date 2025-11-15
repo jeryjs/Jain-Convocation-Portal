@@ -8,6 +8,7 @@ import cv2
 import gc
 import face_recognition
 import numpy as np
+import hashlib
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
@@ -28,12 +29,19 @@ logger = logging.getLogger(__name__)
 class FaceRecognitionEngine(BaseEngine):
     """Face recognition engine using face_recognition library with maximum performance"""
     
-    def __init__(self, use_gpu: bool = True, max_workers: int = 8, batch_size: int = 50, max_image_size: int = 640):
+    def __init__(self, use_gpu: bool = True, max_workers: int = 38, batch_size: int = 8, max_image_size: int = 640):
         super().__init__(use_gpu)
         self.name = "face_recognition"
         self.max_workers = max_workers
         self.batch_size = batch_size
         self.max_image_size = max_image_size
+
+        # Initialize cache with separate sections
+        self.cache = {
+            'selfie_encodings': {},      # hash -> encoding
+            'gallery_encodings': {},     # hash -> list of encodings
+            'exclude_encodings': {},     # hash -> list of encodings
+        }
         
         # Enable GPU if available
         if use_gpu:
@@ -49,6 +57,35 @@ class FaceRecognitionEngine(BaseEngine):
                 torch.cuda.empty_cache()
         gc.collect()
 
+    def _compute_image_hash(self, img_data: str) -> str:
+        """Compute SHA256 hash of image data for caching"""
+        if isinstance(img_data, str):
+            # For base64 strings
+            if ',' in img_data:
+                img_data = img_data.split(',')[1]
+            return hashlib.sha256(img_data.encode()).hexdigest()
+        else:
+            # For file paths
+            return hashlib.sha256(str(img_data).encode()).hexdigest()
+
+    def _get_cached_encoding(self, cache_key: str, img_data: str, cache_type: str = 'gallery'):
+        """Get cached encoding or compute and cache it"""
+        img_hash = self._compute_image_hash(img_data)
+        
+        # Check cache
+        if img_hash in self.cache[cache_type]:
+            logger.debug(f"Cache hit for {cache_type}: {img_hash[:8]}...")
+            return self.cache[cache_type][img_hash]
+        
+        # Not in cache, compute it
+        return None
+
+    def _cache_encoding(self, img_data: str, encoding, cache_type: str = 'gallery'):
+        """Cache an encoding"""
+        img_hash = self._compute_image_hash(img_data)
+        self.cache[cache_type][img_hash] = encoding
+        logger.debug(f"Cached {cache_type}: {img_hash[:8]}...")
+
     def _preprocess_image(self, img_array: np.ndarray) -> np.ndarray:
         """Preprocess image for faster face recognition"""
         h, w = img_array.shape[:2]
@@ -63,18 +100,28 @@ class FaceRecognitionEngine(BaseEngine):
         img_id, img_path_or_base64, selfie_encoding, exclude_encodings = args
         
         try:
-            # Load image from path or decode from base64
-            if isinstance(img_path_or_base64, str) and (img_path_or_base64.startswith('/') or img_path_or_base64.startswith('\\') or ':' in img_path_or_base64):
-                # It's a file path
-                gallery_img = self.load_image_from_path(img_path_or_base64)
-            else:
-                # It's base64
-                gallery_img = self.decode_base64_image(img_path_or_base64)
-            gallery_img = self._preprocess_image(gallery_img)
+            # Check cache first
+            cached_encodings = self._get_cached_encoding(img_id, img_path_or_base64, 'gallery_encodings')
             
-            # Get encodings
-            img_encodings = face_recognition.face_encodings(gallery_img)
-            del gallery_img  # Release memory immediately
+            if cached_encodings is not None:
+                img_encodings = cached_encodings
+            else:
+                # Load image from path or decode from base64
+                if isinstance(img_path_or_base64, str) and (img_path_or_base64.strip().startswith('data:image') or len(img_path_or_base64.strip()) > 100):
+                    # It's base64
+                    gallery_img = self.decode_base64_image(img_path_or_base64)
+                else:
+                    # It's a file path
+                    gallery_img = self.load_image_from_path(img_path_or_base64)
+                gallery_img = self._preprocess_image(gallery_img)
+                
+                # Get encodings
+                img_encodings = face_recognition.face_encodings(gallery_img)
+                del gallery_img  # Release memory immediately
+                
+                # Cache the encodings
+                if img_encodings:
+                    self._cache_encoding(img_path_or_base64, img_encodings, 'gallery_encodings')
             
             if not img_encodings:
                 return None
@@ -94,11 +141,10 @@ class FaceRecognitionEngine(BaseEngine):
             
             del img_encodings
             
-            if similarity > 0:
-                return {
-                    'id': img_id,
-                    'similarity': round(float(similarity), 4)
-                }
+            return {
+                'id': img_id,
+                'similarity': round(float(similarity), 4)
+            }
             
             return None
             
@@ -152,32 +198,52 @@ class FaceRecognitionEngine(BaseEngine):
         
         Returns list sorted by similarity in descending order
         """
-        # Decode and preprocess selfie
-        selfie_img = self.decode_base64_image(selfie_base64)
-        selfie_img = self._preprocess_image(selfie_img)
-        logger.info("✓ Selfie decoded and preprocessed")
+        # Check cache for selfie encoding
+        cached_selfie_encoding = self._get_cached_encoding('selfie', selfie_base64, 'selfie_encodings')
         
-        # Get selfie encoding
-        selfie_encodings = face_recognition.face_encodings(selfie_img)
-        del selfie_img  # Release memory
+        if cached_selfie_encoding is not None:
+            selfie_encoding = cached_selfie_encoding
+            logger.info("✓ Selfie encoding retrieved from cache")
+        else:
+            # Decode and preprocess selfie
+            selfie_img = self.decode_base64_image(selfie_base64)
+            selfie_img = self._preprocess_image(selfie_img)
+            logger.info("✓ Selfie decoded and preprocessed")
+            
+            # Get selfie encoding
+            selfie_encodings = face_recognition.face_encodings(selfie_img)
+            del selfie_img  # Release memory
+            
+            if not selfie_encodings:
+                raise ValueError("No face detected in the provided selfie")
+            
+            selfie_encoding = selfie_encodings[0]
+            del selfie_encodings
+            
+            # Cache the selfie encoding
+            self._cache_encoding(selfie_base64, selfie_encoding, 'selfie_encodings')
+            logger.info("✓ Selfie face encoded and cached")
         
-        if not selfie_encodings:
-            raise ValueError("No face detected in the provided selfie")
-        
-        selfie_encoding = selfie_encodings[0]
-        del selfie_encodings
-        logger.info("✓ Selfie face encoded")
-        
-        # Load exclude encodings
+        # Load exclude encodings with caching
         exclude_encodings = []
         if exclude_images:
             for img_path in exclude_images:
                 try:
-                    img = self.load_image_from_path(img_path)
-                    img = self._preprocess_image(img)
-                    encodings = face_recognition.face_encodings(img)
-                    del img
-                    exclude_encodings.extend(encodings)
+                    # Check cache first
+                    cached_encodings = self._get_cached_encoding(img_path, img_path, 'exclude_encodings')
+                    
+                    if cached_encodings is not None:
+                        exclude_encodings.extend(cached_encodings)
+                    else:
+                        img = self.load_image_from_path(img_path)
+                        img = self._preprocess_image(img)
+                        encodings = face_recognition.face_encodings(img)
+                        del img
+                        
+                        if encodings:
+                            # Cache the encodings
+                            self._cache_encoding(img_path, encodings, 'exclude_encodings')
+                            exclude_encodings.extend(encodings)
                 except Exception as e:
                     logger.warning(f"Failed to load exclude image {img_path}: {e}")
             
