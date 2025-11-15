@@ -48,24 +48,24 @@ export default function QueueKanban({ jobs, onJobAction, onDeleteJob }: QueueKan
   };
 
   return (
-    <div className="backdrop-blur-xl bg-white/5 rounded-xl p-4 md:p-6 border border-white/10">
-      <h2 className="text-xl font-bold mb-4 text-gray-800">Queue Pipeline</h2>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+    <div className="glass rounded-2xl p-4 md:p-6 border border-blue-500/20 hover:border-blue-500/40 transition-all">
+      <h2 className="text-2xl font-black mb-6 text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text">📊 Queue Pipeline</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {columns.map((column) => (
           <div key={column.title} className="flex flex-col">
-            <div className={`backdrop-blur-sm bg-linear-to-br ${column.gradient} rounded-t-lg px-3 py-2 border-b-2 ${column.border}`}>
+            <div className={`glass bg-linear-to-b ${column.gradient} rounded-t-xl px-4 py-3 border-b-2 ${column.border} hover:border-current transition-all`}>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800 text-sm">{column.title}</h3>
-                <div className="px-2 py-0.5 rounded-full bg-white/10 text-gray-600 text-xs font-mono">
+                <h3 className="font-bold text-white text-sm">{column.title}</h3>
+                <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-blue-200 text-xs font-bold border border-blue-400/30">
                   {column.jobs.length}
                 </div>
               </div>
             </div>
-            
-            <div className="flex-1 bg-black/20 rounded-b-lg p-2 space-y-2 min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar">
+
+            <div className="flex-1 glass rounded-b-xl p-3 space-y-2 min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar bg-slate-900/30">
               {column.jobs.length === 0 ? (
-                <div className="text-center text-gray-600 py-12 text-xs">
+                <div className="text-center text-blue-300/50 py-12 text-xs font-semibold">
                   Empty
                 </div>
               ) : (
@@ -104,84 +104,84 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
   const [expanded, setExpanded] = useState(false);
 
   const colorMap: Record<string, string> = {
-    amber: 'border-amber-500/50 hover:border-amber-500',
-    blue: 'border-blue-500/50 hover:border-blue-500',
-    emerald: 'border-emerald-500/50 hover:border-emerald-500',
-    red: 'border-red-500/50 hover:border-red-500',
-    purple: 'border-purple-500/50 hover:border-purple-500',
+    amber: 'border-amber-500/50 hover:border-amber-500 hover:shadow-amber-500/20',
+    blue: 'border-blue-500/50 hover:border-blue-500 hover:shadow-blue-500/20',
+    emerald: 'border-emerald-500/50 hover:border-emerald-500 hover:shadow-emerald-500/20',
+    red: 'border-red-500/50 hover:border-red-500 hover:shadow-red-500/20',
+    purple: 'border-purple-500/50 hover:border-purple-500 hover:shadow-purple-500/20',
   };
 
   return (
-    <div className={`backdrop-blur-sm bg-white/5 rounded-lg border ${colorMap[color]} hover:bg-white/10 transition-all group`}>
-      <div className="p-3">
-        <div className="flex justify-between items-start mb-2">
+    <div className={`glass rounded-xl border ${colorMap[color]} hover:bg-blue-500/10 hover:shadow-lg transition-all group transform hover:scale-102 cursor-pointer`}>
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-3">
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-mono text-gray-500 truncate" title={job.id}>
-              {job.id.slice(-12)}
+            <div className="text-[11px] font-mono text-blue-300/60 truncate hover:text-blue-300 transition-colors" title={job.id}>
+              #{job.id.slice(-10)}
             </div>
-            <div className="text-xs font-semibold text-gray-600 mt-1">
-              {job.data?.stage || 'N/A'}
+            <div className="text-xs font-bold text-blue-100 mt-2">
+              {job.data?.stage || 'Processing'}
             </div>
           </div>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-gray-700 hover:text-gray-500 ml-2 text-xs transition-transform"
+            className="text-blue-300 hover:text-blue-100 ml-2 text-xs transition-all transform group-hover:rotate-90"
             style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
           >
             ▶
           </button>
         </div>
 
-        <div className="text-[10px] text-gray-400 space-y-1">
-          <div className="truncate">{job.data?.uid || 'Unknown'}</div>
-          <div>{formatTime(job.timestamp)}</div>
+        <div className="text-[11px] text-blue-200/60 space-y-1">
+          <div className="truncate font-mono">{job.data?.uid || 'Unknown'}</div>
+          <div className="text-blue-300/70">{formatTime(job.timestamp)}</div>
           {job.attemptsMade > 0 && (
-            <div className="text-amber-400">Retry: {job.attemptsMade}</div>
+            <div className="text-amber-400 font-semibold">↻ Retry: {job.attemptsMade}</div>
           )}
           {job.progress > 0 && job.progress < 100 && (
-            <div className="mt-2">
-              <div className="w-full bg-gray-300/50 rounded-full h-1 overflow-hidden">
+            <div className="mt-3">
+              <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden border border-blue-400/30">
                 <div
-                  className="bg-linear-to-r from-blue-500 to-cyan-500 h-1 rounded-full transition-all duration-300"
+                  className="bg-linear-to-r from-blue-500 via-cyan-500 to-emerald-500 h-1.5 rounded-full transition-all duration-300 shadow-lg shadow-blue-500/50"
                   style={{ width: `${job.progress}%` }}
                 ></div>
               </div>
-              <div className="text-[9px] text-gray-700 mt-0.5">{job.progress}%</div>
+              <div className="text-[10px] text-blue-300 mt-1 font-bold">{job.progress}% Complete</div>
             </div>
           )}
         </div>
 
         {expanded && (
-          <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+          <div className="mt-4 pt-4 border-t border-blue-500/20 space-y-3 animate-fade-in">
             {job.processedOn && (
-              <div className="text-[10px] text-gray-400">
-                ⚙ Processed: {formatTime(job.processedOn)}
+              <div className="text-[11px] text-blue-200/70 bg-blue-500/10 p-2 rounded border border-blue-500/20">
+                ⚙️ Processed: {formatTime(job.processedOn)}
               </div>
             )}
             {job.finishedOn && (
-              <div className="text-[10px] text-gray-400">
+              <div className="text-[11px] text-blue-200/70 bg-emerald-500/10 p-2 rounded border border-emerald-500/20">
                 ✓ Done: {formatTime(job.finishedOn)}
                 {formatDuration(job.timestamp, job.finishedOn) && (
-                  <span className="ml-1 text-gray-500">({formatDuration(job.timestamp, job.finishedOn)})</span>
+                  <span className="ml-1 text-emerald-300 font-semibold">({formatDuration(job.timestamp, job.finishedOn)})</span>
                 )}
               </div>
             )}
             {job.failedReason && (
-              <div className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 p-2 rounded">
+              <div className="text-[11px] text-red-300 bg-red-500/20 border border-red-500/50 p-2 rounded font-mono">
                 ✗ {job.failedReason}
               </div>
             )}
             {job.returnvalue && Array.isArray(job.returnvalue) && (
-              <div className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 p-2 rounded">
+              <div className="text-[11px] text-emerald-300 bg-emerald-500/20 border border-emerald-500/50 p-2 rounded">
                 ✓ {job.returnvalue.length} match{job.returnvalue.length !== 1 ? 'es' : ''}
               </div>
             )}
 
-            <div className="flex gap-1 mt-2 flex-wrap">
+            <div className="flex gap-2 mt-3 flex-wrap">
               {status === 'waiting' && (
                 <button
                   onClick={() => onJobAction(job.id, 'promote')}
-                  className="text-[10px] px-2 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-300 rounded hover:bg-blue-500/30 transition-colors"
+                  className="text-[11px] px-3 py-1.5 bg-blue-500/30 border border-blue-400/70 text-blue-200 rounded-lg hover:bg-blue-500/50 transition-all font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-blue-500/30"
                   title="Move to front"
                 >
                   ⬆ Promote
@@ -190,14 +190,14 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
               {status === 'failed' && (
                 <button
                   onClick={() => onJobAction(job.id, 'retry')}
-                  className="text-[10px] px-2 py-1 bg-amber-500/20 border border-amber-500/50 text-amber-300 rounded hover:bg-amber-500/30 transition-colors"
+                  className="text-[11px] px-3 py-1.5 bg-amber-500/30 border border-amber-400/70 text-amber-200 rounded-lg hover:bg-amber-500/50 transition-all font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-amber-500/30"
                 >
                   ↻ Retry
                 </button>
               )}
               <button
                 onClick={() => onDeleteJob(job.id)}
-                className="text-[10px] px-2 py-1 bg-red-500/20 border border-red-500/50 text-red-300 rounded hover:bg-red-500/30 transition-colors"
+                className="text-[11px] px-3 py-1.5 bg-red-500/30 border border-red-400/70 text-red-200 rounded-lg hover:bg-red-500/50 transition-all font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-red-500/30"
               >
                 ✗ Delete
               </button>

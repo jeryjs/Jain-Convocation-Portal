@@ -111,14 +111,14 @@ export default function Home() {
     fetchQueueData();
     fetchWorkers();
     fetchPauseStatus();
-    
+
     // Handle page visibility changes
     const handleVisibilityChange = () => {
       setIsPageVisible(!document.hidden);
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -127,7 +127,7 @@ export default function Home() {
     try {
       const endpoint = '/api/admin/pause';
       const method = isPaused ? 'DELETE' : 'POST';
-      
+
       await fetch(endpoint, { method });
       setIsPaused(!isPaused);
       showToast(isPaused ? 'Queue resumed' : 'Queue paused', 'success');
@@ -139,7 +139,7 @@ export default function Home() {
 
   const handleCleanQueue = async () => {
     if (!confirm('Are you sure you want to clean completed and failed jobs?')) return;
-    
+
     try {
       await fetch('/api/admin/clean', { method: 'POST' });
       fetchQueueData();
@@ -167,7 +167,7 @@ export default function Home() {
 
   const handleDeleteJob = async (jobId: string) => {
     if (!confirm('Are you sure you want to delete this job?')) return;
-    
+
     try {
       await fetch(`/api/admin/queue?jobId=${jobId}`, { method: 'DELETE' });
       fetchQueueData();
@@ -196,7 +196,7 @@ export default function Home() {
 
   const handleRemoveWorker = async (workerId: string) => {
     if (!confirm('Are you sure you want to remove this worker?')) return;
-    
+
     try {
       await fetch(`/api/admin/workers?workerId=${workerId}`, { method: 'DELETE' });
       fetchWorkers();
@@ -209,29 +209,35 @@ export default function Home() {
 
   useEffect(() => {
     if (!autoRefresh || !isPageVisible) return;
-    
+
     const interval = setInterval(() => {
       fetchQueueData();
       fetchWorkers();
       fetchPauseStatus();
     }, 2000);
-    
+
     return () => clearInterval(interval);
   }, [autoRefresh, isPageVisible]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-lg font-medium text-gray-400">Initializing Dashboard</div>
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full animate-spin blur"></div>
+            <div className="absolute inset-1 bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 rounded-full"></div>
+            <div className="absolute inset-2 border-4 border-transparent border-t-blue-400 border-r-purple-400 rounded-full animate-spin"></div>
+          </div>
+          <div className="text-lg font-bold text-transparent bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text animate-pulse">
+            Initializing Dashboard
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-black p-4 md:p-6">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 text-white p-4 md:p-6">
       <KeyboardShortcuts
         onPauseToggle={handlePauseToggle}
         onRefresh={() => {
@@ -243,18 +249,19 @@ export default function Home() {
         onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
       />
       <HelpModal />
-      
+
       <div className="max-w-[1920px] mx-auto space-y-4">
         {/* Header */}
-        <div className="backdrop-blur-xl bg-white rounded-xl border border-white/10 p-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div className="glass rounded-2xl p-4 md:p-8 border border-blue-500/20 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-linear-to-r from-blue-500/0 via-purple-500/10 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="relative flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-5xl md:text-6xl font-black gradient-text drop-shadow-lg animate-pulse-glow">
                 Face Search Queue
               </h1>
-              <p className="text-gray-400 mt-1 text-sm md:text-base">Real-time queue orchestration</p>
+              <p className="text-blue-200/70 mt-2 text-sm md:text-base font-medium">Real-time queue orchestration & worker management</p>
             </div>
-            
+
             <QueueControls
               isPaused={isPaused}
               autoRefresh={autoRefresh}

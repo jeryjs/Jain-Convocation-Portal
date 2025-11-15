@@ -18,41 +18,43 @@ export default function QueueControls({
   onManualRefresh,
 }: QueueControlsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-3">
       <button
         onClick={onPauseToggle}
-        className={`px-4 py-2 rounded-lg font-medium transition-all backdrop-blur-sm ${
-          isPaused
-            ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50'
-            : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50'
-        }`}
+        className={`px-5 py-2.5 rounded-lg font-bold transition-all backdrop-blur-sm relative group overflow-hidden ${isPaused
+            ? 'bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-300 border border-emerald-400/70 shadow-lg shadow-emerald-500/20'
+            : 'bg-amber-500/30 hover:bg-amber-500/50 text-amber-300 border border-amber-400/70 shadow-lg shadow-amber-500/20'
+          }`}
       >
-        {isPaused ? '▶ Resume' : '⏸ Pause'}
+        <span className="relative z-10">{isPaused ? '▶ Resume' : '⏸ Pause'}</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform translate-x-full group-hover:translate-x-0 transition-transform"></div>
       </button>
 
       <button
         onClick={onRefreshToggle}
-        className={`px-4 py-2 rounded-lg font-medium transition-all backdrop-blur-sm ${
-          autoRefresh
-            ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50'
-            : 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border border-gray-500/50'
-        }`}
+        className={`px-5 py-2.5 rounded-lg font-bold transition-all backdrop-blur-sm relative group overflow-hidden ${autoRefresh
+            ? 'bg-blue-500/30 hover:bg-blue-500/50 text-blue-300 border border-blue-400/70 shadow-lg shadow-blue-500/20'
+            : 'bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 border border-slate-500/70 shadow-lg shadow-slate-500/10'
+          }`}
       >
-        {autoRefresh ? '🔄 Auto' : '⏸ Manual'}
+        <span className="relative z-10">{autoRefresh ? '🔄 Auto' : '⏸ Manual'}</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform translate-x-full group-hover:translate-x-0 transition-transform"></div>
       </button>
 
       <button
         onClick={onManualRefresh}
-        className="px-4 py-2 rounded-lg font-medium bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/50 transition-all backdrop-blur-sm"
+        className="px-5 py-2.5 rounded-lg font-bold bg-purple-500/30 hover:bg-purple-500/50 text-purple-300 border border-purple-400/70 transition-all backdrop-blur-sm relative group overflow-hidden shadow-lg shadow-purple-500/20 hover:scale-105 active:scale-95"
       >
-        ↻ Sync
+        <span className="relative z-10">↻ Sync</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform translate-x-full group-hover:translate-x-0 transition-transform"></div>
       </button>
 
       <button
         onClick={onCleanQueue}
-        className="px-4 py-2 rounded-lg font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 transition-all backdrop-blur-sm"
+        className="px-5 py-2.5 rounded-lg font-bold bg-red-500/30 hover:bg-red-500/50 text-red-300 border border-red-400/70 transition-all backdrop-blur-sm relative group overflow-hidden shadow-lg shadow-red-500/20 hover:scale-105 active:scale-95"
       >
-        ⌫ Clean
+        <span className="relative z-10">⌫ Clean</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform translate-x-full group-hover:translate-x-0 transition-transform"></div>
       </button>
     </div>
   );
