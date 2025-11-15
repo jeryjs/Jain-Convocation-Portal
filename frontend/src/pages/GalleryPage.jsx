@@ -18,10 +18,10 @@ import { downloadFile } from '../utils/utils';
 import DemoPageBanner from '../components/DemoPageBanner';
 import FaceFilterDialog from '../components/FaceFilterDialog';
 import FaceFilterBanner from '../components/FaceFilterBanner';
-import { 
-  useFaceFilterJob, 
-  getJobForStage, 
-  saveJobForStage, 
+import {
+  useFaceFilterJob,
+  getJobForStage,
+  saveJobForStage,
   clearFilterStateForStage,
   enableFilterForStage,
   clearJobForStage
@@ -43,6 +43,8 @@ function GalleryPage() {
   const currentStage = atob(sessionId); // decode sessionId to stage identifier
   const [currentJob, setCurrentJob] = useState(null);
   const [filterActive, setFilterActive] = useState(false);
+  const [jobResult, setJobResult] = useState(null);
+  const [jobError, setJobError] = useState(null);
 
   // Load job from localStorage on mount
   useEffect(() => {
@@ -50,32 +52,52 @@ function GalleryPage() {
     if (job) {
       setCurrentJob(job);
       setFilterActive(job.filterActive !== false); // Default to true if not specified
+
+      // If job already has result or error, use it directly
+      if (job.result) {
+        setJobResult(job.result);
+      }
+      if (job.error) {
+        setJobError(job.error);
+      }
     }
   }, [currentStage]);
 
-  // SSE hook for monitoring job status
-  const { status, result, error, isComplete } = useFaceFilterJob(
-    currentJob?.jobId,
+  // Determine if we should monitor this job (only if not complete)
+  const shouldMonitorJob = currentJob?.jobId && !currentJob?.result && !currentJob?.error;
+
+  // SSE hook for monitoring job status - now stage-aware
+  // Only connect if job exists and is not already complete
+  const { status, result: liveResult, error: liveError, isComplete } = useFaceFilterJob(
+    currentStage,
+    shouldMonitorJob ? currentJob.jobId : null, // Pass null if job is complete
     (completionData) => {
       // Update localStorage when job completes
-      saveJobForStage(currentStage, {
+      const updatedJob = {
         ...currentJob,
         ...completionData,
         filterActive: completionData.result ? true : false,
-      });
-      
+      };
+
+      saveJobForStage(currentStage, updatedJob);
+
       // Update local state
-      setCurrentJob(prev => ({
-        ...prev,
-        ...completionData,
-      }));
-      
+      setCurrentJob(updatedJob);
+
       // Auto-enable filter if we have results
       if (completionData.result && completionData.result.length > 0) {
+        setJobResult(completionData.result);
         setFilterActive(true);
+      } else if (completionData.error) {
+        setJobError(completionData.error);
+        setFilterActive(false);
       }
     }
   );
+
+  // Use live data if available, otherwise use cached data
+  const result = liveResult || jobResult;
+  const error = liveError || jobError;
 
   useEffect(() => {
     if (mounted.current) return;
@@ -180,7 +202,7 @@ function GalleryPage() {
   // Face filter handlers
   const handleFaceFilterClose = (jobCreated) => {
     setFaceFilterDialogOpen(false);
-    
+
     // If job was created, reload current job state
     if (jobCreated) {
       const job = getJobForStage(currentStage);
@@ -244,20 +266,7 @@ function GalleryPage() {
 
       <DemoPageBanner />
 
-      {/* Face Filter Banner */}
-      {!isGroupPhotos && (
-        <FaceFilterBanner
-          status={status}
-          result={result}
-          error={error}
-          isComplete={isComplete}
-          filterActive={filterActive}
-          filteredCount={filteredCount}
-          onDisableFilter={handleDisableFilter}
-          onEnableFilter={handleEnableFilter}
-          onRetry={handleRetry}
-        />
-      )}
+
 
       <Box sx={{ width: { xs: '100vw', md: '90vw' }, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (
@@ -274,20 +283,32 @@ function GalleryPage() {
             spacing={2}
             sx={{ height: { md: '80vh' } }}
           >
-            <ImageGrid
-              loading={loading}
-              images={displayImages}
-              selectedImages={Object.keys(selectedImages)}
-              lockedImages={Object.keys(userData?.requestedImages || {})}
-              onSelectImage={handleSelectImage}
-              availableSlots={getAvailableSlots()}
-              searchEnabled={true}
-              showColumnControls={true}
-              showFaceFilterButton={!isGroupPhotos}
-              onFaceFilterClick={() => setFaceFilterDialogOpen(true)}
-              getImageScore={getScoreForImage}
-              sx={{ p: 2, height: { xs: '80vh' }, flex: { md: '4' } }}
-            />
+            <Box sx={{ flex: { md: '4' }, display: 'flex', flexDirection: 'column' }}>
+              <FaceFilterBanner
+                jobStatus={status}
+                isComplete={isComplete}
+                error={error}
+                filteredCount={filteredCount}
+                onDisableFilter={handleDisableFilter}
+                onEnableFilter={handleEnableFilter}
+                onRetry={handleRetry}
+                filterActive={filterActive}
+              />
+              <ImageGrid
+                loading={loading}
+                images={displayImages}
+                selectedImages={Object.keys(selectedImages)}
+                lockedImages={Object.keys(userData?.requestedImages || {})}
+                onSelectImage={handleSelectImage}
+                availableSlots={getAvailableSlots()}
+                searchEnabled={true}
+                showColumnControls={true}
+                showFaceFilterButton={!isGroupPhotos}
+                onFaceFilterClick={() => setFaceFilterDialogOpen(true)}
+                getImageScore={getScoreForImage}
+                sx={{ p: 2, height: { xs: '80vh' }, flex: { md: '4' } }}
+              />
+            </Box>
 
             <SelectedImagesPanel
               selectedImages={selectedImages}
@@ -379,8 +400,8 @@ function GalleryPage() {
       )}
 
       {/* Face Filter Dialog */}
-      <FaceFilterDialog 
-        open={faceFilterDialogOpen} 
+      <FaceFilterDialog
+        open={faceFilterDialogOpen}
         onClose={handleFaceFilterClose}
         stage={currentStage}
         uid={userData?.email}

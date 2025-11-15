@@ -121,7 +121,7 @@ export default function RequestPage() {
 
   const handleSuccessDialogClose = () => {
     setSuccessDialog({ open: false, waitingTime: null });
-    
+
     // Increment request count and check if feedback should be shown
     const currentCount = parseInt(localStorage.getItem('requestCount') || '0');
     const newCount = currentCount + 1;
@@ -225,7 +225,7 @@ export default function RequestPage() {
       const result = await response.json();
       if (result.success) {
         updateUserAfterRequest(updatedUserData);
-        
+
         // Send email based on request type
         try {
           if (requestType === REQUEST_TYPES.SOFTCOPY) {
@@ -239,7 +239,7 @@ export default function RequestPage() {
           // setSnackbar({ open: true, message: 'Email couldn\'t be sent.', severity: 'error' });
           console.error('Error sending email:', error);
         }
-        
+
         setSuccessDialog({ open: true, waitingTime: result.waitingTime });
       } else {
         throw new Error(result.message);
@@ -284,7 +284,7 @@ export default function RequestPage() {
         onBack={() => navigate(`/gallery/${sessionId}`)}
       />
 
-      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', minWidth:{xs:'95vw', md:'70vw'} }}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 'lg', minWidth: { xs: '95vw', md: '70vw' } }}>
         <Stack spacing={{ xs: 2, sm: 3 }}>
           {!config.REMOVE_HARDCOPY && config.HARDCOPY_DISABLED && (
             <Alert severity="warning" sx={{ mb: 2 }}>
@@ -329,7 +329,7 @@ export default function RequestPage() {
             selectedImages={selectedImages}
             selectedHardcopyImages={selectedHardcopyImages}
             handleImageSelection={handleImageSelection}
-            amount={paymentSettings?.amount?? 0}
+            amount={paymentSettings?.amount ?? 0}
           />
 
           {!config.REMOVE_HARDCOPY && requestType === REQUEST_TYPES.HARDCOPY && paymentSettings && (
@@ -363,7 +363,7 @@ export default function RequestPage() {
                 userFormData.email == ''
               }
               sx={{ py: { xs: 1.5, sm: 1 }, flex: 1 }}>
-              { hasExistingRequests? 'Re-Submit Request' : 'Submit Request'}
+              {hasExistingRequests ? 'Re-Submit Request' : 'Submit Request'}
             </LoadingButton>
 
             {requestType === REQUEST_TYPES.SOFTCOPY && canDownloadImages() && (
@@ -384,13 +384,13 @@ export default function RequestPage() {
                       <Chip
                         key={link.name}
                         component='a'
-                        label={ link.name.match(/\/(\w+\.\w+)$/)[1] }
+                        label={link.name.match(/\/(\w+\.\w+)$/)[1]}
                         href={link.url}
                         icon={<DownloadIcon />}
                         color="secondary"
                         variant="outlined"
                         clickable
-                        sx={{ m:'20' }} />
+                        sx={{ m: '20' }} />
                     ))}
                   </Card>
                 )}
@@ -551,18 +551,18 @@ const PaymentDetails = ({ paymentSettings, paymentProof, handleFileUpload, setSn
 
                 {paymentProof && (
                   <Alert severity="success" icon={false} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  <Card variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <Box
-                        component="img"
-                        src={URL.createObjectURL(paymentProof)}
-                        alt="Payment proof"
-                        sx={{ height: 240, objectFit: 'cover', borderRadius: 1 }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {paymentProof.name}
-                      </Typography>
-                    </Box>
-                  </Card>
+                    <Card variant="outlined" sx={{ p: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          component="img"
+                          src={URL.createObjectURL(paymentProof)}
+                          alt="Payment proof"
+                          sx={{ height: 240, objectFit: 'cover', borderRadius: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {paymentProof.name}
+                        </Typography>
+                      </Box>
+                    </Card>
                   </Alert>
                 )}
               </Stack>
@@ -583,9 +583,9 @@ const ImagesSection = ({ requestType, selectedImages, selectedHardcopyImages, ha
         'Selected Images'}
     </Typography>
     <ImageGrid
-      images={ Object.entries(selectedImages).map(([path, url]) => ({ [path]: url })) }
-      selectedImages={ requestType === REQUEST_TYPES.HARDCOPY ? selectedHardcopyImages : [] }
-      onSelectImage={ requestType === REQUEST_TYPES.HARDCOPY ? handleImageSelection : null }
+      images={Object.entries(selectedImages).map(([path, url]) => ({ [path]: url }))}
+      selectedImages={requestType === REQUEST_TYPES.HARDCOPY ? selectedHardcopyImages : []}
+      onSelectImage={requestType === REQUEST_TYPES.HARDCOPY ? handleImageSelection : null}
       availableSlots={4}
       showColumnControls={false}
     />

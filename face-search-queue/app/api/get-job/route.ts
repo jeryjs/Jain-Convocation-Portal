@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
           try {
             const waitingCount = await faceSearchQueue.getWaitingCount();
             const job = await faceSearchQueue.getJob(jobId);
-            
+
             if (!job) {
               closeConnection();
               return;
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
             finish_time: job.finishedOn || Date.now(),
             stage: jobData.stage,
           };
-          
+
           sendEvent('result', result);
           await clearActiveJob(jobData.uid);
           closeConnection();
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
             finish_time: job?.finishedOn || Date.now(),
             stage: jobData.stage,
           };
-          
+
           sendEvent('error', error);
           await clearActiveJob(jobData.uid);
           closeConnection();

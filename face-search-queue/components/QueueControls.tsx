@@ -22,8 +22,8 @@ export default function QueueControls({
       <button
         onClick={onPauseToggle}
         className={`px-5 py-2.5 rounded-lg font-bold transition-all backdrop-blur-sm relative group overflow-hidden ${isPaused
-            ? 'bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-300 border border-emerald-400/70 shadow-lg shadow-emerald-500/20'
-            : 'bg-amber-500/30 hover:bg-amber-500/50 text-amber-300 border border-amber-400/70 shadow-lg shadow-amber-500/20'
+          ? 'bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-300 border border-emerald-400/70 shadow-lg shadow-emerald-500/20'
+          : 'bg-amber-500/30 hover:bg-amber-500/50 text-amber-300 border border-amber-400/70 shadow-lg shadow-amber-500/20'
           }`}
       >
         <span className="relative z-10">{isPaused ? '▶ Resume' : '⏸ Pause'}</span>
@@ -33,8 +33,8 @@ export default function QueueControls({
       <button
         onClick={onRefreshToggle}
         className={`px-5 py-2.5 rounded-lg font-bold transition-all backdrop-blur-sm relative group overflow-hidden ${autoRefresh
-            ? 'bg-blue-500/30 hover:bg-blue-500/50 text-blue-300 border border-blue-400/70 shadow-lg shadow-blue-500/20'
-            : 'bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 border border-slate-500/70 shadow-lg shadow-slate-500/10'
+          ? 'bg-blue-500/30 hover:bg-blue-500/50 text-blue-300 border border-blue-400/70 shadow-lg shadow-blue-500/20'
+          : 'bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 border border-slate-500/70 shadow-lg shadow-slate-500/10'
           }`}
       >
         <span className="relative z-10">{autoRefresh ? '🔄 Auto' : '⏸ Manual'}</span>

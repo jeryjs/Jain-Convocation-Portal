@@ -2,116 +2,259 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import config from '../config';
 
 const STORAGE_KEY = 'face-filter-jobs';
+const LOGS_KEY = 'face-filter-logs';
+
+// Global registry to track active event sources per stage
+const activeConnections = new Map();
+
+/**
+ * Log event for debugging
+ */
+function logEvent(stage, eventType, data) {
+  try {
+    const logs = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+    logs.push({
+      timestamp: new Date().toISOString(),
+      stage,
+      eventType,
+      data,
+    });
+    // Keep only last 100 logs
+    if (logs.length > 100) logs.shift();
+    localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+  } catch (err) {
+    console.error('Error logging event:', err);
+  }
+}
 
 /**
  * Custom hook for managing face filter job status via SSE
+ * One EventSource per stage - ensures no duplicate connections
+ * 
+ * @param {string} stage - The stage identifier (e.g., decoded session ID)
  * @param {string} jobId - The job ID to monitor
  * @param {function} onComplete - Callback when job completes (result or error)
  * @returns {Object} { status, result, error, isComplete, isConnected }
  */
-export function useFaceFilterJob(jobId, onComplete) {
+export function useFaceFilterJob(stage, jobId, onComplete) {
   const [status, setStatus] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [isComplete, setIsComplete] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  
+
   const eventSourceRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const stageRef = useRef(stage);
+  const jobIdRef = useRef(jobId);
+  const isMountedRef = useRef(true);
 
-  const cleanup = useCallback(() => {
+  // Update refs when props change
+  useEffect(() => {
+    stageRef.current = stage;
+    jobIdRef.current = jobId;
+  }, [stage, jobId]);
+
+  const cleanup = useCallback((currentStage = stageRef.current) => {
     if (eventSourceRef.current) {
+      logEvent(currentStage, 'cleanup', { jobId: jobIdRef.current });
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-    setIsConnected(false);
+
+    // Remove from global registry
+    if (currentStage && activeConnections.get(currentStage) === eventSourceRef.current) {
+      activeConnections.delete(currentStage);
+    }
+
+    if (isMountedRef.current) {
+      setIsConnected(false);
+    }
   }, []);
 
   const connect = useCallback(() => {
-    if (!jobId || isComplete) return;
+    const currentStage = stageRef.current;
+    const currentJobId = jobIdRef.current;
 
-    cleanup();
+    console.log('Connecting to EventSource for stage:', currentStage, 'jobId:', currentJobId);
 
-    const eventSource = new EventSource(
-      `${config.QUEUE_API_BASE_URL}/api/get-job?id=${jobId}`
-    );
-    eventSourceRef.current = eventSource;
+    if (!currentStage || !currentJobId) {
+      return;
+    }
 
-    eventSource.onopen = () => {
-      setIsConnected(true);
-      reconnectAttemptsRef.current = 0;
-    };
+    // Don't reconnect if job already completed
+    if (isComplete) {
+      logEvent(currentStage, 'skip_connect_completed', { jobId: currentJobId });
+      return;
+    }
 
-    eventSource.addEventListener('status', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setStatus(data);
-      } catch (err) {
-        console.error('Error parsing status event:', err);
-      }
-    });
+    // Check if there's already an active connection for this stage
+    const existingConnection = activeConnections.get(currentStage);
+    if (existingConnection && existingConnection.readyState !== EventSource.CLOSED) {
+      console.warn(`EventSource already active for stage: ${currentStage}`);
+      logEvent(currentStage, 'duplicate_prevented', { jobId: currentJobId });
+      return;
+    }
 
-    eventSource.addEventListener('result', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setResult(data.result);
-        setIsComplete(true);
-        setIsConnected(false);
-        
-        if (onComplete) {
-          onComplete({ result: data.result, finishTime: data.finish_time });
+    // Clean up any existing connection
+    cleanup(currentStage);
+
+    logEvent(currentStage, 'connecting', { jobId: currentJobId });
+
+    try {
+      const eventSource = new EventSource(
+        `${config.QUEUE_API_BASE_URL}/api/get-job?id=${currentJobId}`
+      );
+
+      eventSourceRef.current = eventSource;
+      activeConnections.set(currentStage, eventSource);
+
+      eventSource.onopen = () => {
+        logEvent(currentStage, 'connected', { jobId: currentJobId });
+        if (isMountedRef.current) {
+          setIsConnected(true);
+          reconnectAttemptsRef.current = 0;
         }
-        
-        cleanup();
-      } catch (err) {
-        console.error('Error parsing result event:', err);
-      }
-    });
+      };
 
-    eventSource.addEventListener('error', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        setError(data.error);
-        setIsComplete(true);
-        setIsConnected(false);
-        
-        if (onComplete) {
-          onComplete({ error: data.error, finishTime: data.finish_time });
+      eventSource.addEventListener('status', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          logEvent(currentStage, 'status', data);
+
+          if (isMountedRef.current) {
+            setStatus(data);
+          }
+        } catch (err) {
+          console.error('Error parsing status event:', err);
+          logEvent(currentStage, 'parse_error', { error: err.message, event: 'status' });
         }
-        
-        cleanup();
-      } catch (err) {
-        console.error('Error parsing error event:', err);
-      }
-    });
+      });
 
-    eventSource.onerror = () => {
-      setIsConnected(false);
-      
-      // Only attempt reconnection if not complete
-      if (!isComplete && reconnectAttemptsRef.current < 3) {
-        reconnectAttemptsRef.current++;
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, 2000 * reconnectAttemptsRef.current); // Exponential backoff
-      } else {
-        cleanup();
-      }
-    };
-  }, [jobId, isComplete, cleanup, onComplete]);
+      eventSource.addEventListener('result', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          logEvent(currentStage, 'result', { resultCount: data.result?.length });
 
+          if (isMountedRef.current) {
+            setResult(data.result);
+            setIsComplete(true);
+            setIsConnected(false);
+          }
+
+          if (onComplete) {
+            onComplete({ result: data.result, finishTime: data.finish_time });
+          }
+
+          cleanup(currentStage);
+        } catch (err) {
+          console.error('Error parsing result event:', err);
+          logEvent(currentStage, 'parse_error', { error: err.message, event: 'result' });
+        }
+      });
+
+      eventSource.addEventListener('error', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const errorMessage = data.error || 'Unknown error';
+
+          logEvent(currentStage, 'job_error', { error: errorMessage });
+
+          if (isMountedRef.current) {
+            setError(errorMessage);
+            setIsComplete(true);
+            setIsConnected(false);
+          }
+
+          // Check if job not found - clear from localStorage
+          if (errorMessage.toLowerCase().includes('not found') ||
+            errorMessage.toLowerCase().includes('does not exist')) {
+            logEvent(currentStage, 'job_not_found', { jobId: currentJobId });
+            clearJobForStage(currentStage);
+          }
+
+          if (onComplete) {
+            onComplete({ error: errorMessage, finishTime: data.finish_time });
+          }
+
+          cleanup(currentStage);
+        } catch (err) {
+          console.error('Error parsing error event:', err);
+          logEvent(currentStage, 'parse_error', { error: err.message, event: 'error' });
+        }
+      });
+
+      eventSource.onerror = (e) => {
+        logEvent(currentStage, 'connection_error', {
+          readyState: eventSource.readyState,
+          attempts: reconnectAttemptsRef.current
+        });
+
+        if (isMountedRef.current) {
+          setIsConnected(false);
+        }
+
+        // Only attempt reconnection if not complete and under max attempts
+        if (!isComplete && reconnectAttemptsRef.current < 3 && isMountedRef.current) {
+          reconnectAttemptsRef.current++;
+          const delay = 2000 * reconnectAttemptsRef.current; // Exponential backoff
+
+          logEvent(currentStage, 'reconnecting', {
+            attempt: reconnectAttemptsRef.current,
+            delay
+          });
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current && !isComplete) {
+              connect();
+            }
+          }, delay);
+        } else {
+          logEvent(currentStage, 'reconnect_abandoned', {
+            attempts: reconnectAttemptsRef.current,
+            isComplete,
+            isMounted: isMountedRef.current
+          });
+          cleanup(currentStage);
+        }
+      };
+    } catch (err) {
+      console.error('Error creating EventSource:', err);
+      logEvent(currentStage, 'connection_failed', {
+        error: err.message,
+        jobId: currentJobId
+      });
+
+      if (isMountedRef.current) {
+        setError(`Failed to connect: ${err.message}`);
+      }
+    }
+  }, [isComplete, cleanup, onComplete]);
+
+  // Connect when jobId changes
   useEffect(() => {
-    if (jobId) {
+    if (stage && jobId) {
       connect();
     }
 
-    return cleanup;
-  }, [jobId, connect, cleanup]);
+    return () => {
+      cleanup(stage);
+    };
+  }, [stage, jobId, cleanup]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      cleanup(stage);
+    };
+  }, [stage, cleanup]);
 
   return {
     status,
@@ -196,4 +339,49 @@ export function enableFilterForStage(stage) {
   if (job && job.result) {
     saveJobForStage(stage, { ...job, filterActive: true });
   }
+}
+
+/**
+ * Get event logs for debugging
+ * @param {string} stage - Optional stage to filter logs
+ * @returns {Array} Array of log entries
+ */
+export function getEventLogs(stage = null) {
+  try {
+    const logs = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+    if (stage) {
+      return logs.filter(log => log.stage === stage);
+    }
+    return logs;
+  } catch (err) {
+    console.error('Error reading logs:', err);
+    return [];
+  }
+}
+
+/**
+ * Clear event logs
+ */
+export function clearEventLogs() {
+  try {
+    localStorage.removeItem(LOGS_KEY);
+  } catch (err) {
+    console.error('Error clearing logs:', err);
+  }
+}
+
+/**
+ * Get active connections count (for debugging)
+ * @returns {number} Number of active EventSource connections
+ */
+export function getActiveConnectionsCount() {
+  return activeConnections.size;
+}
+
+/**
+ * Get active connection stages (for debugging)
+ * @returns {Array} Array of stage identifiers with active connections
+ */
+export function getActiveConnectionStages() {
+  return Array.from(activeConnections.keys());
 }
