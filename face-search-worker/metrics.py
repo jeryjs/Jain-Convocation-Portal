@@ -33,33 +33,73 @@ class MetricsCollector:
     
     def get_gpu_metrics(self) -> Dict:
         """Get GPU metrics (utilization, temp, memory)"""
-        # Utilization
-        util = nvml.nvmlDeviceGetUtilizationRates(self.gpu_handle)
-        
-        gpu_utilization = util.gpu
-        
-        # Temperature
-        temp = nvml.nvmlDeviceGetTemperature(self.gpu_handle, nvml.NVML_TEMPERATURE_GPU)
-        
-        # Memory
-        mem_info = nvml.nvmlDeviceGetMemoryInfo(self.gpu_handle)
-        memory_used_mb = mem_info.used / (1024 ** 2)
-        memory_free_mb = mem_info.free / (1024 ** 2)
-        memory_total_mb = mem_info.total / (1024 ** 2)
-        
-        # Name
-        gpu_name = nvml.nvmlDeviceGetName(self.gpu_handle)
-        if isinstance(gpu_name, bytes):
-            gpu_name = gpu_name.decode('utf-8')
-        
-        return {
-            'name': gpu_name,
-            'utilization': gpu_utilization,
-            'temperature': temp,
-            'memory_used_mb': memory_used_mb,
-            'memory_free_mb': memory_free_mb,
-            'memory_total_mb': memory_total_mb
-        }
+        try:
+            # Utilization
+            util = nvml.nvmlDeviceGetUtilizationRates(self.gpu_handle)
+            
+            gpu_utilization = util.gpu
+            
+            # Temperature
+            temp = nvml.nvmlDeviceGetTemperature(self.gpu_handle, nvml.NVML_TEMPERATURE_GPU)
+            
+            # Memory
+            mem_info = nvml.nvmlDeviceGetMemoryInfo(self.gpu_handle)
+            memory_used_mb = mem_info.used / (1024 ** 2)
+            memory_free_mb = mem_info.free / (1024 ** 2)
+            memory_total_mb = mem_info.total / (1024 ** 2)
+            
+            # Name
+            gpu_name = nvml.nvmlDeviceGetName(self.gpu_handle)
+            if isinstance(gpu_name, bytes):
+                gpu_name = gpu_name.decode('utf-8')
+            
+            return {
+                'name': gpu_name,
+                'utilization': gpu_utilization,
+                'temperature': temp,
+                'memory_used_mb': memory_used_mb,
+                'memory_free_mb': memory_free_mb,
+                'memory_total_mb': memory_total_mb
+            }
+        except Exception as e:
+            # print(f"❌ Failed to get GPU metrics: {e}")
+            # Try to reinitialize NVML and reacquire handle once
+            try:
+                nvml.nvmlShutdown()
+            except Exception:
+                pass
+            try:
+                nvml.nvmlInit()
+                self.gpu_handle = nvml.nvmlDeviceGetHandleByIndex(self.gpu_index)
+                # Try again once
+                util = nvml.nvmlDeviceGetUtilizationRates(self.gpu_handle)
+                gpu_utilization = util.gpu
+                temp = nvml.nvmlDeviceGetTemperature(self.gpu_handle, nvml.NVML_TEMPERATURE_GPU)
+                mem_info = nvml.nvmlDeviceGetMemoryInfo(self.gpu_handle)
+                memory_used_mb = mem_info.used / (1024 ** 2)
+                memory_free_mb = mem_info.free / (1024 ** 2)
+                memory_total_mb = mem_info.total / (1024 ** 2)
+                gpu_name = nvml.nvmlDeviceGetName(self.gpu_handle)
+                if isinstance(gpu_name, bytes):
+                    gpu_name = gpu_name.decode('utf-8')
+                return {
+                    'name': gpu_name,
+                    'utilization': gpu_utilization,
+                    'temperature': temp,
+                    'memory_used_mb': memory_used_mb,
+                    'memory_free_mb': memory_free_mb,
+                    'memory_total_mb': memory_total_mb
+                }
+            except Exception as e2:
+                print(f"❌ Retried and failed to get GPU metrics: {e2}")
+                return {
+                    'name': None,
+                    'utilization': None,
+                    'temperature': None,
+                    'memory_used_mb': None,
+                    'memory_free_mb': None,
+                    'memory_total_mb': None
+                }
     
     def get_all_metrics(self) -> Dict:
         """Get all system metrics"""

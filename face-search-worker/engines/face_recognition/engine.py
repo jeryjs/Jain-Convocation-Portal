@@ -73,26 +73,26 @@ class FaceRecognitionEngine(BaseEngine):
             gallery_img = self._preprocess_image(gallery_img)
             
             # Get encodings
-            gallery_encodings = face_recognition.face_encodings(gallery_img)
+            img_encodings = face_recognition.face_encodings(gallery_img)
             del gallery_img  # Release memory immediately
             
-            if not gallery_encodings:
+            if not img_encodings:
                 return None
             
             # Check exclusion
             if exclude_encodings:
-                for gallery_enc in gallery_encodings:
+                for gallery_enc in img_encodings:
                     distances = face_recognition.face_distance(exclude_encodings, gallery_enc)
                     if np.any(distances < 0.5):
-                        del gallery_encodings
+                        del img_encodings
                         return None
             
             # Calculate similarity
-            distances = face_recognition.face_distance(gallery_encodings, selfie_encoding)
+            distances = face_recognition.face_distance(img_encodings, selfie_encoding)
             min_distance = min(distances)
             similarity = 1 - min_distance
             
-            del gallery_encodings
+            del img_encodings
             
             if similarity > 0:
                 return {
