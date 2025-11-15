@@ -25,7 +25,8 @@ load_dotenv()
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(levelname).1s:%(name)s:%(message)s'
+    format='%(levelname).1s-%(asctime)s: %(message)s',
+    datefmt='%H:%M:%S'
 )
 logger = logging.getLogger(__name__)
 

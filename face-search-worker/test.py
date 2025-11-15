@@ -8,6 +8,7 @@ import sys
 import base64
 import io
 import time
+import logging
 from PIL import Image
 from dotenv import load_dotenv
 import numpy as np
@@ -35,8 +36,9 @@ EXCLUDE_IMAGES_DIR = os.path.dirname(__file__) + r"\exclude_faces"
 # ============================================================
 # Helper Functions
 # ============================================================
-def prepare_gallery_images(stage: str, limit: int = 50):
+def prepare_gallery_images(stage: str, limit: int = 300):
     """Load and prepare gallery images from stage directory"""
+    stage = "" # testing: use all images
     gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
     
     if not os.path.exists(gallery_dir):
@@ -221,7 +223,7 @@ def test_face_recognition_engine():
     
     try:
         # Prepare data
-        gallery_images = prepare_gallery_images(stage, limit=50)
+        gallery_images = prepare_gallery_images(stage)
         selfie_base64 = load_image_base64(TEST_SELFIE)
         gallery_for_engine = convert_gallery_to_base64(gallery_images)
         exclude_images = [os.path.join(EXCLUDE_IMAGES_DIR, f) for f in os.listdir(EXCLUDE_IMAGES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
@@ -234,11 +236,13 @@ def test_face_recognition_engine():
         # Perform search
         print("🔍 Searching for faces...")
         start_time = time.time()
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
         results = engine.search_faces(
             selfie_base64=selfie_base64,
             gallery_images=gallery_for_engine,
             exclude_images=exclude_images
         )
+        logging.disable(logging.INFO)
         
         # Show results
         show_top_results(results, time.time() - start_time)
@@ -269,7 +273,7 @@ def test_deepface_engine():
     
     try:
         # Prepare data
-        gallery_images = prepare_gallery_images(stage, limit=50)
+        gallery_images = prepare_gallery_images(stage)
         selfie_base64 = load_image_base64(TEST_SELFIE)
         gallery_for_engine = convert_gallery_to_base64(gallery_images)
         exclude_images = [os.path.join(EXCLUDE_IMAGES_DIR, f) for f in os.listdir(EXCLUDE_IMAGES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
@@ -283,11 +287,13 @@ def test_deepface_engine():
         # Perform search
         print("🔍 Searching for faces...")
         start_time = time.time()
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%H:%M:%S')
         results = engine.search_faces(
             selfie_base64=selfie_base64,
             gallery_images=gallery_for_engine,
             exclude_images=exclude_images
         )
+        logging.disable(logging.INFO)
         
         # Show results
         show_top_results(results, time.time() - start_time)
@@ -338,7 +344,7 @@ def run_all_tests():
     if failed == 0:
         print("\n🎉 All tests passed!")
     else:
-        print(f"\n⚠️  {failed} test(s) failed. Review errors above.")
+        print(f"\n⚠️  {failed} test(s) failed.")
 
 
 if __name__ == '__main__':
