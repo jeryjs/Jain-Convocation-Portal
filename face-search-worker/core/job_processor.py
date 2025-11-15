@@ -71,7 +71,7 @@ async def process_job(
         logger.info(f"📂 Found {len(exclude_images)} exclude faces")
         
         # Fetch gallery images from convocation_photos_dir/stage
-        gallery_dir = os.path.join(convocation_photos_dir, stage)
+        gallery_dir = os.path.join(convocation_photos_dir, "").replace('\\', '/')   # testing: use all images in gallery
         gallery_images = []
         valid_extensions = ('.png', '.jpg', '.jpeg')
         if os.path.exists(gallery_dir):

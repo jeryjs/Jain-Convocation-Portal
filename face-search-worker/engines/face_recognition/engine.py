@@ -60,11 +60,16 @@ class FaceRecognitionEngine(BaseEngine):
 
     def _process_single_gallery_image(self, args):
         """Process a single gallery image (for parallel execution)"""
-        img_id, img_base64, selfie_encoding, exclude_encodings = args
+        img_id, img_path_or_base64, selfie_encoding, exclude_encodings = args
         
         try:
-            # Decode and preprocess
-            gallery_img = self.decode_base64_image(img_base64)
+            # Load image from path or decode from base64
+            if isinstance(img_path_or_base64, str) and (img_path_or_base64.startswith('/') or img_path_or_base64.startswith('\\') or ':' in img_path_or_base64):
+                # It's a file path
+                gallery_img = self.load_image_from_path(img_path_or_base64)
+            else:
+                # It's base64
+                gallery_img = self.decode_base64_image(img_path_or_base64)
             gallery_img = self._preprocess_image(gallery_img)
             
             # Get encodings

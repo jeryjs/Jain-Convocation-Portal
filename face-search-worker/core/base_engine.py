@@ -75,6 +75,11 @@ class BaseEngine(ABC):
         if ',' in base64_str:
             base64_str = base64_str.split(',')[1]
         
+        # Add padding if needed (base64 strings must be padded to multiple of 4)
+        padding_needed = len(base64_str) % 4
+        if padding_needed:
+            base64_str += '=' * (4 - padding_needed)
+        
         # Decode base64
         image_data = base64.b64decode(base64_str)
         image = Image.open(io.BytesIO(image_data))
