@@ -25,7 +25,7 @@ load_dotenv()
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(levelname)s:%(name)s:%(message)s'
+    format='%(levelname).1s:%(name)s:%(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ GPU_INDEX = int(os.getenv('GPU_INDEX', 0))
 WORKER_CONCURRENCY = int(os.getenv('WORKER_CONCURRENCY', 1))
 USE_CPU = os.getenv('USE_CPU', '0') == '1'
 EXCLUDE_FACES_DIR = os.path.join(os.path.dirname(__file__), 'exclude_faces')
+CONVOCATION_PHOTOS_DIR = "Z:/Downloads/jain 14th convo"
 
 
 def select_engine():
@@ -146,6 +147,7 @@ async def main():
                 worker_id=manager.worker_id or 'unknown',
                 worker_stats=manager.worker_stats,
                 exclude_faces_dir=EXCLUDE_FACES_DIR,
+                convocation_photos_dir=CONVOCATION_PHOTOS_DIR,
                 logger=logger
             )
 

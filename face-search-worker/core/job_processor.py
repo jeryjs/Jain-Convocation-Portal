@@ -16,6 +16,7 @@ async def process_job(
     worker_id: str,
     worker_stats: Dict[str, Any],
     exclude_faces_dir: str,
+    convocation_photos_dir: str,
     logger
 ) -> List[Dict[str, float]] | None:
     """
@@ -69,11 +70,18 @@ async def process_job(
         
         logger.info(f"📂 Found {len(exclude_images)} exclude faces")
         
-        # TODO: Fetch gallery images from backend API
-        # For now, using mock data
-        gallery_images = [
-            {'id': 'img_001', 'image': selfie_image},  # Same image for testing
-        ]
+        # Fetch gallery images from convocation_photos_dir/stage
+        gallery_dir = os.path.join(convocation_photos_dir, stage)
+        gallery_images = []
+        valid_extensions = ('.png', '.jpg', '.jpeg')
+        if os.path.exists(gallery_dir):
+            for root, dirs, files in os.walk(gallery_dir):
+                for f in files:
+                    if f.lower().endswith(valid_extensions):
+                        image_path = os.path.join(root, f)
+                        gallery_images.append({'id': os.path.relpath(image_path, convocation_photos_dir), 'image': image_path})
+        else:
+            logger.warning(f"Gallery directory does not exist: {gallery_dir}")
         
         logger.info(f"🖼️  Processing {len(gallery_images)} gallery images")
         
