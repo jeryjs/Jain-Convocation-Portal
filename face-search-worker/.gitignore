@@ -9,12 +9,8 @@ env/
 ENV/
 .venv
 
-# DeepFace cache
-.deepface/
-
 # Environment
 .env
-.env.local
 
 # IDE
 .vscode/
