@@ -28,7 +28,76 @@ REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
 
 CONVOCATION_PHOTOS_DIR = r"Z:\Downloads\jain 14th convo"
-TEST_SELFIE = os.path.dirname(__file__) + r".\selfie_images\selfie.jpg"
+TEST_SELFIE = os.path.dirname(__file__) + r"\selfie_images\selfie.jpg"
+EXCLUDE_IMAGES_DIR = os.path.dirname(__file__) + r"\exclude_faces"
+
+
+# ============================================================
+# Helper Functions
+# ============================================================
+def prepare_gallery_images(stage: str, limit: int = 50):
+    """Load and prepare gallery images from stage directory"""
+    gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
+    
+    if not os.path.exists(gallery_dir):
+        raise FileNotFoundError(f"Gallery directory not found: {gallery_dir}")
+    
+    # Get all images from stage directory
+    gallery_images = []
+    valid_extensions = ('.png', '.jpg', '.jpeg')
+    for root, dirs, files in os.walk(gallery_dir):
+        for f in files:
+            if f.lower().endswith(valid_extensions):
+                image_path = os.path.join(root, f)
+                gallery_images.append({
+                    'id': os.path.relpath(image_path, CONVOCATION_PHOTOS_DIR),
+                    'image_path': image_path
+                })
+    
+    print(f"✓ Found {len(gallery_images)} images in stage directory")
+    
+    if len(gallery_images) == 0:
+        raise ValueError("No images found in gallery directory")
+    
+    return gallery_images[:limit]
+
+
+def load_image_base64(image_path: str) -> str:
+    """Load and convert image to base64"""
+    print(f"✓ Using image: {os.path.basename(image_path)}")
+    
+    with Image.open(image_path) as img:
+        if img.mode == "RGBA":
+            img = img.convert("RGB")
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG')
+        return base64.b64encode(buffer.getvalue()).decode('utf-8')
+    
+def convert_gallery_to_base64(gallery_images: list) -> list:
+    """Convert gallery images to base64 format expected by engine"""
+    gallery_for_engine = []
+    for img_data in gallery_images:
+        with Image.open(img_data['image_path']) as img:
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+            buffer = io.BytesIO()
+            img.save(buffer, format='JPEG')
+            gallery_for_engine.append({
+                'id': img_data['id'],
+                'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
+            })
+    
+    print(f"✓ Prepared {len(gallery_for_engine)} gallery images for search")
+    return gallery_for_engine
+
+
+def show_top_results(results: list, time_taken: float, top_n: int = 20):
+    """Display top N results"""
+    top_results = results[:top_n]
+    print(f"\n✅ Found {len(results)} matches in {time_taken:.2f}s. Top {top_n} results:")
+    print("-" * 60)
+    for i, result in enumerate(top_results, 1):
+        print(f"{i:2d}. {result['id']:<50} | Similarity: {result['similarity']:.4f}")
 
 
 # ============================================================
@@ -148,91 +217,45 @@ def test_face_recognition_engine():
     print("\n👤 Test 3: face_recognition Engine")
     print("-" * 60)
     
-    # Test stage
     stage = "18-11-2025 Day 1/09AM to 01PM/Stage 2 (Center)"
-    gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
     
-    if not os.path.exists(gallery_dir):
-        print(f"❌ Gallery directory not found: {gallery_dir}")
-        print("⚠️  Skipping test - directory does not exist")
-        return
-    
-    # Get all images from stage directory
-    gallery_images = []
-    valid_extensions = ('.png', '.jpg', '.jpeg')
-    for root, dirs, files in os.walk(gallery_dir):
-        for f in files:
-            if f.lower().endswith(valid_extensions):
-                image_path = os.path.join(root, f)
-                gallery_images.append({
-                    'id': os.path.relpath(image_path, CONVOCATION_PHOTOS_DIR),
-                    'image_path': image_path
-                })
-    
-    print(f"✓ Found {len(gallery_images)} images in stage directory")
-    
-    if len(gallery_images) == 0:
-        print("❌ No images found in gallery directory")
-        return
-    
-    # Use a random image as selfie
-    # selfie_path = random.choice(gallery_images)['image_path']
-    selfie_path = TEST_SELFIE
-    print(f"✓ Using selfie: {os.path.basename(selfie_path)}")
-    
-    # Convert selfie to base64
-    with Image.open(selfie_path) as img:
-        if img.mode == "RGBA":
-            img = img.convert("RGB")
-        buffer = io.BytesIO()
-        img.save(buffer, format='JPEG')
-        selfie_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        
-    # Convert gallery images to format expected by engine
-    gallery_for_engine = []
-    for img_data in gallery_images[:50]:  # Limit to 50 for faster testing
-        with Image.open(img_data['image_path']) as img:
-            if img.mode == "RGBA":
-                img = img.convert("RGB")
-            buffer = io.BytesIO()
-            img.save(buffer, format='JPEG')
-            gallery_for_engine.append({
-                'id': img_data['id'],
-                'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
-            })
-    
-    print(f"✓ Prepared {len(gallery_for_engine)} gallery images for search")
-    
-    # Initialize engine
     try:
+        # Prepare data
+        gallery_images = prepare_gallery_images(stage, limit=50)
+        selfie_base64 = load_image_base64(TEST_SELFIE)
+        gallery_for_engine = convert_gallery_to_base64(gallery_images)
+        exclude_images = [os.path.join(EXCLUDE_IMAGES_DIR, f) for f in os.listdir(EXCLUDE_IMAGES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        
+        # Initialize engine
         from engines.face_recognition.engine import FaceRecognitionEngine
         engine = FaceRecognitionEngine(use_gpu=True)
         print(f"✓ Engine initialized: {engine.name}")
+        
+        # Perform search
+        print("🔍 Searching for faces...")
+        start_time = time.time()
+        results = engine.search_faces(
+            selfie_base64=selfie_base64,
+            gallery_images=gallery_for_engine,
+            exclude_images=exclude_images
+        )
+        
+        # Show results
+        show_top_results(results, time.time() - start_time)
+        print("\n✅ face_recognition engine test passed!")
+        
+    except FileNotFoundError as e:
+        print(f"❌ {e}")
+        print("⚠️  Skipping test - directory does not exist")
+        return
+    except ValueError as e:
+        print(f"❌ {e}")
+        return
     except Exception as e:
         if "No module named 'face_recognition'" in str(e):
             print("⚠️  To run this test, you need to be on the 'ml' environment")
             raise RuntimeError("face_recognition engine test skipped due to incorrect environment.")
-        else:
-            print(f"Error: {e}")
-            raise
-        
-    # Perform search
-    print("🔍 Searching for faces...")
-    start_time = time.time()
-    results = engine.search_faces(
-        selfie_base64=selfie_base64,
-        gallery_images=gallery_for_engine,
-        exclude_images=None
-    )
-    
-    # Show top 20 results
-    top_results = results[:20]
-    print(f"\n✅ Found {len(results)} matches in {(time.time() - start_time):.2f}s. Top 20 results:")
-    print("-" * 60)
-    for i, result in enumerate(top_results, 1):
-        print(f"{i:2d}. {result['id']:<50} | Similarity: {result['similarity']:.4f}")
-    
-    print("\n✅ face_recognition engine test passed!")
+        raise
 
 
 # ============================================================
@@ -242,89 +265,44 @@ def test_deepface_engine():
     print("\n🤖 Test 4: DeepFace Engine (Real Images)")
     print("-" * 60)
     
-    # Test stage
     stage = "18-11-2025 Day 1/09AM to 01PM/Stage 2 (Center)"
-    gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
     
-    if not os.path.exists(gallery_dir):
-        print(f"❌ Gallery directory not found: {gallery_dir}")
-        print("⚠️  Skipping test - directory does not exist")
-        return
-    
-    # Get all images from stage directory
-    gallery_images = []
-    valid_extensions = ('.png', '.jpg', '.jpeg')
-    for root, dirs, files in os.walk(gallery_dir):
-        for f in files:
-            if f.lower().endswith(valid_extensions):
-                image_path = os.path.join(root, f)
-                gallery_images.append({
-                    'id': os.path.relpath(image_path, CONVOCATION_PHOTOS_DIR),
-                    'image_path': image_path
-                })
-    
-    print(f"✓ Found {len(gallery_images)} images in stage directory")
-    
-    if len(gallery_images) == 0:
-        print("❌ No images found in gallery directory")
-        return
-    
-    # Use first image as selfie
-    # selfie_path = gallery_images[0]['image_path']
-    selfie_path = TEST_SELFIE
-    print(f"✓ Using selfie: {os.path.basename(selfie_path)}")
-    
-    # Convert selfie to base64
-    with Image.open(selfie_path) as img:
-        if img.mode == "RGBA":
-            img = img.convert("RGB")
-        buffer = io.BytesIO()
-        img.save(buffer, format='JPEG')
-        selfie_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-    # Convert gallery images to format expected by engine
-    gallery_for_engine = []
-    for img_data in gallery_images[:50]:  # Limit to 50 for faster testing
-        with Image.open(img_data['image_path']) as img:
-            if img.mode == "RGBA":
-                img = img.convert("RGB")
-            buffer = io.BytesIO()
-            img.save(buffer, format='JPEG')
-            gallery_for_engine.append({
-                'id': img_data['id'],
-                'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
-            })
-    
-    print(f"✓ Prepared {len(gallery_for_engine)} gallery images for search")
-    
-    # Initialize engine
     try:
+        # Prepare data
+        gallery_images = prepare_gallery_images(stage, limit=50)
+        selfie_base64 = load_image_base64(TEST_SELFIE)
+        gallery_for_engine = convert_gallery_to_base64(gallery_images)
+        exclude_images = [os.path.join(EXCLUDE_IMAGES_DIR, f) for f in os.listdir(EXCLUDE_IMAGES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        
+        # Initialize engine (suppress stderr warnings)
         with contextlib.redirect_stderr(open(os.devnull, 'w')):
             from engines.deepface.engine import DeepFaceEngine
         engine = DeepFaceEngine(use_gpu=True)
         print(f"✓ Engine initialized: {engine.name}")
+        
+        # Perform search
+        print("🔍 Searching for faces...")
+        start_time = time.time()
+        results = engine.search_faces(
+            selfie_base64=selfie_base64,
+            gallery_images=gallery_for_engine,
+            exclude_images=exclude_images
+        )
+        
+        # Show results
+        show_top_results(results, time.time() - start_time)
+        print("\n✅ DeepFace engine test passed!")
+        
+    except FileNotFoundError as e:
+        print(f"❌ {e}")
+        print("⚠️  Skipping test - directory does not exist")
+        return
+    except ValueError as e:
+        print(f"❌ {e}")
+        return
     except Exception:
         print("⚠️  To run this test, you need to be on the 'tf' environment")
         raise RuntimeError("DeepFace engine test skipped due to incorrect environment.")
-        
-
-    # Perform search
-    print("🔍 Searching for faces...")
-    start_time = time.time()
-    results = engine.search_faces(
-        selfie_base64=selfie_base64,
-        gallery_images=gallery_for_engine,
-        exclude_images=None
-    )
-
-    # Show top 20 results
-    top_results = results[:20]
-    print(f"\n✅ Found {len(results)} matches in {(time.time() - start_time):.2f}s. Top 20 results:")
-    print("-" * 60)
-    for i, result in enumerate(top_results, 1):
-        print(f"{i:2d}. {result['id']:<50} | Similarity: {result['similarity']:.4f}")
-    
-    print("\n✅ DeepFace engine test passed!")
 
 
 # ============================================================

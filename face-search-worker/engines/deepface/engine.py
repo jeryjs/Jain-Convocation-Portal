@@ -24,7 +24,7 @@ class DeepFaceEngine(BaseEngine):
     def __init__(self, use_gpu: bool = True):
         super().__init__(use_gpu)
         self.name = "DeepFace"
-        self.model_name = "VGG-Face"  # or Facenet, OpenFace, etc.
+        self.model_name = "Facenet"  # or VGG-Face, OpenFace, ArcFace, etc.
         
         # Configure GPU
         if not use_gpu:
