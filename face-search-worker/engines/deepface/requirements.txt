@@ -1,0 +1,6 @@
+tensorflow==2.10.1
+deepface==0.0.79
+numpy<2.0
+opencv-python==4.8.1.78
+Pillow==11.0.0
+pandas==2.1.4

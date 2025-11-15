@@ -1,0 +1,5 @@
+face-recognition==1.3.0
+dlib==19.24.0
+numpy<2.0
+opencv-python==4.8.1.78
+Pillow==11.0.0
