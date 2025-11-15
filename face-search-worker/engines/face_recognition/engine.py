@@ -29,6 +29,14 @@ class FaceRecognitionEngine(BaseEngine):
             os.environ["CUDA_VISIBLE_DEVICES"] = "0"
         
         logger.info(f"✅ {self.name} engine initialized (GPU: {use_gpu})")
+
+    def _is_environment_compatible(self) -> bool:
+        """Check if face_recognition is available in the environment"""
+        try:
+            import face_recognition  # noqa: F401
+            return True
+        except ImportError:
+            return False
     
     def search_faces(
         self,

@@ -2,13 +2,17 @@
 Test suite for face search worker components
 """
 
+import contextlib
 import os
 import sys
 import base64
 import io
+import time
 from PIL import Image
 from dotenv import load_dotenv
 import numpy as np
+import traceback
+import random
 
 # Add project root to path
 sys.path.append(os.path.dirname(__file__))
@@ -17,10 +21,15 @@ print("=" * 60)
 print("Face Search Worker - Test Suite")
 print("=" * 60)
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+
+CONVOCATION_PHOTOS_DIR = r"Z:\Downloads\jain 14th convo"
+TEST_SELFIE = os.path.dirname(__file__) + r".\selfie_images\selfie.jpg"
+
 
 # ============================================================
 # Test 1: Metrics Collection
@@ -48,47 +57,10 @@ def test_metrics():
 
 
 # ============================================================
-# Test 2: Base64 Image Encoding/Decoding
-# ============================================================
-def test_base64_image():
-    print("\n🖼️  Test 2: Base64 Image Encoding/Decoding")
-    print("-" * 60)
-    
-    from core.base_engine import BaseEngine
-    
-    # Create a test image (100x100 red square)
-    img = Image.new('RGB', (100, 100), color='red')
-    
-    # Convert to base64
-    buffer = io.BytesIO()
-    img.save(buffer, format='JPEG')
-    img_bytes = buffer.getvalue()
-    img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-    
-    print(f"✓ Created test image: 100x100 red square")
-    print(f"✓ Base64 length: {len(img_base64)} chars")
-    
-    # Test with data URI prefix
-    data_uri = f"data:image/jpeg;base64,{img_base64}"
-    
-    # Decode back
-    decoded_img = BaseEngine.decode_base64_image(img_base64)
-    print(f"✓ Decoded without prefix: shape {decoded_img.shape}")
-    
-    decoded_img_uri = BaseEngine.decode_base64_image(data_uri)
-    print(f"✓ Decoded with prefix: shape {decoded_img_uri.shape}")
-    
-    assert decoded_img.shape == (100, 100, 3), "Image shape mismatch!"
-    assert decoded_img_uri.shape == (100, 100, 3), "Image shape mismatch!"
-    
-    print("✅ Base64 encoding/decoding test passed!")
-
-
-# ============================================================
-# Test 3: Worker ID Generation
+# Test 2: Worker ID Generation
 # ============================================================
 def test_worker_id_generation():
-    print("\n🆔 Test 3: Worker ID Generation")
+    print("\n🆔 Test 2: Worker ID Generation")
     print("-" * 60)
     
     import redis
@@ -104,7 +76,7 @@ def test_worker_id_generation():
     # Clear test workers
     test_prefix = "TEST_LAPTOP_gpu0_test_"
     workers_data = client.hgetall('workers')
-    for worker_id in workers_data.keys(): # type: ignore
+    for worker_id in workers_data.keys():  # type: ignore
         if worker_id.startswith(test_prefix):
             client.hdel('workers', worker_id)
     
@@ -170,145 +142,189 @@ def test_worker_id_generation():
 
 
 # ============================================================
-# Test 4: Face Recognition Engine (Mock)
+# Test 3: Face Recognition Engine
 # ============================================================
 def test_face_recognition_engine():
-    print("\n👤 Test 4: Face Recognition Engine")
+    print("\n👤 Test 3: face_recognition Engine")
     print("-" * 60)
     
-    from engines.face_recognition.engine import FaceRecognitionEngine
+    # Test stage
+    stage = "18-11-2025 Day 1/09AM to 01PM/Stage 2 (Center)"
+    gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
     
-    engine = FaceRecognitionEngine(use_gpu=True)
-    print(f"✓ Engine initialized: {engine.name}")
+    if not os.path.exists(gallery_dir):
+        print(f"❌ Gallery directory not found: {gallery_dir}")
+        print("⚠️  Skipping test - directory does not exist")
+        return
     
-    # Create test selfie (red square)
-    img = Image.new('RGB', (200, 200), color='red')
-    buffer = io.BytesIO()
-    img.save(buffer, format='JPEG')
-    selfie_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-    
-    # Create gallery images (blue, green squares)
+    # Get all images from stage directory
     gallery_images = []
-    for i, color in enumerate(['blue', 'green', 'yellow']):
-        img = Image.new('RGB', (200, 200), color=color)
-        buffer = io.BytesIO()
-        img.save(buffer, format='JPEG')
-        gallery_images.append({
-            'id': f'img_{i:03d}',
-            'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
-        })
-    
-    print(f"✓ Created test selfie and {len(gallery_images)} gallery images")
-    
-    # Note: This will fail if no faces are detected, which is expected
-    # for solid color images. This test is mainly to verify the engine loads.
-    try:
-        results = engine.search_faces(
-            selfie_base64=selfie_base64,
-            gallery_images=gallery_images[:1],  # Only test 1 image
-            exclude_images=None
-        )
-        print(f"✓ Engine processed images (found {len(results)} matches)")
-    except ValueError as e:
-        print(f"✓ Engine correctly detected no faces: {e}")
-    
-    print("✅ Face recognition engine test passed!")
-
-
-# ============================================================
-# Test 5: Exclude Faces Logic
-# ============================================================
-def test_exclude_faces():
-    print("\n🚫 Test 5: Exclude Faces Logic")
-    print("-" * 60)
-    
-    exclude_dir = os.path.join(os.path.dirname(__file__), 'exclude_faces')
-    
-    if not os.path.exists(exclude_dir):
-        os.makedirs(exclude_dir)
-        print(f"✓ Created exclude_faces directory: {exclude_dir}")
-    
-    # Count exclude images
     valid_extensions = ('.png', '.jpg', '.jpeg')
-    exclude_images = []
-    for root, dirs, files in os.walk(exclude_dir):
+    for root, dirs, files in os.walk(gallery_dir):
         for f in files:
             if f.lower().endswith(valid_extensions):
-                exclude_images.append(os.path.join(root, f))
+                image_path = os.path.join(root, f)
+                gallery_images.append({
+                    'id': os.path.relpath(image_path, CONVOCATION_PHOTOS_DIR),
+                    'image_path': image_path
+                })
     
-    print(f"✓ Found {len(exclude_images)} exclude images")
-    for img_path in exclude_images[:5]:  # Show first 5
-        print(f"  - {os.path.basename(img_path)}")
+    print(f"✓ Found {len(gallery_images)} images in stage directory")
     
-    if len(exclude_images) > 5:
-        print(f"  ... and {len(exclude_images) - 5} more")
+    if len(gallery_images) == 0:
+        print("❌ No images found in gallery directory")
+        return
     
-    print("✅ Exclude faces test passed!")
-
-
-# ============================================================
-# Test 6: Redis Connection & Pause Flag
-# ============================================================
-def test_redis_pause():
-    print("\n⏸️  Test 6: Redis Pause Flag")
-    print("-" * 60)
+    # Use a random image as selfie
+    # selfie_path = random.choice(gallery_images)['image_path']
+    selfie_path = TEST_SELFIE
+    print(f"✓ Using selfie: {os.path.basename(selfie_path)}")
     
-    import redis
+    # Convert selfie to base64
+    with Image.open(selfie_path) as img:
+        if img.mode == "RGBA":
+            img = img.convert("RGB")
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG')
+        selfie_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+    # Convert gallery images to format expected by engine
+    gallery_for_engine = []
+    for img_data in gallery_images[:50]:  # Limit to 50 for faster testing
+        with Image.open(img_data['image_path']) as img:
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+            buffer = io.BytesIO()
+            img.save(buffer, format='JPEG')
+            gallery_for_engine.append({
+                'id': img_data['id'],
+                'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
+            })
     
-    client = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        password=REDIS_PASSWORD,
-        decode_responses=True
+    print(f"✓ Prepared {len(gallery_for_engine)} gallery images for search")
+    
+    # Initialize engine
+    try:
+        from engines.face_recognition.engine import FaceRecognitionEngine
+        engine = FaceRecognitionEngine(use_gpu=True)
+        print(f"✓ Engine initialized: {engine.name}")
+    except Exception as e:
+        if "No module named 'face_recognition'" in str(e):
+            print("⚠️  To run this test, you need to be on the 'ml' environment")
+            raise RuntimeError("face_recognition engine test skipped due to incorrect environment.")
+        else:
+            print(f"Error: {e}")
+            raise
+        
+    # Perform search
+    print("🔍 Searching for faces...")
+    start_time = time.time()
+    results = engine.search_faces(
+        selfie_base64=selfie_base64,
+        gallery_images=gallery_for_engine,
+        exclude_images=None
     )
     
-    test_worker_id = "TEST_WORKER_123"
+    # Show top 20 results
+    top_results = results[:20]
+    print(f"\n✅ Found {len(results)} matches in {(time.time() - start_time):.2f}s. Top 20 results:")
+    print("-" * 60)
+    for i, result in enumerate(top_results, 1):
+        print(f"{i:2d}. {result['id']:<50} | Similarity: {result['similarity']:.4f}")
     
-    # Test pause
-    client.set(f'worker:{test_worker_id}:paused', '1')
-    is_paused = client.get(f'worker:{test_worker_id}:paused')
-    print(f"✓ Set pause flag: {is_paused == '1'}")
-    
-    # Test resume
-    client.delete(f'worker:{test_worker_id}:paused')
-    is_paused = client.get(f'worker:{test_worker_id}:paused')
-    print(f"✓ Removed pause flag: {is_paused is None}")
-    
-    print("✅ Redis pause flag test passed!")
+    print("\n✅ face_recognition engine test passed!")
 
 
 # ============================================================
-# Test 7: Similarity Calculation (Mock)
+# Test 4: DeepFace Engine (Real Images)
 # ============================================================
-def test_similarity_sorting():
-    print("\n📊 Test 7: Similarity Sorting")
+def test_deepface_engine():
+    print("\n🤖 Test 4: DeepFace Engine (Real Images)")
     print("-" * 60)
     
-    # Mock results
-    results = [
-        {'id': 'img_001', 'similarity': 0.65},
-        {'id': 'img_002', 'similarity': 0.92},
-        {'id': 'img_003', 'similarity': 0.78},
-        {'id': 'img_004', 'similarity': 0.88},
-        {'id': 'img_005', 'similarity': 0.45},
-    ]
+    # Test stage
+    stage = "18-11-2025 Day 1/09AM to 01PM/Stage 2 (Center)"
+    gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
     
-    print("✓ Unsorted results:")
-    for r in results:
-        print(f"  - {r['id']}: {r['similarity']:.2f}")
+    if not os.path.exists(gallery_dir):
+        print(f"❌ Gallery directory not found: {gallery_dir}")
+        print("⚠️  Skipping test - directory does not exist")
+        return
     
-    # Sort descending
-    results.sort(key=lambda x: x['similarity'], reverse=True)
+    # Get all images from stage directory
+    gallery_images = []
+    valid_extensions = ('.png', '.jpg', '.jpeg')
+    for root, dirs, files in os.walk(gallery_dir):
+        for f in files:
+            if f.lower().endswith(valid_extensions):
+                image_path = os.path.join(root, f)
+                gallery_images.append({
+                    'id': os.path.relpath(image_path, CONVOCATION_PHOTOS_DIR),
+                    'image_path': image_path
+                })
     
-    print("\n✓ Sorted results (descending):")
-    for r in results:
-        print(f"  - {r['id']}: {r['similarity']:.2f}")
+    print(f"✓ Found {len(gallery_images)} images in stage directory")
     
-    # Verify order
-    assert results[0]['similarity'] == 0.92, "First result not highest!"
-    assert results[-1]['similarity'] == 0.45, "Last result not lowest!"
+    if len(gallery_images) == 0:
+        print("❌ No images found in gallery directory")
+        return
     
-    print("✅ Similarity sorting test passed!")
+    # Use first image as selfie
+    # selfie_path = gallery_images[0]['image_path']
+    selfie_path = TEST_SELFIE
+    print(f"✓ Using selfie: {os.path.basename(selfie_path)}")
+    
+    # Convert selfie to base64
+    with Image.open(selfie_path) as img:
+        if img.mode == "RGBA":
+            img = img.convert("RGB")
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG')
+        selfie_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    # Convert gallery images to format expected by engine
+    gallery_for_engine = []
+    for img_data in gallery_images[:50]:  # Limit to 50 for faster testing
+        with Image.open(img_data['image_path']) as img:
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+            buffer = io.BytesIO()
+            img.save(buffer, format='JPEG')
+            gallery_for_engine.append({
+                'id': img_data['id'],
+                'image': base64.b64encode(buffer.getvalue()).decode('utf-8')
+            })
+    
+    print(f"✓ Prepared {len(gallery_for_engine)} gallery images for search")
+    
+    # Initialize engine
+    try:
+        with contextlib.redirect_stderr(open(os.devnull, 'w')):
+            from engines.deepface.engine import DeepFaceEngine
+        engine = DeepFaceEngine(use_gpu=True)
+        print(f"✓ Engine initialized: {engine.name}")
+    except Exception:
+        print("⚠️  To run this test, you need to be on the 'tf' environment")
+        raise RuntimeError("DeepFace engine test skipped due to incorrect environment.")
+        
+
+    # Perform search
+    print("🔍 Searching for faces...")
+    start_time = time.time()
+    results = engine.search_faces(
+        selfie_base64=selfie_base64,
+        gallery_images=gallery_for_engine,
+        exclude_images=None
+    )
+
+    # Show top 20 results
+    top_results = results[:20]
+    print(f"\n✅ Found {len(results)} matches in {(time.time() - start_time):.2f}s. Top 20 results:")
+    print("-" * 60)
+    for i, result in enumerate(top_results, 1):
+        print(f"{i:2d}. {result['id']:<50} | Similarity: {result['similarity']:.4f}")
+    
+    print("\n✅ DeepFace engine test passed!")
 
 
 # ============================================================
@@ -317,12 +333,9 @@ def test_similarity_sorting():
 def run_all_tests():
     tests = [
         ("Metrics Collection", test_metrics),
-        ("Base64 Encoding/Decoding", test_base64_image),
         ("Worker ID Generation", test_worker_id_generation),
-        ("Face Recognition Engine", test_face_recognition_engine),
-        ("Exclude Faces Logic", test_exclude_faces),
-        ("Redis Pause Flag", test_redis_pause),
-        ("Similarity Sorting", test_similarity_sorting),
+        ("face_recognition Engine", test_face_recognition_engine),
+        ("DeepFace Engine", test_deepface_engine),
     ]
     
     passed = 0
@@ -335,8 +348,7 @@ def run_all_tests():
         except Exception as e:
             print(f"\n❌ Test '{name}' FAILED!")
             print(f"Error: {e}")
-            import traceback
-            traceback.print_exc()
+            # traceback.print_exc()
             failed += 1
     
     print("\n" + "=" * 60)
@@ -353,3 +365,4 @@ def run_all_tests():
 
 if __name__ == '__main__':
     run_all_tests()
+

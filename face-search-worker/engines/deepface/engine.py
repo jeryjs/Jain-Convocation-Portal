@@ -31,6 +31,14 @@ class DeepFaceEngine(BaseEngine):
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
         
         logger.info(f"✅ {self.name} engine initialized (Model: {self.model_name}, GPU: {use_gpu})")
+
+    def _is_environment_compatible(self) -> bool:
+        """Check if TensorFlow is available in the environment"""
+        try:
+            import tensorflow  # noqa: F401
+            return True
+        except ImportError:
+            return False
     
     def search_faces(
         self,

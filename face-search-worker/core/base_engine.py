@@ -23,6 +23,16 @@ class BaseEngine(ABC):
         """
         self.use_gpu = use_gpu
         self.name = self.__class__.__name__
+        # Test for compatible environment
+        if not self._is_environment_compatible():
+            raise RuntimeError(f"Incompatible environment for {self.name}")
+
+    def _is_environment_compatible(self) -> bool:
+        """
+        Check if the environment is compatible for the engine.
+        Override this method in subclasses for specific checks.
+        """
+        return True
     
     @abstractmethod
     def search_faces(
