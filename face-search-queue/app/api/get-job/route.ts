@@ -367,6 +367,7 @@ const removeSubscriber = (jobId: string, sub: Subscriber) => {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const jobId = searchParams.get('id');
+  const limit = searchParams.get('limit') || '20';
 
   if (!jobId) {
     return new Response('Job ID is required', { status: 400 });
@@ -422,7 +423,7 @@ export async function GET(request: NextRequest) {
         if (state === 'completed') {
           const returnValue = job.returnvalue as FaceSearchResult[] | undefined;
           const result: JobResult = {
-            result: returnValue || [],
+            result: returnValue?.slice(0, limit ? parseInt(limit) : undefined) || [],
             start_time: job.timestamp,
             finish_time: job.finishedOn || Date.now(),
             stage: jobData.stage,
@@ -487,7 +488,7 @@ export async function GET(request: NextRequest) {
       } catch (err) {
         console.error('[SSE] Unexpected error in GET handler', err);
         sendEvent('error', {
-          error: 'Internal server error',
+          error: err instanceof Error ? err.message : err || 'Unknown error',
           start_time: Date.now(),
           finish_time: Date.now(),
           stage: 'unknown',
