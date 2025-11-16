@@ -101,6 +101,9 @@ class FaceRecognitionEngine(BaseEngine):
         """Process a single gallery image (for parallel execution)"""
         img_id, img_path_or_base64, selfie_encoding, exclude_encodings = args
         
+        gallery_img = None
+        img_encodings = None
+        
         try:
             # Check cache first
             cached_encodings = self._get_cached_encoding(img_id, img_path_or_base64, 'gallery_encodings')
@@ -115,11 +118,13 @@ class FaceRecognitionEngine(BaseEngine):
                 else:
                     # It's a file path
                     gallery_img = self.load_image_from_path(img_path_or_base64)
+                
                 gallery_img = self._preprocess_image(gallery_img)
                 
                 # Get encodings
                 img_encodings = face_recognition.face_encodings(gallery_img)
                 del gallery_img  # Release memory immediately
+                gallery_img = None
                 
                 # Cache the encodings
                 if img_encodings:
@@ -151,30 +156,42 @@ class FaceRecognitionEngine(BaseEngine):
         except Exception as e:
             logger.warning(f"Error processing {img_id}: {e}")
             return None
-        # Don't cleanup after every image - too expensive! Do it per batch instead
+        finally:
+            # Explicit cleanup for memory safety
+            gallery_img = None
+            img_encodings = None
 
-    def _process_batch(self, batch_items, selfie_encoding, exclude_encodings):
-        """Process a batch of images in parallel"""
+    def _process_batch(self, batch_items, selfie_encoding, exclude_encodings, show_progress=False):
+        """Process a batch of images in parallel with memory-safe result collection"""
         results = []
+        total = len(batch_items)
+        processed = 0
         
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Prepare arguments
-            tasks = [
-                (item['id'], item['image'], selfie_encoding, exclude_encodings)
-                for item in batch_items
-            ]
-            
             # Submit all tasks
-            futures = [
-                executor.submit(self._process_single_gallery_image, task)
-                for task in tasks
-            ]
+            future_to_item = {
+                executor.submit(self._process_single_gallery_image, 
+                              (item['id'], item['image'], selfie_encoding, exclude_encodings)): item
+                for item in batch_items
+            }
             
-            # Collect results as they complete
-            for future in as_completed(futures):
-                result = future.result()
-                if result:
-                    results.append(result)
+            # Collect results as they complete with progress tracking
+            for future in as_completed(future_to_item):
+                try:
+                    result = future.result()
+                    if result:
+                        results.append(result)
+                    processed += 1
+                    
+                    # Show progress every 10% or every 25 images
+                    if show_progress and (processed % max(25, total // 10) == 0 or processed == total):
+                        logger.info(f"Progress: {processed}/{total} ({100*processed/total:.1f}%) - {len(results)} matches so far")
+                except Exception as e:
+                    logger.warning(f"Error processing image: {e}")
+                    processed += 1
+                finally:
+                    # Cleanup reference to help GC
+                    del future_to_item[future]
         
         return results
 
@@ -248,25 +265,37 @@ class FaceRecognitionEngine(BaseEngine):
             
             logger.info(f"✓ Loaded {len(exclude_encodings)} exclude face encodings")
         
-        # Process gallery images in batches with parallel processing
+        # Process images with memory-safe chunking for large datasets
         results = []
         total = len(gallery_images)
-        logger.info(f"Processing {total} images in batches of {self.batch_size} with {self.max_workers} workers...")
         
-        for batch_start in range(0, total, self.batch_size):
-            batch_end = min(batch_start + self.batch_size, total)
-            batch = gallery_images[batch_start:batch_end]
+        # Use chunked processing for datasets > 500 images to prevent memory issues
+        chunk_size = 500 if total > 500 else total
+        num_chunks = (total + chunk_size - 1) // chunk_size
+        
+        if num_chunks > 1:
+            logger.info(f"Processing {total} images in {num_chunks} chunks of ~{chunk_size} with {self.max_workers} workers...")
+        else:
+            logger.info(f"Processing {total} images with {self.max_workers} workers in parallel...")
+        
+        for chunk_idx in range(num_chunks):
+            chunk_start = chunk_idx * chunk_size
+            chunk_end = min(chunk_start + chunk_size, total)
+            chunk = gallery_images[chunk_start:chunk_end]
             
-            # Process batch in parallel
-            batch_results = self._process_batch(batch, selfie_encoding, exclude_encodings)
-            results.extend(batch_results)
+            if num_chunks > 1:
+                logger.info(f"Chunk {chunk_idx + 1}/{num_chunks}: Processing images {chunk_start + 1}-{chunk_end}...")
             
-            # Progress update
-            progress_pct = (batch_end / total) * 100
-            logger.info(f"Progress: {batch_end}/{total} ({progress_pct:.1f}%) - Found {len(batch_results)} matches in this batch")
+            # Process chunk with progress tracking
+            chunk_results = self._process_batch(chunk, selfie_encoding, exclude_encodings, show_progress=(num_chunks == 1))
+            results.extend(chunk_results)
             
-            # Cleanup after each batch
-            self._cleanup_gpu_memory()
+            # Memory cleanup between chunks
+            if num_chunks > 1:
+                logger.info(f"Chunk {chunk_idx + 1}/{num_chunks} complete: Found {len(chunk_results)} matches")
+                gc.collect()
+        
+        logger.info(f"✓ Processed all {total} images - Found {len(results)} total matches")
         
         # Sort by similarity in descending order (best matches first)
         results.sort(key=lambda x: x['similarity'], reverse=True)
