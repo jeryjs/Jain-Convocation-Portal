@@ -107,6 +107,8 @@ function FaceSearchDialog({
       setPermissionError(null);
       setDevices([]);
       setHasConsented(false);
+    } else if (open) {
+      handleEnableCamera();
     }
   }, [open]);
 
