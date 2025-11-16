@@ -161,43 +161,86 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
   };
 };
 
-const detectSingleFace = async (imageBitmap) => {
+let tfReadyPromise;
+let faceModelPromise;
+
+const loadTf = async () => {
+  if (!tfReadyPromise) {
+    tfReadyPromise = (async () => {
+      const tf = await import('@tensorflow/tfjs-core');
+      await Promise.all([
+        import('@tensorflow/tfjs-converter'),
+        import('@tensorflow/tfjs-backend-cpu'),
+      ]);
+      await tf.setBackend('cpu');
+      await tf.ready();
+      return tf;
+    })();
+  }
+  return tfReadyPromise;
+};
+
+const loadFaceModel = async () => {
+  if (!faceModelPromise) {
+    faceModelPromise = (async () => {
+      await loadTf();
+      const blazeface = await import('@tensorflow-models/blazeface');
+      return blazeface.load({ maxFaces: 5 });
+    })();
+  }
+  return faceModelPromise;
+};
+
+const detectSingleFace = async (canvas) => {
   if (typeof window === 'undefined') {
     throw new Error('Face detection only supported in browser');
   }
-  if ('FaceDetector' in window) {
-    const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 3 });
-    const faces = await detector.detect(imageBitmap);
-    if (!faces.length) {
-      throw new Error('No face detected. Please retake the photo.');
-    }
-    if (faces.length > 1) {
-      throw new Error('Multiple faces detected. Capture only yourself.');
-    }
-    const face = faces[0];
-    const coverage =
-      (face.boundingBox.width * face.boundingBox.height) /
-      (imageBitmap.width * imageBitmap.height);
+  const model = await loadFaceModel();
+  const faces = await model.estimateFaces(canvas, false);
+  if (!faces.length) {
+    throw new Error('No face detected. Please try again with a clear face.');
+  }
+  if (faces.length > 1) {
+    throw new Error('Multiple faces detected. Please capture only yourself.');
+  }
+  const face = faces[0];
+  if (face.topLeft && face.bottomRight) {
+    const [x1, y1] = face.topLeft;
+    const [x2, y2] = face.bottomRight;
+    const coverage = ((x2 - x1) * (y2 - y1)) / (canvas.width * canvas.height);
     if (coverage < 0.05) {
       throw new Error('Move closer to the camera for a clearer face.');
     }
-    return faces[0];
   }
-  throw new Error('Face detection not supported in this browser. Try Chrome latest.');
+  return face;
 };
 
-const compressBitmap = async (bitmap, quality = 0.85, maxSize = 720) => {
+const compressCanvas = async (sourceCanvas, quality = 0.85, maxSize = 720) => {
   const canvas = document.createElement('canvas');
-  const ratio = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
-  canvas.width = Math.round(bitmap.width * ratio);
-  canvas.height = Math.round(bitmap.height * ratio);
+  const ratio = Math.min(1, maxSize / Math.max(sourceCanvas.width, sourceCanvas.height));
+  canvas.width = Math.round(sourceCanvas.width * ratio);
+  canvas.height = Math.round(sourceCanvas.height * ratio);
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL('image/jpeg', quality);
 };
 
+const toCanvas = (source) => {
+  if (source instanceof HTMLCanvasElement) return source;
+  const canvas = document.createElement('canvas');
+  const width = source.width || source.videoWidth || source.naturalWidth || source.displayWidth || 0;
+  const height = source.height || source.videoHeight || source.naturalHeight || source.displayHeight || 0;
+  if (!width || !height) {
+    throw new Error('Unable to read captured image. Please try again.');
+  }
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, width, height);
+  return canvas;
+};
+
 const useCreateJob = ({
-  stageKey,
   stageLabel,
   imageCount,
   userId,
@@ -207,16 +250,9 @@ const useCreateJob = ({
   const [createError, setCreateError] = useState(null);
 
   const prepareImage = useCallback(async (imageSource) => {
-    let bitmap;
-    if (typeof ImageBitmap !== 'undefined' && imageSource instanceof ImageBitmap) {
-      bitmap = imageSource;
-    } else if (typeof createImageBitmap === 'function') {
-      bitmap = await createImageBitmap(imageSource);
-    } else {
-      bitmap = imageSource;
-    }
-    await detectSingleFace(bitmap);
-    return compressBitmap(bitmap);
+    const canvas = toCanvas(imageSource);
+    await detectSingleFace(canvas);
+    return compressCanvas(canvas);
   }, []);
 
   const createJob = useCallback(async (preparedImage) => {
@@ -263,7 +299,7 @@ const useCreateJob = ({
     } finally {
       setCreating(false);
     }
-  }, [imageCount, stageKey, stageLabel, syncState, userId]);
+  }, [imageCount, stageLabel, syncState, userId]);
 
   return {
     prepareImage,
@@ -283,7 +319,7 @@ export function useFaceSearchQueue({
 }) {
   const [jobState, syncState] = useJobStorage(stageKey);
   const streamState = useJobStream({ stageKey, jobState, syncState, enabled });
-  const createState = useCreateJob({ stageKey, stageLabel, imageCount, userId, syncState });
+  const createState = useCreateJob({ stageLabel, imageCount, userId, syncState });
 
   const clearJob = useCallback(() => {
     syncState(null);

@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import PropTypes from 'prop-types';
 import Webcam from 'react-webcam';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -58,6 +59,7 @@ function FaceSearchDialog({
   const [isCapturing, setIsCapturing] = useState(false);
   const [devices, setDevices] = useState([]);
   const [deviceId, setDeviceId] = useState(() => getStoredCameraId());
+  const [hasConsented, setHasConsented] = useState(false);
   const videoConstraints = useMemo(
     () => (
       deviceId
@@ -78,52 +80,50 @@ function FaceSearchDialog({
     setStoredCameraId(id || null);
   }, []);
 
+  const refreshDevices = useCallback(async () => {
+    if (!navigator?.mediaDevices?.enumerateDevices) return;
+    try {
+      const all = await navigator.mediaDevices.enumerateDevices();
+      const cams = all.filter((d) => d.kind === 'videoinput');
+      setDevices(cams);
+      if (!cams.length) {
+        setPermissionError('No camera detected.');
+        return;
+      }
+      if (deviceId && cams.some((cam) => cam.deviceId === deviceId)) {
+        return;
+      }
+      const fallback =
+        cams.find((cam) => /front|user|selfie/i.test(cam.label)) || cams[0];
+      selectDevice(fallback.deviceId);
+    } catch (err) {
+      setPermissionError(err?.message || 'Unable to list cameras.');
+    }
+  }, [deviceId, selectDevice]);
+
   useEffect(() => {
     if (!open) {
       setValidationError(null);
       setPermissionError(null);
-      return undefined;
+      setDevices([]);
+      setHasConsented(false);
     }
+  }, [open]);
 
-    let cancelled = false;
-
-    const loadDevices = async () => {
-      if (!navigator?.mediaDevices?.enumerateDevices) return;
-      try {
-        const all = await navigator.mediaDevices.enumerateDevices();
-        if (cancelled) return;
-        const cams = all.filter((d) => d.kind === 'videoinput');
-        setDevices(cams);
-        if (!cams.length) {
-          setPermissionError('No camera detected.');
-          return;
-        }
-        if (deviceId && cams.some((cam) => cam.deviceId === deviceId)) {
-          return;
-        }
-        const fallback =
-          cams.find((cam) => /front|user|selfie/i.test(cam.label)) || cams[0];
-        selectDevice(fallback.deviceId);
-      } catch (err) {
-        if (!cancelled) {
-          setPermissionError(
-            err?.message || 'Unable to enumerate cameras. Please grant permission.'
-          );
-        }
-      }
-    };
-
-    loadDevices();
-
+  useEffect(() => {
+    if (!open || !hasConsented || !navigator?.mediaDevices?.addEventListener) return undefined;
+    const handler = () => refreshDevices();
+    navigator.mediaDevices.addEventListener('devicechange', handler);
     return () => {
-      cancelled = true;
+      navigator.mediaDevices.removeEventListener('devicechange', handler);
     };
-  }, [deviceId, open, selectDevice]);
+  }, [hasConsented, open, refreshDevices]);
 
   const handleClose = () => {
     if (creating || isCapturing) return;
     setValidationError(null);
     clearCreateError?.();
+    setHasConsented(false);
     onClose();
   };
 
@@ -134,7 +134,29 @@ function FaceSearchDialog({
     selectDevice(nextCamera.deviceId);
   }, [deviceId, devices, selectDevice]);
 
+  const handleUserMedia = useCallback(() => {
+    setPermissionError(null);
+    refreshDevices();
+  }, [refreshDevices]);
+
+  const handleUserMediaError = useCallback((err) => {
+    setPermissionError(err?.message || 'Camera access denied. Allow permission and retry.');
+    if (deviceId) {
+      selectDevice(null);
+    }
+    setHasConsented(false);
+  }, [deviceId, selectDevice]);
+
+  const handleEnableCamera = () => {
+    setPermissionError(null);
+    setHasConsented(true);
+  };
+
   const handleCapture = async () => {
+    if (!hasConsented) {
+      setValidationError('Please enable the camera before capturing.');
+      return;
+    }
     const video = webcamRef.current?.video;
     if (!video) {
       setValidationError('Camera not ready yet.');
@@ -182,50 +204,65 @@ function FaceSearchDialog({
               overflow: 'hidden',
               aspectRatio: '4 / 3',
               backgroundColor: 'black',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Webcam
-              ref={webcamRef}
-              forceScreenshotSourceSize
-              mirrored={isFrontCamera}
-              audio={false}
-              videoConstraints={videoConstraints}
-              onUserMedia={() => setPermissionError(null)}
-              onUserMediaError={(err) =>
-                setPermissionError(err?.message || 'Camera access denied. Allow permission and retry.')}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            {devices.length > 1 && (
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleCycleCamera}
-                disabled={Boolean(permissionError) || creating || isCapturing}
-                sx={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                  },
-                }}
-              >
-                Switch Camera
-              </Button>
+            {hasConsented ? (
+              <>
+                <Webcam
+                  ref={webcamRef}
+                  forceScreenshotSourceSize
+                  mirrored={isFrontCamera}
+                  audio={false}
+                  videoConstraints={videoConstraints}
+                  onUserMedia={handleUserMedia}
+                  onUserMediaError={handleUserMediaError}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                {devices.length > 1 && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleCycleCamera}
+                    disabled={Boolean(permissionError) || creating || isCapturing}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                      },
+                    }}
+                  >
+                    Switch Camera
+                  </Button>
+                )}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '10%',
+                    left: '10%',
+                    width: '80%',
+                    height: '80%',
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.8)',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </>
+            ) : (
+              <Stack spacing={2} alignItems="center" px={3}>
+                <Typography variant="body1" color="common.white" align="center">
+                  Tap below to enable your camera. You’ll be prompted for permission.
+                </Typography>
+                <Button variant="contained" onClick={handleEnableCamera}>
+                  Enable Camera
+                </Button>
+              </Stack>
             )}
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '10%',
-                left: '10%',
-                width: '80%',
-                height: '80%',
-                borderRadius: '50%',
-                border: '2px solid rgba(255,255,255,0.8)',
-                pointerEvents: 'none',
-              }}
-            />
           </Box>
         </Stack>
       </DialogContent>
@@ -236,7 +273,7 @@ function FaceSearchDialog({
         <Button
           variant="contained"
           onClick={handleCapture}
-          disabled={Boolean(permissionError) || creating || isCapturing}
+          disabled={!hasConsented || Boolean(permissionError) || creating || isCapturing}
           startIcon={(creating || isCapturing) && <CircularProgress size={16} />}
         >
           {creating ? 'Submitting…' : 'Capture & Search'}
@@ -247,3 +284,19 @@ function FaceSearchDialog({
 }
 
 export default FaceSearchDialog;
+
+FaceSearchDialog.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  prepareImage: PropTypes.func.isRequired,
+  createJob: PropTypes.func.isRequired,
+  creating: PropTypes.bool,
+  createError: PropTypes.string,
+  clearCreateError: PropTypes.func,
+};
+
+FaceSearchDialog.defaultProps = {
+  creating: false,
+  createError: null,
+  clearCreateError: undefined,
+};
