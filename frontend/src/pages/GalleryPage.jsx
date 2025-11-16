@@ -46,7 +46,7 @@ function GalleryPage() {
     stageKey: decodedStage,
     imageCount,
     userId: userData?.email,
-    enabled: !isGroupPhotos && Boolean(userData),
+    enabled: !isGroupPhotos && Boolean(userData) && !loading,
   });
 
   const faceMatchMap = useMemo(() => {
@@ -168,20 +168,24 @@ function GalleryPage() {
 
   const handleFaceSearchClick = () => {
     if (!userData) return;
-    setFaceDialogOpen(true);
+    if (faceSearch.isFiltering) {
+      faceSearch.clearJob();
+    } else {
+      setFaceDialogOpen(true);
+    }
   };
 
-  const banner = (!isGroupPhotos && (faceSearch.status || faceSearch.error || faceSearch.isFiltering || faceSearch.isStaleResult)) ? (
+  const banner = (!isGroupPhotos && (faceSearch.status || faceSearch.error || faceSearch.isStaleResult)) ? (
     <FaceSearchBanner
       status={faceSearch.status}
       error={faceSearch.error}
-      isFiltering={faceSearch.isFiltering}
+      isFiltering={false}
       isStale={faceSearch.isStaleResult}
       resultCount={faceSearch.result?.length || 0}
       onCancel={faceSearch.clearJob}
       onClearFilter={faceSearch.clearJob}
       onRetry={() => {
-        faceSearch.clearJob();
+        faceSearch.dismissError();
         setFaceDialogOpen(true);
       }}
       onDismissError={faceSearch.dismissError}
@@ -229,9 +233,10 @@ function GalleryPage() {
                 availableSlots={getAvailableSlots()}
                 searchEnabled={true}
                 faceSearchEnabled={Boolean(userData)}
+                faceSearchActive={faceSearch.isFiltering}
                 onFaceSearch={handleFaceSearchClick}
                 faceMatchMap={faceMatchMap}
-                sx={{ py: 2, px: 1, height: { xs: '80vh' }, flex: 1 }}
+                sx={{ p: 2, height: { xs: '80vh' }, flex: 1 }}
               />
               {faceSearch.isFiltering && displayImages.length === 0 && (
                 <Alert severity="info">

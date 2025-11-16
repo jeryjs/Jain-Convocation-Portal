@@ -38,6 +38,7 @@ export default function ImageGrid({
   showColumnControls = true,
   searchEnabled = false,
   faceSearchEnabled = false,
+  faceSearchActive = false,
   onFaceSearch,
   faceMatchMap = {},
   sx
@@ -94,13 +95,13 @@ export default function ImageGrid({
           {faceSearchEnabled && (
             <Button
               fullWidth
-              variant="outlined"
+              variant={faceSearchActive ? 'contained' : 'outlined'}
               size="small"
               onClick={onFaceSearch}
               disabled={loading}
               sx={{ textTransform: 'none', py: 0.75 }}
             >
-              Find My Photos (Face Search)
+              {faceSearchActive ? 'Clear Face Filter' : 'Find My Photos (Face Search)'}
             </Button>
           )}
         </Box>
@@ -233,6 +234,7 @@ const ImageCard = memo(({
             left: 4,
             fontSize: '0.65rem',
             height: 18,
+            px: 0.5,
             '& .MuiChip-label': { px: 0.75, py: 0 },
           }}
         />

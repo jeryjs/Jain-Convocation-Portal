@@ -48,8 +48,8 @@ function FaceSearchDialog({
   onClose,
   prepareImage,
   createJob,
-  creating,
-  createError,
+  creating = false,
+  createError = null,
   clearCreateError,
 }) {
   const webcamRef = useRef(null);

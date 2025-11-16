@@ -161,58 +161,36 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
   };
 };
 
-let tfReadyPromise;
-let faceModelPromise;
-
-const loadTf = async () => {
-  if (!tfReadyPromise) {
-    tfReadyPromise = (async () => {
-      const tf = await import('@tensorflow/tfjs-core');
-      await Promise.all([
-        import('@tensorflow/tfjs-converter'),
-        import('@tensorflow/tfjs-backend-cpu'),
-      ]);
-      await tf.setBackend('cpu');
-      await tf.ready();
-      return tf;
-    })();
-  }
-  return tfReadyPromise;
-};
-
-const loadFaceModel = async () => {
-  if (!faceModelPromise) {
-    faceModelPromise = (async () => {
-      await loadTf();
-      const blazeface = await import('@tensorflow-models/blazeface');
-      return blazeface.load({ maxFaces: 5 });
-    })();
-  }
-  return faceModelPromise;
-};
-
 const detectSingleFace = async (canvas) => {
   if (typeof window === 'undefined') {
     throw new Error('Face detection only supported in browser');
   }
-  const model = await loadFaceModel();
-  const faces = await model.estimateFaces(canvas, false);
-  if (!faces.length) {
-    throw new Error('No face detected. Please try again with a clear face.');
-  }
-  if (faces.length > 1) {
-    throw new Error('Multiple faces detected. Please capture only yourself.');
-  }
-  const face = faces[0];
-  if (face.topLeft && face.bottomRight) {
-    const [x1, y1] = face.topLeft;
-    const [x2, y2] = face.bottomRight;
-    const coverage = ((x2 - x1) * (y2 - y1)) / (canvas.width * canvas.height);
-    if (coverage < 0.05) {
-      throw new Error('Move closer to the camera for a clearer face.');
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = imageData;
+  
+  let skinPixels = 0;
+  const totalPixels = width * height;
+  const sampleStep = 3;
+  
+  for (let i = 0; i < data.length; i += sampleStep * 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    // Relaxed skin tone detection
+    if (r > 60 && g > 40 && b > 20 && r > g && r > b) {
+      skinPixels++;
     }
   }
-  return face;
+  
+  const coverage = (skinPixels * sampleStep) / totalPixels;
+  if (coverage < 0.03) {
+    throw new Error('No face detected. Make sure your face is clearly visible.');
+  }
+  if (coverage > 0.85) {
+    throw new Error('Too close or multiple faces. Capture only yourself.');
+  }
+  return { coverage };
 };
 
 const compressCanvas = async (sourceCanvas, quality = 0.85, maxSize = 720) => {
@@ -316,12 +294,16 @@ export function useFaceSearchQueue({
   userId,
   enabled = true,
 }) {
+  const isReady = Boolean(stageKey && imageCount > 0 && userId);
   const [jobState, syncState] = useJobStorage(stageKey);
-  const streamState = useJobStream({ stageKey, jobState, syncState, enabled });
+  const streamState = useJobStream({ stageKey, jobState, syncState, enabled: enabled && isReady });
   const createState = useCreateJob({ stageKey, imageCount, userId, syncState });
 
   const clearJob = useCallback(() => {
-    syncState(null);
+    syncState((prev) => {
+      if (!prev) return prev;
+      return { ...prev, lastEvent: null, result: null, status: null };
+    });
   }, [syncState]);
 
   const dismissError = useCallback(() => {
