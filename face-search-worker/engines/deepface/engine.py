@@ -58,8 +58,7 @@ class DeepFaceEngine(BaseEngine):
         data = DeepFace.represent(
             img_path=selfie_img,
             model_name=self.model_name,
-            enforce_detection=True,
-            detector_backend='skip'
+            enforce_detection=True
         )
         if not data:
             return None
@@ -69,8 +68,7 @@ class DeepFaceEngine(BaseEngine):
         data = DeepFace.represent(
             img_path=img,
             model_name=self.model_name,
-            enforce_detection=False,
-            detector_backend='skip'
+            enforce_detection=False
         )
         if not data:
             return []
@@ -90,8 +88,7 @@ class DeepFaceEngine(BaseEngine):
                 raw_embeddings = DeepFace.represent(
                     img_path=gallery_img,
                     model_name=self.model_name,
-                    enforce_detection=False,
-                    detector_backend='skip'
+                    enforce_detection=False
                 )
                 del gallery_img
 
@@ -108,7 +105,7 @@ class DeepFaceEngine(BaseEngine):
             if exclude_embeddings:
                 for gallery_emb in processed_embeddings:
                     is_excluded = any(
-                        self._cosine_distance(gallery_emb, exclude_emb) < 0.1
+                        self._cosine_distance(gallery_emb, exclude_emb) < 0.05
                         for exclude_emb in exclude_embeddings
                     )
                     if not is_excluded:

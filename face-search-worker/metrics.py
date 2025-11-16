@@ -5,7 +5,7 @@
 import psutil
 import platform
 import time
-from typing import Dict, Optional
+from typing import Dict
 import py3nvml.py3nvml as nvml
 
 
