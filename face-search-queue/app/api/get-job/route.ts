@@ -145,7 +145,7 @@ const computeStatusSignature = (status: JobStatus, state: string | undefined) =>
  * Start a broadcaster for a job - idempotent (will not re-create it if already exists)
  * This registers queueEvents listeners and a single polling loop for status updates.
  */
-const startBroadcaster = async (jobId: string) => {
+const startBroadcaster = async (jobId: string, resLimit: number) => {
   // If exists already, return
   if (jobBroadcasters.has(jobId)) return;
 
@@ -210,7 +210,7 @@ const startBroadcaster = async (jobId: string) => {
 
       const returnValue = job.returnvalue as FaceSearchResult[] | undefined;
       const result: JobResult = {
-        result: returnValue || [],
+        result: returnValue?.slice(0, resLimit || undefined) || [],
         start_time: job.timestamp,
         finish_time: job.finishedOn || Date.now(),
         stage: job.data?.stage,
@@ -291,8 +291,8 @@ const startBroadcaster = async (jobId: string) => {
 /**
  * Add a subscriber to a (possibly) existing broadcaster; will create broadcaster if needed
  */
-const addSubscriber = async (jobId: string, sub: Subscriber) => {
-  await startBroadcaster(jobId);
+const addSubscriber = async (jobId: string, sub: Subscriber, resLimit: number) => {
+  await startBroadcaster(jobId, resLimit);
   const broadcaster = jobBroadcasters.get(jobId);
   if (!broadcaster) {
     // If still missing, startBroadcaster may have failed, but create a fallback set
@@ -367,7 +367,7 @@ const removeSubscriber = (jobId: string, sub: Subscriber) => {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const jobId = searchParams.get('id');
-  const limit = searchParams.get('limit') || '20';
+  const limit = parseInt(searchParams.get('limit') || '20');
 
   if (!jobId) {
     return new Response('Job ID is required', { status: 400 });
@@ -423,7 +423,7 @@ export async function GET(request: NextRequest) {
         if (state === 'completed') {
           const returnValue = job.returnvalue as FaceSearchResult[] | undefined;
           const result: JobResult = {
-            result: returnValue?.slice(0, limit ? parseInt(limit) : undefined) || [],
+            result: returnValue?.slice(0, limit || undefined) || [],
             start_time: job.timestamp,
             finish_time: job.finishedOn || Date.now(),
             stage: jobData.stage,
@@ -460,7 +460,7 @@ export async function GET(request: NextRequest) {
         };
 
         // Ensure broadcaster is active and add subscriber
-        await addSubscriber(jobId, subscriber);
+        await addSubscriber(jobId, subscriber, limit);
 
         // Add an on-abort handler to remove this subscriber
         const abortHandler = () => {
