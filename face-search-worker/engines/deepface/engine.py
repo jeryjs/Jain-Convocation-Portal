@@ -136,12 +136,12 @@ class DeepFaceEngine(BaseEngine):
                 processed_embeddings = cached_embeddings
             else:
                 # Load image from path or decode from base64
-                if isinstance(img_path_or_base64, str) and (img_path_or_base64.startswith('/') or img_path_or_base64.startswith('\\') or ':' in img_path_or_base64):
-                    # It's a file path
-                    gallery_img = self.load_image_from_path(img_path_or_base64)
-                else:
+                if isinstance(img_path_or_base64, str) and (img_path_or_base64.strip().startswith('data:image') or len(img_path_or_base64.strip()) > 100):
                     # It's base64
                     gallery_img = self.decode_base64_image(img_path_or_base64)
+                else:
+                    # It's a file path
+                    gallery_img = self.load_image_from_path(img_path_or_base64)
                 gallery_img = self._preprocess_image(gallery_img)
                 
                 # Get embeddings
