@@ -156,7 +156,7 @@ class FaceRecognitionEngine(BaseEngine):
                     is_excluded = False
                     for exclude_enc in exclude_encodings:
                         distances = face_recognition.face_distance([exclude_enc], gallery_enc)
-                        if distances[0] < 0.5:  # This face matches exclude list
+                        if distances[0] < 0.1:  # This face matches exclude list
                             is_excluded = True
                             break
                     

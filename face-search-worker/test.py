@@ -11,9 +11,6 @@ import time
 import logging
 from PIL import Image
 from dotenv import load_dotenv
-import numpy as np
-import traceback
-import random
 
 # Add project root to path
 sys.path.append(os.path.dirname(__file__))

@@ -192,7 +192,7 @@ class DeepFaceEngine(BaseEngine):
                     is_excluded = False
                     for exclude_emb in exclude_embeddings:
                         distance = self._cosine_distance(gallery_emb, exclude_emb)
-                        if distance < 0.4:  # This face matches exclude list
+                        if distance < 0.1:  # This face matches exclude list
                             is_excluded = True
                             break
                     
