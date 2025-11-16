@@ -37,7 +37,7 @@ class BaseEngine(ABC):
         
         # Initialize cache with separate sections
         self.cache = {
-            'selfie_encodings': {},      # hash -> encoding/embedding
+            # 'selfie_encodings': {},      # hash -> encoding/embedding
             'gallery_encodings': {},     # hash -> list of encodings/embeddings
             'exclude_encodings': {},     # hash -> list of encodings/embeddings
         }
@@ -235,28 +235,17 @@ class BaseEngine(ABC):
         Returns:
             List of {'id': str, 'similarity': float} sorted by similarity (desc)
         """
-        # Check cache for selfie encoding
-        cached_selfie_encoding = self._get_cached_encoding('selfie', selfie_base64, 'selfie_encodings')
+        # Decode and preprocess selfie
+        selfie_img = self.decode_base64_image(selfie_base64)
+        selfie_img = self._preprocess_image(selfie_img)
+        logger.info("✓ Selfie decoded and preprocessed")
         
-        if cached_selfie_encoding is not None:
-            selfie_encoding = cached_selfie_encoding
-            logger.info("✓ Selfie encoding retrieved from cache")
-        else:
-            # Decode and preprocess selfie
-            selfie_img = self.decode_base64_image(selfie_base64)
-            selfie_img = self._preprocess_image(selfie_img)
-            logger.info("✓ Selfie decoded and preprocessed")
-            
-            # Encode selfie (engine-specific)
-            selfie_encoding = self._encode_selfie(selfie_img)
-            del selfie_img
-            
-            if selfie_encoding is None:
-                raise ValueError("No face detected in the provided selfie")
-            
-            # Cache the selfie encoding
-            self._cache_encoding(selfie_base64, selfie_encoding, 'selfie_encodings')
-            logger.info("✓ Selfie face encoded and cached")
+        # Encode selfie (engine-specific)
+        selfie_encoding = self._encode_selfie(selfie_img)
+        del selfie_img
+        
+        if selfie_encoding is None:
+            raise ValueError("No face detected in the provided selfie")
         
         # Load exclude encodings with caching
         exclude_encodings = []

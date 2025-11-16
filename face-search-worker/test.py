@@ -35,7 +35,7 @@ EXCLUDE_IMAGES_DIR = os.path.dirname(__file__) + r"\exclude_faces"
 # ============================================================
 def prepare_gallery_images(stage: str, limit: int = 300):
     """Load and prepare gallery images from stage directory"""
-    stage = "" # testing: use all images
+    # stage = "" # testing: use all images
     gallery_dir = os.path.join(CONVOCATION_PHOTOS_DIR, stage)
     
     if not os.path.exists(gallery_dir):

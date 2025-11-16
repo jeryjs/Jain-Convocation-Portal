@@ -241,7 +241,7 @@ const toCanvas = (source) => {
 };
 
 const useCreateJob = ({
-  stageLabel,
+  stageKey,
   imageCount,
   userId,
   syncState,
@@ -270,7 +270,7 @@ const useCreateJob = ({
         body: JSON.stringify({
           image: preparedImage,
           uid: userId,
-          stage: stageLabel,
+          stage: stageKey,
         }),
       });
 
@@ -282,7 +282,7 @@ const useCreateJob = ({
 
       const jobState = {
         jobId: payload.jobId,
-        stage: stageLabel,
+        stage: stageKey,
         createdAt: payload.timestamp,
         imageCount,
         lastEvent: 'pending',
@@ -299,7 +299,7 @@ const useCreateJob = ({
     } finally {
       setCreating(false);
     }
-  }, [imageCount, stageLabel, syncState, userId]);
+  }, [imageCount, stageKey, syncState, userId]);
 
   return {
     prepareImage,
@@ -312,14 +312,13 @@ const useCreateJob = ({
 
 export function useFaceSearchQueue({
   stageKey,
-  stageLabel,
   imageCount,
   userId,
   enabled = true,
 }) {
   const [jobState, syncState] = useJobStorage(stageKey);
   const streamState = useJobStream({ stageKey, jobState, syncState, enabled });
-  const createState = useCreateJob({ stageLabel, imageCount, userId, syncState });
+  const createState = useCreateJob({ stageKey, imageCount, userId, syncState });
 
   const clearJob = useCallback(() => {
     syncState(null);

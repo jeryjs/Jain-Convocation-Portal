@@ -42,14 +42,8 @@ function GalleryPage() {
     }
   }, [sessionId]);
 
-  const stageLabel = useMemo(() => {
-    const parts = decodedStage.split('/');
-    return parts[2] || parts[parts.length - 1] || 'Stage';
-  }, [decodedStage]);
-
   const faceSearch = useFaceSearchQueue({
     stageKey: decodedStage,
-    stageLabel,
     imageCount,
     userId: userData?.email,
     enabled: !isGroupPhotos && Boolean(userData),
@@ -57,8 +51,8 @@ function GalleryPage() {
 
   const faceMatchMap = useMemo(() => {
     if (!faceSearch.result) return {};
-    return faceSearch.result.reduce((acc, { id, score }) => {
-      acc[id] = score;
+    return faceSearch.result.reduce((acc, { id, similarity }) => {
+      acc[id] = similarity;
       return acc;
     }, {});
   }, [faceSearch.result]);
@@ -86,11 +80,11 @@ function GalleryPage() {
         // Try to get from cache first
         const cacheKey = `gallery-${sessionId}`;
         const cached = !isRetry && cacheManager.get(cacheKey);
-        // if (cached) {
-        //   setImages(cached);
-        //   setLoading(false);
-        //   return;
-        // }
+        if (cached) {
+          setImages(cached);
+          setLoading(false);
+          return;
+        }
         
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
@@ -184,7 +178,6 @@ function GalleryPage() {
       isFiltering={faceSearch.isFiltering}
       isStale={faceSearch.isStaleResult}
       resultCount={faceSearch.result?.length || 0}
-      stageLabel={stageLabel}
       onCancel={faceSearch.clearJob}
       onClearFilter={faceSearch.clearJob}
       onRetry={() => {
