@@ -9,23 +9,14 @@ import {
   Typography,
   Card,
   Button,
-  Alert,
+  Alert
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useAuth } from '../config/AuthContext';
 import { cacheManager } from '../utils/cache';
 import { downloadFile } from '../utils/utils';
 import DemoPageBanner from '../components/DemoPageBanner';
-import FaceFilterDialog from '../components/FaceFilterDialog';
-import FaceFilterBanner from '../components/FaceFilterBanner';
-import {
-  useFaceFilterJob,
-  getJobForStage,
-  saveJobForStage,
-  clearFilterStateForStage,
-  enableFilterForStage,
-  clearJobForStage
-} from '../hooks/useFaceFilterJob';
+
 
 function GalleryPage() {
   const { sessionId } = useParams();
@@ -37,72 +28,11 @@ function GalleryPage() {
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
   const [loadingLinks, setLoadingLinks] = useState(false);
   const isGroupPhotos = pathData.batch === 'Group Photos';
-  const [faceFilterDialogOpen, setFaceFilterDialogOpen] = useState(false);
-
-  // Face filter state
-  const currentStage = atob(sessionId); // decode sessionId to stage identifier
-  const [currentJob, setCurrentJob] = useState(null);
-  const [filterActive, setFilterActive] = useState(false);
-  const [jobResult, setJobResult] = useState(null);
-  const [jobError, setJobError] = useState(null);
-
-  // Load job from localStorage on mount
-  useEffect(() => {
-    const job = getJobForStage(currentStage);
-    if (job) {
-      setCurrentJob(job);
-      setFilterActive(job.filterActive !== false); // Default to true if not specified
-
-      // If job already has result or error, use it directly
-      if (job.result) {
-        setJobResult(job.result);
-      }
-      if (job.error) {
-        setJobError(job.error);
-      }
-    }
-  }, [currentStage]);
-
-  // Determine if we should monitor this job (only if not complete)
-  const shouldMonitorJob = currentJob?.jobId && !currentJob?.result && !currentJob?.error;
-
-  // SSE hook for monitoring job status - now stage-aware
-  // Only connect if job exists and is not already complete
-  const { status, result: liveResult, error: liveError, isComplete } = useFaceFilterJob(
-    currentStage,
-    shouldMonitorJob ? currentJob.jobId : null, // Pass null if job is complete
-    (completionData) => {
-      // Update localStorage when job completes
-      const updatedJob = {
-        ...currentJob,
-        ...completionData,
-        filterActive: completionData.result ? true : false,
-      };
-
-      saveJobForStage(currentStage, updatedJob);
-
-      // Update local state
-      setCurrentJob(updatedJob);
-
-      // Auto-enable filter if we have results
-      if (completionData.result && completionData.result.length > 0) {
-        setJobResult(completionData.result);
-        setFilterActive(true);
-      } else if (completionData.error) {
-        setJobError(completionData.error);
-        setFilterActive(false);
-      }
-    }
-  );
-
-  // Use live data if available, otherwise use cached data
-  const result = liveResult || jobResult;
-  const error = liveError || jobError;
 
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
-
+    
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
 
@@ -119,10 +49,10 @@ function GalleryPage() {
         //   setLoading(false);
         //   return;
         // }
-
+        
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
-
+        
         setImages(data);
         // Cache the new data
         cacheManager.set(cacheKey, data, isRetry);
@@ -163,7 +93,7 @@ function GalleryPage() {
           headers: getAuthHeaders()
         });
         links = await response.json();
-
+        
         // Cache the links with a 30-day expiry
         localStorage.setItem('group_photos_links', JSON.stringify({
           data: links,
@@ -199,61 +129,6 @@ function GalleryPage() {
     navigate(`/gallery/${sessionId}/request`);
   };
 
-  // Face filter handlers
-  const handleFaceFilterClose = (jobCreated) => {
-    setFaceFilterDialogOpen(false);
-
-    // If job was created, reload current job state
-    if (jobCreated) {
-      const job = getJobForStage(currentStage);
-      setCurrentJob(job);
-      setFilterActive(true);
-    }
-  };
-
-  const handleDisableFilter = () => {
-    clearFilterStateForStage(currentStage);
-    setFilterActive(false);
-  };
-
-  const handleEnableFilter = () => {
-    enableFilterForStage(currentStage);
-    setFilterActive(true);
-  };
-
-  const handleRetry = () => {
-    // Clear current job and open dialog
-    clearJobForStage(currentStage);
-    setCurrentJob(null);
-    setFilterActive(false);
-    setFaceFilterDialogOpen(true);
-  };
-
-  // Filter images based on face filter results
-  const getFilteredImages = () => {
-    if (!filterActive || !result || !result.length) {
-      return images;
-    }
-
-    // Create a map for quick lookup and score retrieval
-    const resultMap = new Map(result.map(r => [r.id, r.score]));
-
-    return images.filter(img => {
-      const imageId = Object.keys(img)[0];
-      return resultMap.has(imageId);
-    });
-  };
-
-  // Get score for an image
-  const getScoreForImage = (imageId) => {
-    if (!result || !filterActive) return null;
-    const match = result.find(r => r.id === imageId);
-    return match ? Math.round(match.score * 100) : null;
-  };
-
-  const displayImages = getFilteredImages();
-  const filteredCount = filterActive && result ? displayImages.length : null;
-
   return (
     <>
       <PageHeader
@@ -266,56 +141,39 @@ function GalleryPage() {
 
       <DemoPageBanner />
 
-
-
-      <Box sx={{ width: { xs: '100vw', md: '90vw' }, pb: { xs: '60px', md: 0 } }}>
+      <Box sx={{ width: {xs:'100vw', md:'90vw'}, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (
           <ImageGrid
             loading={loading || loadingLinks}
-            images={displayImages}
+            images={images}
             columns={3}
             showColumnControls={true}
+            onDownload={handleImageDownload}
             sx={{ p: 2, height: 'calc(100vh - 200px)', flex: 1 }}
           />
         ) : (
-          <Stack
-            direction={{ xs: "column", md: "row" }}
+          <Stack 
+            direction={{ xs: "column", md: "row" }} 
             spacing={2}
-            sx={{ height: { md: '80vh' } }}
+            sx={{ height: {md: '80vh'} }}
           >
-            <Box sx={{ flex: { md: '4' }, display: 'flex', flexDirection: 'column' }}>
-              <FaceFilterBanner
-                jobStatus={status}
-                isComplete={isComplete}
-                error={error}
-                filteredCount={filteredCount}
-                onDisableFilter={handleDisableFilter}
-                onEnableFilter={handleEnableFilter}
-                onRetry={handleRetry}
-                filterActive={filterActive}
-              />
-              <ImageGrid
-                loading={loading}
-                images={displayImages}
-                selectedImages={Object.keys(selectedImages)}
-                lockedImages={Object.keys(userData?.requestedImages || {})}
-                onSelectImage={handleSelectImage}
-                availableSlots={getAvailableSlots()}
-                searchEnabled={true}
-                showColumnControls={true}
-                showFaceFilterButton={!isGroupPhotos}
-                onFaceFilterClick={() => setFaceFilterDialogOpen(true)}
-                getImageScore={getScoreForImage}
-                sx={{ p: 2, height: { xs: '80vh' }, flex: { md: '4' } }}
-              />
-            </Box>
+            <ImageGrid
+              loading={loading}
+              images={images}
+              selectedImages={Object.keys(selectedImages)}
+              lockedImages={Object.keys(userData?.requestedImages || {})}
+              onSelectImage={handleSelectImage}
+              availableSlots={getAvailableSlots()}
+              searchEnabled={true}
+              sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
+            />
 
             <SelectedImagesPanel
               selectedImages={selectedImages}
               existingImages={userData?.requestedImages || {}}
               onRequestPressed={handleRequestPressed}
               availableSlots={getAvailableSlots()}
-              sx={{ flex: { md: '1' }, display: { xs: 'none', md: 'block' } }}
+              sx={{ flex: {md: '1'}, display: { xs: 'none', md: 'block' } }}
             />
           </Stack>
         )}
@@ -337,8 +195,8 @@ function GalleryPage() {
           }}
         >
           {/* Horizontal Scrollable Selected Images */}
-          <Box
-            sx={{
+          <Box 
+            sx={{ 
               overflowX: 'auto',
               whiteSpace: 'nowrap',
               px: 2,
@@ -398,17 +256,11 @@ function GalleryPage() {
           </Box>
         </Box>
       )}
-
-      {/* Face Filter Dialog */}
-      <FaceFilterDialog
-        open={faceFilterDialogOpen}
-        onClose={handleFaceFilterClose}
-        stage={currentStage}
-        uid={userData?.email}
-      />
     </>
   );
 }
+
+export default GalleryPage;
 
 
 function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx }) {
@@ -425,7 +277,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             Selected Images ({Object.entries(selectedImages).length}/4)
           </Typography>
         </Box>
-
+        
         {availableSlots > 0 && (
           <Alert severity="info" sx={{ mb: 2 }}>
             You can select {availableSlots} more image{availableSlots !== 1 ? 's' : ''}
@@ -460,7 +312,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             variant="contained"
             onClick={onRequestPressed}
             disabled={Object.keys(selectedImages).length < 0}
-            sx={{
+            sx={{ 
               flex: 1,
               height: { xs: '32px', md: '36px' },
               fontSize: { xs: '0.75rem', md: '0.875rem' }
@@ -472,5 +324,3 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
     </Card>
   );
 }
-
-export default GalleryPage;
