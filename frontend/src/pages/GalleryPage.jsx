@@ -59,16 +59,19 @@ function GalleryPage() {
 
   const displayImages = useMemo(() => {
     if (!faceSearch.isFiltering) return images;
-    return images.filter((item) => {
-      const key = Object.keys(item)[0];
-      return faceMatchMap[key] !== undefined;
-    });
+    return images
+      .filter((item) => faceMatchMap[Object.keys(item)[0]] !== undefined)
+      .sort((a, b) => {
+        const aId = Object.keys(a)[0];
+        const bId = Object.keys(b)[0];
+        return faceMatchMap[bId] - faceMatchMap[aId];
+      });
   }, [faceMatchMap, faceSearch.isFiltering, images]);
 
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
-    
+
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
 
@@ -85,10 +88,10 @@ function GalleryPage() {
           setLoading(false);
           return;
         }
-        
+
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
-        
+
         setImages(data);
         setImageCount(data.length);
         // Cache the new data
@@ -130,7 +133,7 @@ function GalleryPage() {
           headers: getAuthHeaders()
         });
         links = await response.json();
-        
+
         // Cache the links with a 30-day expiry
         localStorage.setItem('group_photos_links', JSON.stringify({
           data: links,
@@ -206,7 +209,7 @@ function GalleryPage() {
 
       <DemoPageBanner />
 
-      <Box sx={{ width: {xs:'100vw', md:'90vw'}, pb: { xs: '60px', md: 0 } }}>
+      <Box sx={{ width: { xs: '100vw', md: '90vw' }, pb: { xs: '60px', md: 0 } }}>
         {isGroupPhotos ? (
           <ImageGrid
             loading={loading || loadingLinks}
@@ -217,10 +220,10 @@ function GalleryPage() {
             sx={{ py: 2, px: 1, height: 'calc(100vh - 200px)', flex: 1 }}
           />
         ) : (
-          <Stack 
-            direction={{ xs: "column", md: "row" }} 
+          <Stack
+            direction={{ xs: "column", md: "row" }}
             spacing={2}
-            sx={{ height: {md: '80vh'} }}
+            sx={{ height: { md: '80vh' } }}
           >
             <Stack spacing={2} sx={{ flex: { md: '4' }, minWidth: 0 }}>
               {banner}
@@ -255,7 +258,7 @@ function GalleryPage() {
               existingImages={userData?.requestedImages || {}}
               onRequestPressed={handleRequestPressed}
               availableSlots={getAvailableSlots()}
-              sx={{ flex: {md: '1'}, display: { xs: 'none', md: 'block' } }}
+              sx={{ flex: { md: '1' }, display: { xs: 'none', md: 'block' } }}
             />
           </Stack>
         )}
@@ -277,8 +280,8 @@ function GalleryPage() {
           }}
         >
           {/* Horizontal Scrollable Selected Images */}
-          <Box 
-            sx={{ 
+          <Box
+            sx={{
               overflowX: 'auto',
               whiteSpace: 'nowrap',
               px: 2,
@@ -369,7 +372,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             Selected Images ({Object.entries(selectedImages).length}/4)
           </Typography>
         </Box>
-        
+
         {availableSlots > 0 && (
           <Alert severity="info" sx={{ mb: 2 }}>
             You can select {availableSlots} more image{availableSlots !== 1 ? 's' : ''}
@@ -404,7 +407,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             variant="contained"
             onClick={onRequestPressed}
             disabled={Object.keys(selectedImages).length < 0}
-            sx={{ 
+            sx={{
               flex: 1,
               height: { xs: '32px', md: '36px' },
               fontSize: { xs: '0.75rem', md: '0.875rem' }
