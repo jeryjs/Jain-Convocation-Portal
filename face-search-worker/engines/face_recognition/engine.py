@@ -91,10 +91,21 @@ class FaceRecognitionEngine(BaseEngine):
     def _preprocess_image(self, img_array: np.ndarray) -> np.ndarray:
         """Preprocess image for faster face recognition"""
         h, w = img_array.shape[:2]
+        
+        # Validate image dimensions
+        if h < 10 or w < 10:
+            raise ValueError(f"Image too small: {w}x{h}")
+        
         if h > self.max_image_size or w > self.max_image_size:
             scale = self.max_image_size / max(h, w)
             new_size = (int(w * scale), int(h * scale))
+            
+            # Ensure minimum size after resize
+            if new_size[0] < 10 or new_size[1] < 10:
+                raise ValueError(f"Resized image too small: {new_size}")
+            
             img_array = cv2.resize(img_array, new_size, interpolation=cv2.INTER_AREA)
+        
         return img_array
 
     def _process_single_gallery_image(self, args):
@@ -130,23 +141,46 @@ class FaceRecognitionEngine(BaseEngine):
                 if img_encodings:
                     self._cache_encoding(img_path_or_base64, img_encodings, 'gallery_encodings')
             
+            # No face detected - return with zero similarity instead of None
             if not img_encodings:
-                return None
+                return {
+                    'id': img_id,
+                    'similarity': -1.0
+                }
             
-            # Check exclusion
+            # Filter out excluded faces (guests) from comparison
+            faces_to_compare = []
             if exclude_encodings:
                 for gallery_enc in img_encodings:
-                    distances = face_recognition.face_distance(exclude_encodings, gallery_enc)
-                    if np.any(distances < 0.5):
-                        del img_encodings
-                        return None
+                    # Check if this face matches any excluded face
+                    is_excluded = False
+                    for exclude_enc in exclude_encodings:
+                        distances = face_recognition.face_distance([exclude_enc], gallery_enc)
+                        if distances[0] < 0.5:  # This face matches exclude list
+                            is_excluded = True
+                            break
+                    
+                    # Only add non-excluded faces for comparison
+                    if not is_excluded:
+                        faces_to_compare.append(gallery_enc)
+            else:
+                # No exclusion list, use all faces
+                faces_to_compare = img_encodings
             
-            # Calculate similarity
-            distances = face_recognition.face_distance(img_encodings, selfie_encoding)
+            # No faces left after filtering excludes
+            if not faces_to_compare:
+                return {
+                    'id': img_id,
+                    'similarity': 0.0  # All faces were excluded (only guests in image)
+                }
+            
+            # Calculate similarity with non-excluded faces only
+            distances = face_recognition.face_distance(faces_to_compare, selfie_encoding)
             min_distance = min(distances)
             similarity = 1 - min_distance
             
             del img_encodings
+            del faces_to_compare
             
             return {
                 'id': img_id,
@@ -155,7 +189,10 @@ class FaceRecognitionEngine(BaseEngine):
             
         except Exception as e:
             logger.warning(f"Error processing {img_id}: {e}")
-            return None
+            return {
+                'id': img_id,
+                'similarity': 0.0  # Error in processing
+            }
         finally:
             # Explicit cleanup for memory safety
             gallery_img = None
@@ -179,7 +216,7 @@ class FaceRecognitionEngine(BaseEngine):
             for future in as_completed(future_to_item):
                 try:
                     result = future.result()
-                    if result:
+                    if result:  # Should always be truthy now
                         results.append(result)
                     processed += 1
                     
@@ -295,12 +332,10 @@ class FaceRecognitionEngine(BaseEngine):
                 logger.info(f"Chunk {chunk_idx + 1}/{num_chunks} complete: Found {len(chunk_results)} matches")
                 gc.collect()
         
-        logger.info(f"✓ Processed all {total} images - Found {len(results)} total matches")
+        logger.info(f"✓ Processed all {total} images - {len([r for r in results if r['similarity'] <= 0])} had errors or no faces")
         
         # Sort by similarity in descending order (best matches first)
         results.sort(key=lambda x: x['similarity'], reverse=True)
-        
-        logger.info(f"✓ Found {len(results)} matches")
         
         # Final cleanup
         del selfie_encoding

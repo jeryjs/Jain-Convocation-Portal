@@ -38,11 +38,11 @@ logger = logging.getLogger(__name__)
 class DeepFaceEngine(BaseEngine):
     """Face recognition engine using DeepFace library with maximum performance"""
     
-    def __init__(self, use_gpu: bool = True, max_workers: int = 4, batch_size: int = 25, max_image_size: int = 640):
+    def __init__(self, use_gpu: bool = True, max_workers: int = 6, batch_size: int = 25, max_image_size: int = 640):
         super().__init__(use_gpu)
         self.name = "DeepFace"
         self.model_name = "Facenet"  # or VGG-Face, OpenFace, ArcFace, etc.
-        self.max_workers = max_workers  # Lower than face_recognition due to TF overhead
+        self.max_workers = max_workers  # Optimized for TensorFlow GPU batching
         self.batch_size = batch_size  # Smaller batches for TF
         self.max_image_size = max_image_size
 
@@ -101,10 +101,21 @@ class DeepFaceEngine(BaseEngine):
     def _preprocess_image(self, img_array: np.ndarray) -> np.ndarray:
         """Preprocess image for faster face recognition"""
         h, w = img_array.shape[:2]
+        
+        # Validate image dimensions
+        if h < 10 or w < 10:
+            raise ValueError(f"Image too small: {w}x{h}")
+        
         if h > self.max_image_size or w > self.max_image_size:
             scale = self.max_image_size / max(h, w)
             new_size = (int(w * scale), int(h * scale))
+            
+            # Ensure minimum size after resize
+            if new_size[0] < 10 or new_size[1] < 10:
+                raise ValueError(f"Resized image too small: {new_size}")
+            
             img_array = cv2.resize(img_array, new_size, interpolation=cv2.INTER_AREA)
+        
         return img_array
 
     def _extract_embedding(self, img_array: np.ndarray, enforce_detection: bool = True):
@@ -127,6 +138,9 @@ class DeepFaceEngine(BaseEngine):
     def _process_single_gallery_image(self, args):
         """Process a single gallery image (for parallel execution)"""
         img_id, img_path_or_base64, selfie_embedding, exclude_embeddings = args
+        
+        gallery_img = None
+        processed_embeddings = None
         
         try:
             # Check cache first
@@ -151,9 +165,12 @@ class DeepFaceEngine(BaseEngine):
                     enforce_detection=False
                 )
                 del gallery_img  # Release memory immediately
-            
+                gallery_img = None
                 if not gallery_embeddings:
-                    return None
+                    return {
+                        'id': img_id,
+                        'similarity': 0.0  # No face detected
+                    }
                 
                 # Extract embeddings from results
                 processed_embeddings = []
@@ -167,60 +184,91 @@ class DeepFaceEngine(BaseEngine):
                 if processed_embeddings:
                     self._cache_embedding(img_path_or_base64, processed_embeddings, 'gallery_embeddings')
             
-            # Check exclusion
+            # Filter out excluded faces (guests) from comparison
+            faces_to_compare = []
             if exclude_embeddings:
                 for gallery_emb in processed_embeddings:
+                    # Check if this face matches any excluded face
+                    is_excluded = False
                     for exclude_emb in exclude_embeddings:
                         distance = self._cosine_distance(gallery_emb, exclude_emb)
-                        if distance < 0.4:  # Threshold for exclusion
-                            del processed_embeddings
-                            return None
+                        if distance < 0.4:  # This face matches exclude list
+                            is_excluded = True
+                            break
+                    
+                    # Only add non-excluded faces for comparison
+                    if not is_excluded:
+                        faces_to_compare.append(gallery_emb)
+            else:
+                # No exclusion list, use all faces
+                faces_to_compare = processed_embeddings
             
-            # Calculate similarity with selfie
+            # No faces left after filtering excludes
+            if not faces_to_compare:
+                return {
+                    'id': img_id,
+                    'similarity': 0.0  # All faces were excluded (only guests in image)
+                }
+            
+            # Calculate similarity with non-excluded faces only
             min_distance = float('inf')
-            for gallery_emb in processed_embeddings:
+            for gallery_emb in faces_to_compare:
                 distance = self._cosine_distance(selfie_embedding, gallery_emb)
                 min_distance = min(min_distance, distance)
             
             del processed_embeddings
+            del faces_to_compare
             
             # Convert distance to similarity
             similarity = 1 - min_distance
             
-            if similarity > 0:
-                return {
-                    'id': img_id,
-                    'similarity': round(float(similarity), 4)
-                }
-            
-            return None
+            return {
+                'id': img_id,
+                'similarity': round(float(similarity), 4)
+            }
             
         except Exception as e:
             logger.warning(f"Error processing {img_id}: {e}")
-            return None
+            return {
+                'id': img_id,
+                'similarity': 0.0  # Error in processing
+            }
+        finally:
+            # Explicit cleanup for memory safety
+            gallery_img = None
+            processed_embeddings = None
 
-    def _process_batch(self, batch_items, selfie_embedding, exclude_embeddings):
-        """Process a batch of images in parallel"""
+    def _process_batch(self, batch_items, selfie_embedding, exclude_embeddings, show_progress=False):
+        """Process a batch of images in parallel with memory-safe result collection"""
         results = []
+        total = len(batch_items)
+        processed = 0
         
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Prepare arguments
-            tasks = [
-                (item['id'], item['image'], selfie_embedding, exclude_embeddings)
-                for item in batch_items
-            ]
-            
             # Submit all tasks
-            futures = [
-                executor.submit(self._process_single_gallery_image, task)
-                for task in tasks
-            ]
+            future_to_item = {
+                executor.submit(self._process_single_gallery_image, 
+                              (item['id'], item['image'], selfie_embedding, exclude_embeddings)): item
+                for item in batch_items
+            }
             
-            # Collect results as they complete
-            for future in as_completed(futures):
-                result = future.result()
-                if result:
-                    results.append(result)
+            # Collect results as they complete with progress tracking
+            for future in as_completed(future_to_item):
+                try:
+                    result = future.result()
+                    if result:  # Should always be truthy now
+                        results.append(result)
+                    processed += 1
+                    
+                    # Show progress every 10% or every 25 images
+                    if show_progress and (processed % max(25, total // 10) == 0 or processed == total):
+                        logger.info(f"Progress: {processed}/{total} ({100*processed/total:.1f}%) - {len(results)} matches so far")
+                except Exception as e:
+                    logger.warning(f"Error processing image: {e}")
+                    processed += 1
+                finally:
+                    # Cleanup reference to help GC
+                    del future_to_item[future]
         
         return results
 
@@ -309,30 +357,40 @@ class DeepFaceEngine(BaseEngine):
             
             logger.info(f"✓ Loaded {len(exclude_embeddings)} exclude face embeddings")
         
-        # Process gallery images in batches with parallel processing
+        # Process images with memory-safe chunking for large datasets
         results = []
         total = len(gallery_images)
-        logger.info(f"Processing {total} images in batches of {self.batch_size} with {self.max_workers} workers...")
         
-        for batch_start in range(0, total, self.batch_size):
-            batch_end = min(batch_start + self.batch_size, total)
-            batch = gallery_images[batch_start:batch_end]
+        # Use chunked processing for datasets > 500 images to prevent memory issues
+        chunk_size = 500 if total > 500 else total
+        num_chunks = (total + chunk_size - 1) // chunk_size
+        
+        if num_chunks > 1:
+            logger.info(f"Processing {total} images in {num_chunks} chunks of ~{chunk_size} with {self.max_workers} workers...")
+        else:
+            logger.info(f"Processing {total} images with {self.max_workers} workers in parallel...")
+        
+        for chunk_idx in range(num_chunks):
+            chunk_start = chunk_idx * chunk_size
+            chunk_end = min(chunk_start + chunk_size, total)
+            chunk = gallery_images[chunk_start:chunk_end]
             
-            # Process batch in parallel
-            batch_results = self._process_batch(batch, selfie_embedding, exclude_embeddings)
-            results.extend(batch_results)
+            if num_chunks > 1:
+                logger.info(f"Chunk {chunk_idx + 1}/{num_chunks}: Processing images {chunk_start + 1}-{chunk_end}...")
             
-            # Progress update
-            progress_pct = (batch_end / total) * 100
-            logger.info(f"Progress: {batch_end}/{total} ({progress_pct:.1f}%) - Found {len(batch_results)} matches in this batch")
+            # Process chunk with progress tracking
+            chunk_results = self._process_batch(chunk, selfie_embedding, exclude_embeddings, show_progress=(num_chunks == 1))
+            results.extend(chunk_results)
             
-            # Cleanup after each batch
-            self._cleanup_memory()
+            # Memory cleanup between chunks
+            if num_chunks > 1:
+                logger.info(f"Chunk {chunk_idx + 1}/{num_chunks} complete: Found {len(chunk_results)} matches")
+                self._cleanup_memory()
+        
+        logger.info(f"✓ Processed all {total} images - {len([r for r in results if r['similarity'] <= 0])} had errors or no faces")
         
         # Sort by similarity in descending order (best matches first)
         results.sort(key=lambda x: x['similarity'], reverse=True)
-        
-        logger.info(f"✓ Found {len(results)} total matches")
         
         # Final cleanup
         del selfie_embedding
