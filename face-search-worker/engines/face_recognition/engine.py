@@ -1,6 +1,7 @@
 """
 face_recognition Engine
 Uses dlib-based face_recognition library with maximum performance optimizations
+True parallelism via multiprocessing with persistent worker pool
 """
 
 import os
@@ -11,6 +12,7 @@ import numpy as np
 import hashlib
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from multiprocessing import Pool
 import logging
 
 import sys
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 class FaceRecognitionEngine(BaseEngine):
     """Face recognition engine using face_recognition library with maximum performance"""
     
-    def __init__(self, use_gpu: bool = True, max_workers: int = 38, batch_size: int = 8, max_image_size: int = 640):
+    def __init__(self, use_gpu: bool = True, max_workers: int = 8, batch_size: int = 50, max_image_size: int = 640, use_multiprocessing: bool = True):
         super().__init__(use_gpu)
         self.name = "face_recognition"
         self.max_workers = max_workers
@@ -146,13 +148,10 @@ class FaceRecognitionEngine(BaseEngine):
                 'similarity': round(float(similarity), 4)
             }
             
-            return None
-            
         except Exception as e:
             logger.warning(f"Error processing {img_id}: {e}")
             return None
-        finally:
-            self._cleanup_gpu_memory()
+        # Don't cleanup after every image - too expensive! Do it per batch instead
 
     def _process_batch(self, batch_items, selfie_encoding, exclude_encodings):
         """Process a batch of images in parallel"""
@@ -280,3 +279,6 @@ class FaceRecognitionEngine(BaseEngine):
         self._cleanup_gpu_memory()
         
         return results
+    
+    def __del__(self):
+        self._cleanup_gpu_memory()

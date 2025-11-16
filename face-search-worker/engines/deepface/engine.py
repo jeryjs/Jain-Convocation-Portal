@@ -198,8 +198,6 @@ class DeepFaceEngine(BaseEngine):
         except Exception as e:
             logger.warning(f"Error processing {img_id}: {e}")
             return None
-        finally:
-            gc.collect()  # Quick cleanup per image
 
     def _process_batch(self, batch_items, selfie_embedding, exclude_embeddings):
         """Process a batch of images in parallel"""
