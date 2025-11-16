@@ -37,6 +37,9 @@ export default function ImageGrid({
   columns = 3,
   showColumnControls = true,
   searchEnabled = false,
+  faceSearchEnabled = false,
+  onFaceSearch,
+  faceMatchMap = {},
   sx
 }) {
   const [localColumns, setLocalColumns] = useState(columns);
@@ -64,8 +67,8 @@ export default function ImageGrid({
 
   return (
     <Card variant='elevation' elevation='4' sx={{ display: "flex", flexDirection: "column", ...sx }}>
-      {(searchEnabled || showColumnControls) && (
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+      {(searchEnabled || showColumnControls || faceSearchEnabled) && (
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           {searchEnabled && (
             <TextField
               fullWidth
@@ -86,6 +89,11 @@ export default function ImageGrid({
               </IconButton>
             </Box>
           )}
+          {faceSearchEnabled && (
+            <Button variant="contained" onClick={onFaceSearch} sx={{ ml: 'auto' }} disabled={loading}>
+              Face Search
+            </Button>
+          )}
         </Box>
       )}
 
@@ -98,6 +106,8 @@ export default function ImageGrid({
           const canSelect = !isLocked && (isSelected || availableSlots > 0);
           const isMatched = !loading && searchTerm &&
             getShortName(imagePath).toLowerCase().includes(searchTerm.toLowerCase());
+          const rawScore = !loading ? faceMatchMap?.[imagePath] : null;
+          const matchScore = typeof rawScore === 'number' ? rawScore : rawScore != null ? Number(rawScore) : null;
 
           return (
             <Grid
@@ -116,6 +126,7 @@ export default function ImageGrid({
                 onSelect={onSelectImage}
                 onDownload={onDownload}
                 isMatched={isMatched}
+                matchScore={matchScore}
               />
             </Grid>
           );
@@ -134,7 +145,8 @@ const ImageCard = memo(({
   canSelect,
   onSelect,
   onDownload,
-  isMatched
+  isMatched,
+  matchScore
 }) => {
   const displayName = getShortName(imgPath);
   const [downloading, setDownloading] = useState(false);
@@ -200,6 +212,14 @@ const ImageCard = memo(({
 
       {isLocked && !onDownload && (
         <Chip label="Already Requested" size="small" color="primary" sx={{ position: 'absolute', top: 8, right: 8 }} />
+      )}
+      {Number.isFinite(matchScore) && (
+        <Chip
+          label={`${Math.round(matchScore * 100)}% match`}
+          size="small"
+          color="success"
+          sx={{ position: 'absolute', top: 8, left: 8 }}
+        />
       )}
     </Card>
   );

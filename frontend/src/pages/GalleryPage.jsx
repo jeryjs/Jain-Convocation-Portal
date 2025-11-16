@@ -1,21 +1,24 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import config from '../config';
+import WarningIcon from '@mui/icons-material/Warning';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Stack,
+  Typography
+} from '@mui/material';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import DemoPageBanner from '../components/DemoPageBanner';
+import FaceSearchBanner from '../components/FaceSearchBanner';
+import FaceSearchDialog from '../components/FaceSearchDialog';
 import ImageGrid from '../components/ImageGrid';
 import PageHeader from '../components/PageHeader';
-import {
-  Box,
-  Stack,
-  Typography,
-  Card,
-  Button,
-  Alert
-} from '@mui/material';
-import WarningIcon from '@mui/icons-material/Warning';
+import config from '../config';
 import { useAuth } from '../config/AuthContext';
+import { useFaceSearchQueue } from '../hooks/useFaceSearchQueue';
 import { cacheManager } from '../utils/cache';
 import { downloadFile } from '../utils/utils';
-import DemoPageBanner from '../components/DemoPageBanner';
 
 
 function GalleryPage() {
@@ -24,10 +27,49 @@ function GalleryPage() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
+  const [imageCount, setImageCount] = useState(0);
+  const [faceDialogOpen, setFaceDialogOpen] = useState(false);
   const mounted = useRef(false);
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
   const [loadingLinks, setLoadingLinks] = useState(false);
   const isGroupPhotos = pathData.batch === 'Group Photos';
+
+  const decodedStage = useMemo(() => {
+    try {
+      return atob(sessionId);
+    } catch {
+      return sessionId;
+    }
+  }, [sessionId]);
+
+  const stageLabel = useMemo(() => {
+    const parts = decodedStage.split('/');
+    return parts[2] || parts[parts.length - 1] || 'Stage';
+  }, [decodedStage]);
+
+  const faceSearch = useFaceSearchQueue({
+    stageKey: decodedStage,
+    stageLabel,
+    imageCount,
+    userId: userData?.email,
+    enabled: !isGroupPhotos && Boolean(userData),
+  });
+
+  const faceMatchMap = useMemo(() => {
+    if (!faceSearch.result) return {};
+    return faceSearch.result.reduce((acc, { id, score }) => {
+      acc[id] = score;
+      return acc;
+    }, {});
+  }, [faceSearch.result]);
+
+  const displayImages = useMemo(() => {
+    if (!faceSearch.isFiltering) return images;
+    return images.filter((item) => {
+      const key = Object.keys(item)[0];
+      return faceMatchMap[key] !== undefined;
+    });
+  }, [faceMatchMap, faceSearch.isFiltering, images]);
 
   useEffect(() => {
     if (mounted.current) return;
@@ -54,6 +96,7 @@ function GalleryPage() {
         const data = await response.json();
         
         setImages(data);
+        setImageCount(data.length);
         // Cache the new data
         cacheManager.set(cacheKey, data, isRetry);
       } catch (error) {
@@ -129,6 +172,31 @@ function GalleryPage() {
     navigate(`/gallery/${sessionId}/request`);
   };
 
+  const handleFaceSearchClick = () => {
+    if (!userData) return;
+    setFaceDialogOpen(true);
+  };
+
+  const banner = (!isGroupPhotos && (faceSearch.status || faceSearch.error || faceSearch.isFiltering || faceSearch.isStaleResult)) ? (
+    <FaceSearchBanner
+      status={faceSearch.status}
+      error={faceSearch.error}
+      isFiltering={faceSearch.isFiltering}
+      isStale={faceSearch.isStaleResult}
+      resultCount={faceSearch.result?.length || 0}
+      stageLabel={stageLabel}
+      onCancel={faceSearch.clearJob}
+      onClearFilter={faceSearch.clearJob}
+      onRetry={() => {
+        faceSearch.clearJob();
+        setFaceDialogOpen(true);
+      }}
+      onDismissError={faceSearch.dismissError}
+    />
+  ) : null;
+
+  const showFilterFootnote = faceSearch.isFiltering && displayImages.length > 0;
+
   return (
     <>
       <PageHeader
@@ -157,16 +225,32 @@ function GalleryPage() {
             spacing={2}
             sx={{ height: {md: '80vh'} }}
           >
-            <ImageGrid
-              loading={loading}
-              images={images}
-              selectedImages={Object.keys(selectedImages)}
-              lockedImages={Object.keys(userData?.requestedImages || {})}
-              onSelectImage={handleSelectImage}
-              availableSlots={getAvailableSlots()}
-              searchEnabled={true}
-              sx={{ p:2, height: {xs:'80vh'}, flex: {md: '4'} }}
-            />
+            <Stack spacing={2} sx={{ flex: { md: '4' }, minWidth: 0 }}>
+              {banner}
+              <ImageGrid
+                loading={loading}
+                images={displayImages}
+                selectedImages={Object.keys(selectedImages)}
+                lockedImages={Object.keys(userData?.requestedImages || {})}
+                onSelectImage={handleSelectImage}
+                availableSlots={getAvailableSlots()}
+                searchEnabled={true}
+                faceSearchEnabled={Boolean(userData)}
+                onFaceSearch={handleFaceSearchClick}
+                faceMatchMap={faceMatchMap}
+                sx={{ p: 2, height: { xs: '80vh' }, flex: 1 }}
+              />
+              {faceSearch.isFiltering && displayImages.length === 0 && (
+                <Alert severity="info">
+                  No matches found. Try capturing a clearer selfie and try again.
+                </Alert>
+              )}
+              {showFilterFootnote && (
+                <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
+                  Can’t find your photo? Clear the filter to browse all images for this stage.
+                </Typography>
+              )}
+            </Stack>
 
             <SelectedImagesPanel
               selectedImages={selectedImages}
@@ -256,6 +340,16 @@ function GalleryPage() {
           </Box>
         </Box>
       )}
+
+      <FaceSearchDialog
+        open={faceDialogOpen}
+        onClose={() => setFaceDialogOpen(false)}
+        prepareImage={faceSearch.prepareImage}
+        createJob={faceSearch.createJob}
+        creating={faceSearch.creating}
+        createError={faceSearch.createError}
+        clearCreateError={faceSearch.clearCreateError}
+      />
     </>
   );
 }
