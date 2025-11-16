@@ -116,7 +116,7 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
         return {
           ...prev,
           lastEvent: 'result',
-          result: data.result.map(d=>({...d, id: d.id.replaceAll('\\', '/')})) || [], // Normalize IDs
+          result: (data.result || []).map(d => ({ ...d, id: d.id.replaceAll('\\', '/') })), // Normalize IDs
           status: null,
           completedAt: Date.now(),
         };

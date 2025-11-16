@@ -68,30 +68,39 @@ export default function ImageGrid({
   return (
     <Card variant='elevation' elevation='4' sx={{ display: "flex", flexDirection: "column", ...sx }}>
       {(searchEnabled || showColumnControls || faceSearchEnabled) && (
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          {searchEnabled && (
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search images..."
-              value={searchTerm}
-              onChange={handleSearch}
-              disabled={loading}
-            />
-          )}
-          {showColumnControls && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
-                <RemoveCircleOutlineIcon />
-              </IconButton>
-              <IconButton onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
-                <AddCircleOutlineIcon />
-              </IconButton>
-            </Box>
-          )}
+        <Box sx={{ py: 1.5, px: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {searchEnabled && (
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search images..."
+                value={searchTerm}
+                onChange={handleSearch}
+                disabled={loading}
+              />
+            )}
+            {showColumnControls && (
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setLocalColumns(prev => (prev < 10 ? prev + 1 : prev))}>
+                  <RemoveCircleOutlineIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => setLocalColumns(prev => (prev > 1 ? prev - 1 : prev))}>
+                  <AddCircleOutlineIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
+          </Box>
           {faceSearchEnabled && (
-            <Button variant="contained" onClick={onFaceSearch} sx={{ ml: 'auto' }} disabled={loading}>
-              Face Search
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              onClick={onFaceSearch}
+              disabled={loading}
+              sx={{ textTransform: 'none', py: 0.75 }}
+            >
+              Find My Photos (Face Search)
             </Button>
           )}
         </Box>
@@ -215,10 +224,17 @@ const ImageCard = memo(({
       )}
       {Number.isFinite(matchScore) && (
         <Chip
-          label={`${Math.round(matchScore * 100)}% match`}
+          label={`${Math.round(matchScore * 100)}%`}
           size="small"
           color="success"
-          sx={{ position: 'absolute', top: 8, left: 8 }}
+          sx={{
+            position: 'absolute',
+            top: 4,
+            left: 4,
+            fontSize: '0.65rem',
+            height: 18,
+            '& .MuiChip-label': { px: 0.75, py: 0 },
+          }}
         />
       )}
     </Card>

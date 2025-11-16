@@ -286,19 +286,3 @@ function FaceSearchDialog({
 }
 
 export default FaceSearchDialog;
-
-FaceSearchDialog.propTypes = {
-  open: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  prepareImage: PropTypes.func.isRequired,
-  createJob: PropTypes.func.isRequired,
-  creating: PropTypes.bool,
-  createError: PropTypes.string,
-  clearCreateError: PropTypes.func,
-};
-
-FaceSearchDialog.defaultProps = {
-  creating: false,
-  createError: null,
-  clearCreateError: undefined,
-};

@@ -6,7 +6,7 @@ export interface JobStatus {
 }
 
 export interface JobResult {
-  result: Array<{ id: string; score: number }>;
+  result: Array<{ id: string; similarity: number }>;
   start_time: number;
   finish_time: number;
   stage: string;

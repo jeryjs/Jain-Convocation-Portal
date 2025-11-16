@@ -210,7 +210,7 @@ function GalleryPage() {
             columns={3}
             showColumnControls={true}
             onDownload={handleImageDownload}
-            sx={{ p: 2, height: 'calc(100vh - 200px)', flex: 1 }}
+            sx={{ py: 2, px: 1, height: 'calc(100vh - 200px)', flex: 1 }}
           />
         ) : (
           <Stack 
@@ -231,7 +231,7 @@ function GalleryPage() {
                 faceSearchEnabled={Boolean(userData)}
                 onFaceSearch={handleFaceSearchClick}
                 faceMatchMap={faceMatchMap}
-                sx={{ p: 2, height: { xs: '80vh' }, flex: 1 }}
+                sx={{ py: 2, px: 1, height: { xs: '80vh' }, flex: 1 }}
               />
               {faceSearch.isFiltering && displayImages.length === 0 && (
                 <Alert severity="info">

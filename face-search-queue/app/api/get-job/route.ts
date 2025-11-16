@@ -18,7 +18,7 @@ const KEEPALIVE_MS = 15000; // Keepalive ping, 15s is safe for most proxies
    ----------------------------- */
 interface FaceSearchResult {
   id: string;
-  score: number;
+  similarity: number;
 }
 
 type Subscriber = {

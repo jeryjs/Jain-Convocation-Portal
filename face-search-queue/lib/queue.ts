@@ -8,11 +8,6 @@ export interface FaceSearchJobData {
   timestamp: number;
 }
 
-export interface FaceSearchResult {
-  id: string;
-  score: number;
-}
-
 export const faceSearchQueue = new Queue<FaceSearchJobData>('face-search', {
   connection: redis,
   defaultJobOptions: {
