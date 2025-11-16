@@ -50,7 +50,7 @@ function GalleryPage() {
   });
 
   const faceMatchMap = useMemo(() => {
-    if (!faceSearch.result) return {};
+    if (!faceSearch.result?.length) return {};
     return faceSearch.result.reduce((acc, { id, similarity }) => {
       acc[id] = similarity;
       return acc;
