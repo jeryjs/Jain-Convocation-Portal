@@ -4,7 +4,7 @@ import config from "../config";
 
 
 export default function DemoPageBanner() {
-    if (!"config.SHOW_UPLOAD_ALERT") {
+    if (config.DEMO_MODE) { // use the config flag as workaround to toggle the banner
         return (
             <Alert
                 severity="info"

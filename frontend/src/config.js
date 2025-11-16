@@ -4,6 +4,7 @@ const config = {
   SHOW_UPLOAD_ALERT: true,
   HARDCOPY_DISABLED: true,
   REMOVE_HARDCOPY: true,
+  DEMO_MODE: false,
 };
 
 export default config;
