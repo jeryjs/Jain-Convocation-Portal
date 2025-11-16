@@ -122,7 +122,7 @@ class FaceRecognitionEngine(BaseEngine):
                 gallery_img = self._preprocess_image(gallery_img)
                 
                 # Get encodings
-                img_encodings = face_recognition.face_encodings(gallery_img)
+                img_encodings = face_recognition.face_encodings(gallery_img, num_jitters=4, model='large')
                 del gallery_img  # Release memory immediately
                 gallery_img = None
                 
@@ -227,7 +227,7 @@ class FaceRecognitionEngine(BaseEngine):
             logger.info("✓ Selfie decoded and preprocessed")
             
             # Get selfie encoding
-            selfie_encodings = face_recognition.face_encodings(selfie_img)
+            selfie_encodings = face_recognition.face_encodings(selfie_img, num_jitters=4, model='large')
             del selfie_img  # Release memory
             
             if not selfie_encodings:
