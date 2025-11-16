@@ -4,7 +4,7 @@ All face recognition engines must implement this abstract class
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, Tuple
+from typing import Any, List, Dict, Optional
 import base64
 import io
 from PIL import Image
@@ -193,7 +193,7 @@ class BaseEngine(ABC):
         pass
     
     @abstractmethod
-    def _encode_selfie(self, selfie_img: np.ndarray):
+    def _encode_selfie(self, selfie_img: np.ndarray) -> Optional[Any]:
         """
         Encode selfie image (engine-specific implementation)
         
@@ -206,7 +206,7 @@ class BaseEngine(ABC):
         pass
     
     @abstractmethod
-    def _encode_exclude_image(self, img: np.ndarray) -> List:
+    def _encode_exclude_image(self, img: np.ndarray) -> List[Any]:
         """
         Encode exclude image (engine-specific implementation)
         
