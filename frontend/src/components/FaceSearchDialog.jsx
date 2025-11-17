@@ -10,7 +10,6 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import PropTypes from 'prop-types';
 import Webcam from 'react-webcam';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 

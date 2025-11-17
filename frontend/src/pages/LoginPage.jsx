@@ -96,7 +96,7 @@ function LoginPage() {
               margin='normal'
               placeholder="Enter your registered phone number"
               error={!validatePassword(password) && password.length > 0}
-              helperText={"For any assistance with logging in, please visit the help desk near the entrance."}
+              helperText={"For any assistance with logging in, please visit the help desk near the entrance. Your password is your phone number."}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">

@@ -4,7 +4,7 @@ const { cache, TTL } = require("../config/cache");
 const { REQUEST_TYPES } = require("../constants");
 const { invalidateCache } = require("../utils/cache.utils");
 
-const COLLECTION_NAME = "2024";
+const COLLECTION_NAME = "2025";
 
 // Calculate waiting time for hardcopy requests
 const calculateWaitingTime = async () => {

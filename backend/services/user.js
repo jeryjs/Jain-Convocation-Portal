@@ -3,7 +3,7 @@ const db = require("../config/firebase");
 const { cache, TTL } = require("../config/cache");
 const { invalidateCache } = require("../utils/cache.utils");
 
-const COLLECTION_NAME = "2024";
+const COLLECTION_NAME = "2025";
 
 // Function to authenticate user
 const authenticateUser = async (username, password) => {
