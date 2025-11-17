@@ -92,7 +92,7 @@ export default function QueueKanban({ jobs, onJobAction, onDeleteJob }: QueueKan
 
 interface JobCardProps {
   job: Job;
-  status: string;
+  status: string; // 'waiting' | 'active' | 'completed' | 'failed' | 'delayed'
   color: string;
   onJobAction: (jobId: string, action: string) => void;
   onDeleteJob: (jobId: string) => void;
@@ -115,12 +115,12 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
     <div className={`glass rounded-xl border ${colorMap[color]} hover:bg-blue-500/10 hover:shadow-lg transition-all group transform hover:scale-102 cursor-pointer`}>
       <div className="p-4">
         <div className="flex justify-between items-start mb-3">
-          <div className="flex-1 min-w-0">
+          <div onClick={() => setExpanded(!expanded)} className="flex-1 min-w-0">
             <div className="text-[11px] font-mono text-blue-300/60 truncate hover:text-blue-300 transition-colors" title={job.id}>
-              #{job.id.slice(-10)}
+              #{job.id}
             </div>
             <div className="text-xs font-bold text-blue-100 mt-2">
-              {job.data?.stage || 'Processing'}
+              ...{job.data?.stage.slice(-35) || 'Processing'}
             </div>
           </div>
           <button
@@ -133,11 +133,13 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
         </div>
 
         <div className="text-[11px] text-blue-200/60 space-y-1">
-          <div className="truncate font-mono">{job.data?.uid || 'Unknown'}</div>
-          <div className="text-blue-300/70">{formatTime(job.timestamp)}</div>
-          {job.attemptsMade > 0 && (
-            <div className="text-amber-400 font-semibold">↻ Retry: {job.attemptsMade}</div>
-          )}
+          <div className="flex justify-between items-center">
+            <div className="truncate font-mono">{job.data?.uid.split('@')[0] + "@..." || 'Unknown'}</div>
+            <div className="text-blue-300/70">{formatTime(job.timestamp)}</div>
+            {job.attemptsMade > 0 && (
+              <div className="text-amber-400 font-semibold">↻ Retry: {job.attemptsMade}</div>
+            )}
+          </div>
           {job.progress > 0 && job.progress < 100 && (
             <div className="mt-3">
               <div className="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden border border-blue-400/30">
@@ -197,6 +199,7 @@ function JobCard({ job, status, color, onJobAction, onDeleteJob, formatTime, for
               )}
               <button
                 onClick={() => onDeleteJob(job.id)}
+                hidden={status === 'completed' && job.returnvalue}
                 className="text-[11px] px-3 py-1.5 bg-red-500/30 border border-red-400/70 text-red-200 rounded-lg hover:bg-red-500/50 transition-all font-bold uppercase tracking-wider hover:shadow-lg hover:shadow-red-500/30"
               >
                 ✗ Delete
