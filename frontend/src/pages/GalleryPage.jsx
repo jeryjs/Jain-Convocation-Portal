@@ -7,7 +7,7 @@ import {
   Stack,
   Typography
 } from '@mui/material';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DemoPageBanner from '../components/DemoPageBanner';
 import FaceSearchBanner from '../components/FaceSearchBanner';
@@ -28,7 +28,6 @@ function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
   const [faceDialogOpen, setFaceDialogOpen] = useState(false);
-  const mounted = useRef(false);
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
   const [loadingLinks, setLoadingLinks] = useState(false);
   const isGroupPhotos = pathData.batch === 'Group Photos';
@@ -68,9 +67,6 @@ function GalleryPage() {
   }, [faceMatchMap, faceSearch.isFiltering, images]);
 
   useEffect(() => {
-    if (mounted.current) return;
-    mounted.current = true;
-
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
 
@@ -181,31 +177,14 @@ function GalleryPage() {
 
   const handleFaceSearchClick = () => {
     if (!userData) return;
-    if (faceSearch.isFiltering) {
-      faceSearch.clearJob();
+    if (faceSearch.result) {
+      faceSearch.toggleFilter();
     } else {
       setFaceDialogOpen(true);
     }
   };
 
-  const banner = (!isGroupPhotos && (faceSearch.status || faceSearch.error || faceSearch.isStaleResult)) ? (
-    <FaceSearchBanner
-      status={faceSearch.status}
-      error={faceSearch.error}
-      isFiltering={false}
-      isStale={faceSearch.isStaleResult}
-      resultCount={faceSearch.result?.length || 0}
-      onCancel={faceSearch.clearJob}
-      onClearFilter={faceSearch.clearJob}
-      onRetry={() => {
-        faceSearch.dismissError();
-        setFaceDialogOpen(true);
-      }}
-      onDismissError={faceSearch.dismissError}
-    />
-  ) : null;
-
-  const showFilterFootnote = faceSearch.isFiltering && displayImages.length > 0;
+  const showFaceSearchBanner = (!isGroupPhotos && (faceSearch.status || faceSearch.error || faceSearch.isStaleResult || faceSearch.isFiltering || faceSearch.result));
 
   return (
     <>
@@ -236,7 +215,22 @@ function GalleryPage() {
             sx={{ height: { md: '80vh' } }}
           >
             <Stack spacing={2} sx={{ flex: { md: '4' }, minWidth: 0 }}>
-              {banner}
+              {showFaceSearchBanner && (
+                <FaceSearchBanner
+                  status={faceSearch.status}
+                  error={faceSearch.error}
+                  isFiltering={faceSearch.isFiltering}
+                  isStale={faceSearch.isStaleResult}
+                  resultCount={faceSearch.result?.length || 0}
+                  hasResult={Boolean(faceSearch.result)}
+                  onCancel={faceSearch.clearJob}
+                  onToggleFilter={faceSearch.toggleFilter}
+                  onRetry={() => {
+                    faceSearch.clearJob();
+                    setFaceDialogOpen(true);
+                  }}
+                  onDismissError={faceSearch.dismissError} />
+              )}
               <ImageGrid
                 loading={loading}
                 images={displayImages}
@@ -245,22 +239,12 @@ function GalleryPage() {
                 onSelectImage={handleSelectImage}
                 availableSlots={getAvailableSlots()}
                 searchEnabled={true}
-                faceSearchEnabled={Boolean(userData)}
+                onFaceSearch={Boolean(userData) && handleFaceSearchClick}
                 faceSearchActive={faceSearch.isFiltering}
-                onFaceSearch={handleFaceSearchClick}
+                faceSearchComplete={Boolean(faceSearch.result)}
                 faceMatchMap={faceMatchMap}
                 sx={{ p: 2, height: { xs: '80vh' }, flex: 1 }}
               />
-              {faceSearch.isFiltering && displayImages.length === 0 && (
-                <Alert severity="info">
-                  No matches found. Try capturing a clearer selfie and try again.
-                </Alert>
-              )}
-              {showFilterFootnote && (
-                <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
-                  Can’t find your photo? Clear the filter to browse all images for this stage.
-                </Typography>
-              )}
             </Stack>
 
             <SelectedImagesPanel

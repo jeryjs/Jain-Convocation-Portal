@@ -1,22 +1,22 @@
+import CancelIcon from '@mui/icons-material/Cancel';
+import CloseIcon from '@mui/icons-material/Close';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
+import ReplayIcon from '@mui/icons-material/Replay';
 import {
   Alert,
   AlertTitle,
   Box,
   Button,
-  Stack,
-  Typography,
-  useTheme,
-  useMediaQuery,
+  Chip,
   IconButton,
   LinearProgress,
+  Stack,
   Tooltip,
-  Chip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import ReplayIcon from '@mui/icons-material/Replay';
-import CloseIcon from '@mui/icons-material/Close';
-import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import CancelIcon from '@mui/icons-material/Cancel';
 
 function FaceSearchBanner({
   status,
@@ -24,8 +24,9 @@ function FaceSearchBanner({
   isFiltering,
   isStale,
   resultCount,
+  hasResult,
   onCancel,
-  onClearFilter,
+  onToggleFilter,
   onRetry,
   onDismissError,
 }) {
@@ -142,7 +143,7 @@ function FaceSearchBanner({
         action={
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
             {renderAction({ label: 'Re-run', onClick: onRetry, icon: ReplayIcon, ariaLabel: 'rerun' })}
-            {renderAction({ label: 'Clear', onClick: onClearFilter, icon: FilterAltOffIcon, ariaLabel: 'clear' })}
+            {renderAction({ label: 'Hide', onClick: onToggleFilter, icon: FilterAltOffIcon, ariaLabel: 'hide' })}
           </Stack>
         }
       >
@@ -166,32 +167,64 @@ function FaceSearchBanner({
         sx={alertSx}
         action={
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
-            {renderAction({ label: 'Clear', onClick: onClearFilter, icon: FilterAltOffIcon, ariaLabel: 'clear' })}
+            {renderAction({ label: 'Show All', onClick: onToggleFilter, icon: FilterAltOffIcon, ariaLabel: 'show all' })}
           </Stack>
         }
       >
         <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center', width: '100%' }}>
           <Box sx={{ flex: 1 }}>
-            <AlertTitle sx={titleSx}>Showing matches</AlertTitle>
+            <AlertTitle sx={titleSx}>Face Filter Active</AlertTitle>
             <Typography {...messageTypographyProps}>
-              Viewing <strong>{resultCount}</strong> {resultCount === 1 ? 'match' : 'matches'}.
+              {resultCount === 0 ? (
+                'No matches found'
+              ) : (
+                <>Showing top <strong>{resultCount}</strong> results</>
+              )}
             </Typography>
           </Box>
-          <Chip
-            label={resultCount}
-            size={isXs ? 'small' : 'medium'}
-            sx={{
-              background: alpha(theme.palette.primary.main, 0.12),
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
-              color: theme.palette.text.primary,
-              ml: 0.25,
-              height: isXs ? 22 : 26,
-            }}
-          />
+          {resultCount > 0 && (
+            <Chip
+              label={resultCount}
+              size={isXs ? 'small' : 'medium'}
+              sx={{
+                background: alpha(theme.palette.success.main, 0.16),
+                border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                color: theme.palette.text.primary,
+                fontWeight: 600,
+                ml: 0.25,
+                height: isXs ? 24 : 28,
+              }}
+            />
+          )}
         </Box>
       </Alert>
     );
   }
+
+  // Show inactive filter state when results exist but filter is off
+  // if (hasResult && !isFiltering && !isStale) {
+  //   return (
+  //     <Alert
+  //       severity="info"
+  //       variant="standard"
+  //       sx={alertSx}
+  //       action={
+  //         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
+  //           {renderAction({ label: 'Apply Filter', onClick: onToggleFilter, icon: FilterAltIcon, ariaLabel: 'apply filter' })}
+  //         </Stack>
+  //       }
+  //     >
+  //       <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center', width: '100%' }}>
+  //         <Box sx={{ flex: 1 }}>
+  //           <AlertTitle sx={titleSx}>Face Search Complete</AlertTitle>
+  //           <Typography {...messageTypographyProps}>
+  //             Found <strong>{resultCount}</strong> {resultCount === 1 ? 'match' : 'matches'}. Click to filter.
+  //           </Typography>
+  //         </Box>
+  //       </Box>
+  //     </Alert>
+  //   );
+  // }
 
   if (status) {
     // If we have size info, show a subtle progress bar on mobile and a compact state on desktop

@@ -1,3 +1,4 @@
+import { Cameraswitch } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -7,11 +8,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Stack,
   Typography,
 } from '@mui/material';
-import Webcam from 'react-webcam';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Webcam from 'react-webcam';
 
 const BASE_CONSTRAINTS = {
   width: { ideal: 1280 },
@@ -223,7 +225,7 @@ function FaceSearchDialog({
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
                 {devices.length > 1 && (
-                  <Button
+                  <IconButton
                     variant="contained"
                     size="small"
                     onClick={handleCycleCamera}
@@ -238,15 +240,13 @@ function FaceSearchDialog({
                       },
                     }}
                   >
-                    Switch Camera
-                  </Button>
+                    <Cameraswitch fontSize="large" sx={{ color: 'white' }} />
+                  </IconButton>
                 )}
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: '10%',
-                    left: '10%',
-                    width: '80%',
+                    width: '50%',
                     height: '80%',
                     borderRadius: '50%',
                     border: '2px solid rgba(255,255,255,0.8)',

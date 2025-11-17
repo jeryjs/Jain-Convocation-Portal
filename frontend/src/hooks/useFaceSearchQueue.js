@@ -300,9 +300,13 @@ export function useFaceSearchQueue({
   const createState = useCreateJob({ stageKey, imageCount, userId, syncState });
 
   const clearJob = useCallback(() => {
+    syncState(null);
+  }, [syncState]);
+
+  const toggleFilter = useCallback(() => {
     syncState((prev) => {
       if (!prev) return prev;
-      return { ...prev, lastEvent: null, result: null, status: null };
+      return { ...prev, filterActive: !prev.filterActive };
     });
   }, [syncState]);
 
@@ -314,7 +318,7 @@ export function useFaceSearchQueue({
   const jobResult = jobState?.result ?? null;
   const jobError = jobState?.error ?? null;
 
-  const isFiltering = jobState?.lastEvent === 'result';
+  const isFiltering = jobState?.lastEvent === 'result' && jobState?.filterActive !== false;
   const isStaleResult = Boolean(
     jobState?.lastEvent === 'result' &&
     typeof jobState.imageCount === 'number' &&
@@ -331,6 +335,7 @@ export function useFaceSearchQueue({
     isFiltering,
     isStaleResult,
     clearJob,
+    toggleFilter,
     dismissError,
     ...streamState,
     ...createState,
