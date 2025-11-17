@@ -7,3 +7,5 @@ test/
 backend/.env.bak
 face-search-web/__pycache__
 venv/
+
+.vercel
