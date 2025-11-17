@@ -196,7 +196,7 @@ function FaceSearchDialog({
           </Typography>
 
           {permissionError && <Alert severity="error">{permissionError}</Alert>}
-          {validationError && <Alert severity="warning">{validationError}</Alert>}
+          {!createError && validationError && <Alert severity="warning">{validationError}</Alert>}
           {createError && <Alert severity="error">{createError}</Alert>}
 
           <Box
