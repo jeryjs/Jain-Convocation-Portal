@@ -111,16 +111,28 @@ function GalleryPage() {
 
   const handleImageDownload = async (imagePath) => {
     try {
-      // Check if links are already cached
+      // Check if links are already cached (use timestamp instead of expires)
       const cached = localStorage.getItem('group_photos_links');
       let links;
+      const TTL = 1 * 24 * 60 * 60 * 1000; // 1 day
 
       if (cached) {
-        const { data, expires } = JSON.parse(cached);
-        if (expires > Date.now()) {
-          links = data;
-        } else {
-          localStorage.removeItem('group_photos_links');
+        const parsed = JSON.parse(cached);
+        const { data, timestamp, expires } = parsed;
+
+        if (timestamp) {
+          if (Date.now() - timestamp < TTL) {
+            links = data;
+          } else {
+            localStorage.removeItem('group_photos_links');
+          }
+        } else if (expires) {
+          // Backwards compatibility: fall back to old 'expires' field
+          if (expires > Date.now()) {
+            links = data;
+          } else {
+            localStorage.removeItem('group_photos_links');
+          }
         }
       }
 
@@ -132,10 +144,10 @@ function GalleryPage() {
         });
         links = await response.json();
 
-        // Cache the links with a 30-day expiry
+        // Cache the links with a timestamp (expiry logic handled via timestamp & TTL)
         localStorage.setItem('group_photos_links', JSON.stringify({
           data: links,
-          expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
+          timestamp: Date.now()
         }));
         setLoadingLinks(false);
       }
