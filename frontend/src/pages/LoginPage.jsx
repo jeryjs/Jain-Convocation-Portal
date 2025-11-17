@@ -68,7 +68,7 @@ function LoginPage() {
       <Card variant='outlined' sx={{ borderRadius: '12px', p: { xs: 0, md: 3 }, maxWidth: '600px' }}>
         <CardContent>
           <div style={{ backgroundColor: '#001b54', borderRadius: '8px', marginBottom: '40px', position: 'relative' }}>
-            <img src={ConvocationBanner} alt="Profile" style={{ height: 'auto', mixBlendMode: 'lighten' }} />
+            <img src="https://i.imgur.com/oMYI5te.png" alt="Profile" style={{ height: 'auto', mixBlendMode: 'lighten' }} />
             <div style={{ height: '60px', width: '60px', position: 'absolute', bottom: '-30px', left: '40px',transform: 'translateX(-50%)', borderRadius: '50%', background: '#fff',display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={JGILogo} alt="JGI Logo" style={{ width: '80%', height: 'auto' }} />
             </div>
