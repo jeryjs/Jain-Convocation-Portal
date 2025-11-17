@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const verifySecret = (req, res, next) => {
   const { key } = req.query;
   
-  if (!key || key !== JWT_SECRET) {
+  if (!key || key !== JWT_SECRET) { // Using JWT_SECRET as the secret key
     return res.status(401).json({ 
       success: false, 
       message: 'Unauthorized: Invalid key' 
@@ -63,7 +63,9 @@ router.get('/invalidate/settings', verifySecret, async (req, res) => {
 // GET /api/cache/invalidate/courses - Clear all courses cache
 router.get('/invalidate/courses', verifySecret, async (req, res) => {
   try {
-    const keys = await cache.keys('courses_*');
+    const courseKeys = await cache.keys('courses_*');
+    const gdriveKeys = await cache.keys('gdrive_folders_*');
+    const keys = [...new Set([...(courseKeys || []), ...(gdriveKeys || [])])];
     if (keys.length > 0) {
       await cache.del(keys);
     }

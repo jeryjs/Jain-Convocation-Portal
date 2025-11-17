@@ -9,6 +9,9 @@ const TTL = {
   COMPLETED_REQUESTS: 60 * 60, // 1 hour
 };
 
+// primary key prefix
+const KEY_PREFIX = 'jain_convocation_portal:';
+
 // Initialize Redis client
 const redisClient = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
@@ -43,6 +46,7 @@ class RedisCacheWrapper {
    * @returns {Promise<any>} Cached value or undefined
    */
   async get(key, returnExpired = false) {
+    key = KEY_PREFIX + key;
     try {
       const value = await this.redis.get(key);
       if (value === null) return undefined;
@@ -61,6 +65,7 @@ class RedisCacheWrapper {
    * @returns {Promise<boolean>} Success status
    */
   async set(key, value, ttl = null) {
+    key = KEY_PREFIX + key;
     try {
       const serialized = JSON.stringify(value);
       const ttlToUse = ttl || this.defaultTTL;
@@ -78,6 +83,7 @@ class RedisCacheWrapper {
    * @returns {Promise<number>} Number of keys deleted
    */
   async del(keys) {
+    keys = Array.isArray(keys) ? keys.map(k => KEY_PREFIX + k) : KEY_PREFIX + keys;
     try {
       if (Array.isArray(keys)) {
         if (keys.length === 0) return 0;
@@ -96,6 +102,7 @@ class RedisCacheWrapper {
    * @returns {Promise<string[]>} Array of matching keys
    */
   async keys(pattern = '*') {
+    pattern = KEY_PREFIX + pattern;
     try {
       return await this.redis.keys(pattern);
     } catch (error) {
@@ -110,7 +117,22 @@ class RedisCacheWrapper {
    */
   async flushAll() {
     try {
-      await this.redis.flushdb();
+      // Use prefix-scan delete to only delete this app's keys (recommended)
+      const pattern = KEY_PREFIX + '*';
+      const stream = this.redis.scanStream({ match: pattern, count: 500 });
+      let count = 0;
+
+      for await (const keys of stream) {
+        if (keys.length) {
+          // Use pipeline for better perf
+          const pipeline = this.redis.pipeline();
+          keys.forEach(k => pipeline.del(k));
+          await pipeline.exec();
+          count += keys.length;
+        }
+      }
+
+      console.log(`🧹 Flushed ${count} keys with prefix ${KEY_PREFIX} (db=${this.redis.options.db})`);
       return true;
     } catch (error) {
       console.error('Cache flushAll error:', error.message);
@@ -139,11 +161,11 @@ const cache = new RedisCacheWrapper(redisClient);
 const cacheSync = new Proxy(cache, {
   get(target, prop) {
     const originalMethod = target[prop];
-    
+
     if (typeof originalMethod === 'function') {
-      return function(...args) {
+      return function (...args) {
         const result = originalMethod.apply(target, args);
-        
+
         // If it's a Promise, we need to handle it synchronously
         // This is a workaround for existing sync code - returns Promise that can be awaited
         if (result instanceof Promise) {
@@ -151,11 +173,11 @@ const cacheSync = new Proxy(cache, {
           // Existing code will need to await or use .then()
           return result;
         }
-        
+
         return result;
       };
     }
-    
+
     return originalMethod;
   }
 });
