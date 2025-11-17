@@ -89,7 +89,7 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
       eventSourceRef.current = null;
     }
 
-    const url = `${config.QUEUE_API_BASE_URL}/api/get-job?id=${jobState.jobId}`;
+    const url = `${config.QUEUE_API_BASE_URL}/get-job?id=${jobState.jobId}`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
     activeJobIdRef.current = jobState.jobId;
@@ -240,7 +240,7 @@ const useCreateJob = ({
     setCreating(true);
     setCreateError(null);
     try {
-      const response = await fetch(`${config.QUEUE_API_BASE_URL}/api/create-job`, {
+      const response = await fetch(`${config.QUEUE_API_BASE_URL}/create-job`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
