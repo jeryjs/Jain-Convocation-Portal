@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 4102",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:reload": "pm2 reload ecosystem.config.js --env production",
+    "pm2:logs": "pm2 logs ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop ecosystem.config.js --env production",
+    "pm2:delete": "pm2 delete ecosystem.config.js --env production"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
