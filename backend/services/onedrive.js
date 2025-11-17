@@ -9,7 +9,7 @@ const getShareId = () => {
 
 const getCourseFolders = async () => {
   const cacheKey = "course_folders";
-  const cached = cache.get(cacheKey);
+  const cached = await cache.get(cacheKey);
   if (cached) {
 	console.log("📦 Serving cached sessions");
 	return cached;
@@ -32,13 +32,13 @@ const getCourseFolders = async () => {
     })))
   })));
 
-  cache.set(cacheKey, structure, TTL.COURSES);
+  await cache.set(cacheKey, structure, TTL.COURSES);
   return structure;
 };
 
 const getCourseImages = async (day, time, batch) => {
 	const cacheKey = `course_images_${day}_${time}_${batch}`;
-	const cachedImages = cache.get(cacheKey);
+	const cachedImages = await cache.get(cacheKey);
 
 	if (cachedImages) {
 		console.log("📦 Serving cached images");
@@ -55,14 +55,14 @@ const getCourseImages = async (day, time, batch) => {
 			[`${path}/${item.name}`]: item.thumbnails[0].large.url.replace(/width=\d+&height=\d+/, "width=480&height=480"),
 		}));
 
-	cache.set(cacheKey, images, TTL.COURSES);
+	await cache.set(cacheKey, images, TTL.COURSES);
 	return images;
 };
 
 // Updated to handle full paths directly
 const getImageLinks = async (fullPaths) => {
 	const cacheKey = `image_links_${fullPaths.join(",")}`;
-	const cachedLinks = cache.get(cacheKey);
+	const cachedLinks = await cache.get(cacheKey);
 
 	if (cachedLinks) {
 		console.log("📦 Serving cached Links");
@@ -81,7 +81,7 @@ const getImageLinks = async (fullPaths) => {
 			})
 		);
 
-		cache.set(cacheKey, links, TTL.COURSES);
+		await cache.set(cacheKey, links, TTL.COURSES);
 		return links;
 	} catch (error) {
 		console.error("Error getting image links:", error);

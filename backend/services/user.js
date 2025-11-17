@@ -26,7 +26,7 @@ const authenticateUser = async (username, password) => {
 // Get user data by username
 const getUserData = async (username) => {
 	const cacheKey = `user_${username}`;
-	const cachedData = cache.get(cacheKey);
+	const cachedData = await cache.get(cacheKey);
 
 	if (cachedData) return cachedData;
 
@@ -39,7 +39,7 @@ const getUserData = async (username) => {
 		requestedImages: snapshot.data().requestedImages || {},
 	};
 
-	cache.set(cacheKey, data, TTL.USER_DATA);
+	await cache.set(cacheKey, data, TTL.USER_DATA);
 	return data;
 };
 

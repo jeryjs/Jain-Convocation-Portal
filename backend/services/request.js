@@ -69,7 +69,7 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 // Function to get all requests with status > 0 
 const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'], limit = 100, includeSoftcopy = false) => {
   const cacheKey = `requests_${statusFilter.sort().join('_')}_${includeSoftcopy}`;
-  const cachedRequests = cache.get(cacheKey);
+  const cachedRequests = await cache.get(cacheKey);
 
   if (cachedRequests) {
     console.log("📦 Serving cached requests");
@@ -87,7 +87,7 @@ const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'],
     const snapshot = await query.get();
     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    cache.set(cacheKey, requests, TTL.REQUESTS);
+    await cache.set(cacheKey, requests, TTL.REQUESTS);
     return requests;
 
   } catch (error) {
@@ -99,7 +99,7 @@ const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'],
       });
     }
     
-    const expiredCache = cache.get(cacheKey, true);
+    const expiredCache = await cache.get(cacheKey, true);
     if (expiredCache) {
       console.log("⚠️ Serving expired cache due to error");
       return expiredCache;
