@@ -4,8 +4,14 @@ Handles BullMQ job processing logic
 """
 
 import os
+import time
 from typing import Dict, Any, List
 from bullmq import Job
+
+
+class WorkerPausedError(Exception):
+    """Exception raised when worker is paused - prevents job completion"""
+    pass
 
 
 async def process_job(
@@ -35,11 +41,16 @@ async def process_job(
     Returns:
         List of {'id': str, 'similarity': float} sorted by similarity
     """
-    # Check if worker is paused
+    # Check if worker is paused - delay and retry
     if redis_client and redis_client.get(f'worker:{worker_id}:paused') == '1':
-        logger.info(f"⏸️  Worker is paused, moving job {job.id} back to waiting")
-        await job.moveToWaitingChildren(token, {})  # Delay 1 second
-        return None  # Don't process
+        logger.info(f"⏸️  Worker is paused, re-queueing job {job.id}")
+        # Move job to delayed state - it will be picked up again after the delay
+        delay = 5000  # 5 seconds
+        delay_until_ms = int(time.time() * 1000) + delay  # 5 seconds from now
+        await job.scripts.moveToDelayed(job.id, delay_until_ms, delay, token)
+        # Raise custom exception to prevent job from completing
+        # BullMQ will not mark the job as completed when this exception is raised
+        raise WorkerPausedError("Worker is paused - job delayed for retry")
     
     worker_stats['current_job'] = job.id
     
