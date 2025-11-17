@@ -1,3 +1,4 @@
+import { DeleteSweep } from '@mui/icons-material';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CloseIcon from '@mui/icons-material/Close';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
@@ -54,6 +55,7 @@ function FaceSearchBanner({
   const alertSx = {
     px: isXs ? 0.75 : 1,
     py: isXs ? 0.45 : 0.6,
+    my: '-10px !important',
     borderRadius: 2,
     width: '100%',
     backdropFilter: 'blur(6px)',
@@ -78,6 +80,7 @@ function FaceSearchBanner({
     lineHeight: 1.05,
     fontWeight: 600,
     mb: 0.15,
+    mt: 0.5
   };
 
   // More compact message typography (smaller & allow wrapping on mobile)
@@ -92,8 +95,8 @@ function FaceSearchBanner({
     if (isXs) {
       return (
         <Tooltip title={label}>
-          <IconButton color="inherit" size="small" onClick={onClick} aria-label={ariaLabel}>
-            <IconComponent fontSize="small" />
+          <IconButton color="inherit" size="small" onClick={onClick} aria-label={ariaLabel} sx={{ top: -3 }}>
+            <IconComponent fontSize="medium" />
           </IconButton>
         </Tooltip>
       );
@@ -167,7 +170,8 @@ function FaceSearchBanner({
         sx={alertSx}
         action={
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
-            {renderAction({ label: 'Show All', onClick: onToggleFilter, icon: FilterAltOffIcon, ariaLabel: 'show all' })}
+            {renderAction({ label: 'Clear Results', onClick: onRetry, icon: DeleteSweep, ariaLabel: 'clear results' })}
+            {/* {renderAction({ label: 'Show All', onClick: onToggleFilter, icon: FilterAltOffIcon, ariaLabel: 'show all' })} */}
           </Stack>
         }
       >
