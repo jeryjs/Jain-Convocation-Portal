@@ -27,7 +27,6 @@ function GalleryPage() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
-  const [imageCount, setImageCount] = useState(0);
   const [faceDialogOpen, setFaceDialogOpen] = useState(false);
   const mounted = useRef(false);
   const { userData, selectedImages, updateSelectedImages, getAvailableSlots, getAuthHeaders } = useAuth();
@@ -44,7 +43,7 @@ function GalleryPage() {
 
   const faceSearch = useFaceSearchQueue({
     stageKey: decodedStage,
-    imageCount,
+    imageCount: images.length,
     userId: userData?.email,
     enabled: !isGroupPhotos && Boolean(userData) && !loading,
   });
@@ -93,7 +92,6 @@ function GalleryPage() {
         const data = await response.json();
 
         setImages(data);
-        setImageCount(data.length);
         // Cache the new data
         cacheManager.set(cacheKey, data, isRetry);
       } catch (error) {

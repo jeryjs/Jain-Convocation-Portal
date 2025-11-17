@@ -1,4 +1,22 @@
-import { Alert, AlertTitle, Box, Button, Stack, Typography, useTheme, useMediaQuery } from '@mui/material';
+import {
+  Alert,
+  AlertTitle,
+  Box,
+  Button,
+  Stack,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  IconButton,
+  LinearProgress,
+  Tooltip,
+  Chip,
+} from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import ReplayIcon from '@mui/icons-material/Replay';
+import CloseIcon from '@mui/icons-material/Close';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 function FaceSearchBanner({
   status,
@@ -14,52 +32,103 @@ function FaceSearchBanner({
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Compact button styles for mobile, slightly larger for desktops
   const buttonSx = {
-    minWidth: 36,
-    px: 0.5,
-    py: 0.4,
-    fontSize: isXs ? '0.7rem' : '0.8rem',
+    minWidth: 28,
+    px: 0.4,
+    py: 0.3,
+    fontSize: isXs ? '0.72rem' : '0.82rem',
     textTransform: 'none',
     lineHeight: 1,
+    borderRadius: 1,
   };
 
+  // Glass effect / compact layout
+  const glassBg =
+    theme.palette.mode === 'dark'
+      ? alpha(theme.palette.background.paper, 0.06)
+      : alpha(theme.palette.background.paper, 0.82);
+  const borderColor = alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.22 : 0.6);
+
   const alertSx = {
-    px: isXs ? 1 : 2,
-    py: isXs ? 0.5 : 1,
-    borderRadius: 1,
+    px: isXs ? 0.75 : 1,
+    py: isXs ? 0.45 : 0.6,
+    borderRadius: 2,
+    width: '100%',
+    backdropFilter: 'blur(6px)',
+    background: glassBg,
+    border: `1px solid ${borderColor}`,
+    boxShadow: isXs ? theme.shadows[1] : `0 2px 8px ${alpha(theme.palette.common.black, 0.06)}`,
+    alignItems: 'center',
+    display: 'flex',
+    gap: 1,
     '& .MuiAlert-action': {
       margin: 0,
       alignSelf: 'center',
     },
     '& .MuiAlert-message': {
       padding: 0,
+      width: '100%',
     },
   };
 
-  const titleSx = { fontSize: isXs ? '0.86rem' : '0.95rem', lineHeight: 1.1, mb: 0.25 };
+  const titleSx = {
+    fontSize: isXs ? '0.9rem' : '0.95rem',
+    lineHeight: 1.05,
+    fontWeight: 600,
+    mb: 0.15,
+  };
 
-  const messageTypographyProps = { noWrap: isXs, variant: isXs ? 'caption' : 'body2' };
+  // More compact message typography (smaller & allow wrapping on mobile)
+  const messageTypographyProps = {
+    noWrap: false,
+    variant: isXs ? 'caption' : 'body2',
+    component: 'div',
+  };
+
+  // Generic renderAction that uses small icon-only controls on mobile, condensed buttons on desktop
+  const renderAction = ({ label, onClick, icon: IconComponent, ariaLabel }) => {
+    if (isXs) {
+      return (
+        <Tooltip title={label}>
+          <IconButton color="inherit" size="small" onClick={onClick} aria-label={ariaLabel}>
+            <IconComponent fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      );
+    }
+    return (
+      <Button
+        color="inherit"
+        size="small"
+        onClick={onClick}
+        sx={buttonSx}
+        startIcon={<IconComponent fontSize="small" />}
+      >
+        {label}
+      </Button>
+    );
+  };
 
   if (error) {
     return (
       <Alert
         severity="error"
+        variant="standard"
         sx={alertSx}
         action={
-          <Stack direction={isXs ? 'column' : 'row'} spacing={0.5} alignItems="center">
-            <Button color="inherit" size="small" onClick={onRetry} sx={buttonSx}>
-              Try Again
-            </Button>
-            <Button color="inherit" size="small" onClick={onDismissError} sx={buttonSx}>
-              Dismiss
-            </Button>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
+            {renderAction({ label: 'Try again', onClick: onRetry, icon: ReplayIcon, ariaLabel: 'retry' })}
+            {renderAction({ label: 'Dismiss', onClick: onDismissError, icon: CloseIcon, ariaLabel: 'dismiss' })}
           </Stack>
         }
       >
-        <AlertTitle sx={titleSx}>Face search failed</AlertTitle>
-        <Typography {...messageTypographyProps} color="inherit">
-          {isXs ? String(error).slice(0, 100) + (String(error).length > 100 ? '…' : '') : error}
-        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, width: '100%' }}>
+          <AlertTitle sx={titleSx}>Face search failed</AlertTitle>
+          <Typography {...messageTypographyProps} color="inherit">
+            {isXs ? String(error).slice(0, 140) + (String(error).length > 140 ? '…' : '') : error}
+          </Typography>
+        </Box>
       </Alert>
     );
   }
@@ -68,22 +137,23 @@ function FaceSearchBanner({
     return (
       <Alert
         severity="warning"
+        variant="standard"
         sx={alertSx}
         action={
-          <Stack direction={isXs ? 'column' : 'row'} spacing={0.5} alignItems="center">
-            <Button color="inherit" size="small" onClick={onRetry} sx={buttonSx}>
-              Re-run
-            </Button>
-            <Button color="inherit" size="small" onClick={onClearFilter} sx={buttonSx}>
-              Clear
-            </Button>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
+            {renderAction({ label: 'Re-run', onClick: onRetry, icon: ReplayIcon, ariaLabel: 'rerun' })}
+            {renderAction({ label: 'Clear', onClick: onClearFilter, icon: FilterAltOffIcon, ariaLabel: 'clear' })}
           </Stack>
         }
       >
-        <AlertTitle sx={titleSx}>Gallery Updated</AlertTitle>
-        <Typography {...messageTypographyProps}>
-          The gallery has changed since this search ran. Re-run to get newer matches.
-        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center', width: '100%' }}>
+          <Box sx={{ flex: 1 }}>
+            <AlertTitle sx={titleSx}>Gallery Updated</AlertTitle>
+            <Typography {...messageTypographyProps}>
+              The gallery changed — re-run to get newer matches.
+            </Typography>
+          </Box>
+        </Box>
       </Alert>
     );
   }
@@ -92,40 +162,82 @@ function FaceSearchBanner({
     return (
       <Alert
         severity="success"
+        variant="standard"
         sx={alertSx}
         action={
-          <Button color="inherit" size="small" onClick={onClearFilter} sx={buttonSx}>
-            Clear
-          </Button>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
+            {renderAction({ label: 'Clear', onClick: onClearFilter, icon: FilterAltOffIcon, ariaLabel: 'clear' })}
+          </Stack>
         }
       >
-        <AlertTitle sx={titleSx}>Showing face matches</AlertTitle>
-        <Typography {...messageTypographyProps}>
-          Viewing {resultCount} {resultCount === 1 ? 'match' : 'matches'}. Clear filter to view the full gallery.
-        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'center', width: '100%' }}>
+          <Box sx={{ flex: 1 }}>
+            <AlertTitle sx={titleSx}>Showing matches</AlertTitle>
+            <Typography {...messageTypographyProps}>
+              Viewing <strong>{resultCount}</strong> {resultCount === 1 ? 'match' : 'matches'}.
+            </Typography>
+          </Box>
+          <Chip
+            label={resultCount}
+            size={isXs ? 'small' : 'medium'}
+            sx={{
+              background: alpha(theme.palette.primary.main, 0.12),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+              color: theme.palette.text.primary,
+              ml: 0.25,
+              height: isXs ? 22 : 26,
+            }}
+          />
+        </Box>
       </Alert>
     );
   }
 
   if (status) {
+    // If we have size info, show a subtle progress bar on mobile and a compact state on desktop
+    const progress =
+      status.position && status.total_size ? Math.round((status.position / status.total_size) * 100) : undefined;
+
     return (
       <Alert
         severity="info"
+        variant="standard"
         sx={alertSx}
         action={
-          <Button color="inherit" size="small" onClick={onCancel} sx={buttonSx}>
-            Cancel
-          </Button>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
+            {renderAction({ label: 'Cancel', onClick: onCancel, icon: CancelIcon, ariaLabel: 'cancel' })}
+          </Stack>
         }
       >
-        <AlertTitle sx={titleSx}>Search queued</AlertTitle>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-          <Typography {...messageTypographyProps}>
-            Position: {status.position ?? '…'} / {status.total_size ?? '…'}
-          </Typography>
-          <Typography {...messageTypographyProps} color="text.secondary">
-            Stage: {status.stage || stageLabel}
-          </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, width: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+            <AlertTitle sx={titleSx}>Search queued</AlertTitle>
+            {progress !== undefined ? (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                {Math.min(Math.max(progress, 0), 100)}%
+              </Typography>
+            ) : null}
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', width: '100%' }}>
+            <Typography {...messageTypographyProps} color="text.secondary" sx={{ flex: 1 }}>
+              Position: {status.position ?? '…'} / {status.total_size ?? '…'}
+            </Typography>
+            <Typography {...messageTypographyProps} color="text.secondary">
+              Stage: {status.stage ?? '…'}
+            </Typography>
+          </Box>
+
+          {/* Thin progress bar (subtle and compact) */}
+          {isXs && progress !== undefined ? (
+            <Box sx={{ width: '100%', mt: 0.4 }}>
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(Math.max(progress, 0), 100)}
+                sx={{ height: 6, borderRadius: 2 }}
+              />
+            </Box>
+          ) : null}
         </Box>
       </Alert>
     );
