@@ -79,7 +79,7 @@ export async function createJob(data: FaceSearchJobData) {
   await redis.set(
     ACTIVE_JOB_KEY(data.uid),
     JSON.stringify({ jobId: job.id, stage: data.stage }),
-    'EX', 30 * 60 // Expire after 30 minutes
+    'EX', 5 * 60 // Expire after 5 minutes
   );
   
   return job;
