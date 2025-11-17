@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { faceSearchQueue } from '@/lib/queue';
+import { publishQueueUpdate } from '@/lib/pubsub';
 
 // Get queue stats and job lists
 export async function GET(request: NextRequest) {
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeJobs = searchParams.get('includeJobs') !== 'false';
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    
+
     // Always fetch counts
     const counts = await Promise.all([
       faceSearchQueue.getWaitingCount(),
@@ -16,9 +17,9 @@ export async function GET(request: NextRequest) {
       faceSearchQueue.getFailedCount(),
       faceSearchQueue.getDelayedCount(),
     ]);
-    
+
     const [waitingCount, activeCount, completedCount, failedCount, delayedCount] = counts;
-    
+
     // Only fetch jobs if requested
     let jobs = null;
     if (includeJobs) {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
         failedReason: job.failedReason,
         returnvalue: job.returnvalue,
       });
-      
+
       jobs = {
         waiting: waitingJobs.map(formatJob),
         active: activeJobs.map(formatJob),
@@ -90,6 +91,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await job.remove();
+    await publishQueueUpdate();
     return NextResponse.json({ success: true, message: 'Job deleted' });
   } catch (error) {
     console.error('Error deleting job:', error);
@@ -114,16 +116,19 @@ export async function PATCH(request: NextRequest) {
 
     if (action === 'retry') {
       await job.retry();
+      await publishQueueUpdate();
       return NextResponse.json({ success: true, message: 'Job retried' });
     }
 
     if (action === 'promote') {
       await job.promote();
+      await publishQueueUpdate();
       return NextResponse.json({ success: true, message: 'Job promoted' });
     }
 
     if (action === 'setPriority' && priority !== undefined) {
       await job.changePriority({ priority });
+      await publishQueueUpdate();
       return NextResponse.json({ success: true, message: 'Priority updated' });
     }
 

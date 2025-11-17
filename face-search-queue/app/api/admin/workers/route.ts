@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import redis from '@/lib/redis';
+import { publishWorkerUpdate } from '@/lib/pubsub';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,31 +30,31 @@ export async function GET() {
   try {
     const workersData = await redis.hgetall('workers');
     const workerIds = Object.keys(workersData);
-    
+
     // Batch get all pause statuses in one pipeline
     const pipeline = redis.pipeline();
     workerIds.forEach(id => pipeline.get(`worker:${id}:paused`));
     const pauseResults = await pipeline.exec();
-    
+
     const now = Date.now() / 1000; // Convert to seconds
     const workers: WorkerInfo[] = workerIds.map((id, index) => {
       const worker = JSON.parse(workersData[id]);
       const isOnline = (now - worker.last_heartbeat) < 15; // 15 seconds timeout
       const isPaused = pauseResults?.[index]?.[1] === '1';
-      
+
       return {
         ...worker,
         status: isOnline ? 'online' : 'offline',
         paused: isPaused,
       };
     });
-    
+
     // Sort by status (online first) then by ID
     workers.sort((a, b) => {
       if (a.status === b.status) return a.id.localeCompare(b.id);
       return a.status === 'online' ? -1 : 1;
     });
-    
+
     return NextResponse.json({ workers });
   } catch (error) {
     console.error('Error fetching workers:', error);
@@ -66,12 +67,13 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const workerId = searchParams.get('workerId');
-    
+
     if (!workerId) {
       return NextResponse.json({ error: 'Worker ID required' }, { status: 400 });
     }
-    
+
     await redis.hdel('workers', workerId);
+    await publishWorkerUpdate();
     return NextResponse.json({ success: true, message: 'Worker removed' });
   } catch (error) {
     console.error('Error removing worker:', error);
