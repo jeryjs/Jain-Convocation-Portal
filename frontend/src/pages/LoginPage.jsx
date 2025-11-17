@@ -2,11 +2,10 @@ import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
 import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import JGILogo from "../assets/JGI.webp";
 import config from "../config";
 import { useAuth } from '../config/AuthContext';
-
-const CONVOCATION_BANNER = "https://i.imgur.com/oMYI5te.png";
+import JGILogo from "/JGI.webp";
+import CONVOCATION_BANNER from "/banner.webp";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
