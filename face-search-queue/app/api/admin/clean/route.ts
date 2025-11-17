@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import { faceSearchQueue } from '@/lib/queue';
-import { publishQueueUpdate } from '@/lib/pubsub';
 
 export async function POST() {
   try {
     await faceSearchQueue.clean(0, 1000, 'completed');
     await faceSearchQueue.clean(0, 1000, 'failed');
-    await publishQueueUpdate();
     
     return NextResponse.json({ 
       success: true, 

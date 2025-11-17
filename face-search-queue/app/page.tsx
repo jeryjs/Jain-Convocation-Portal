@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StatsOverview from '@/components/StatsOverview';
 import QueueKanban from '@/components/QueueKanban';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
@@ -10,75 +10,214 @@ import BulkActions from '@/components/BulkActions';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import HelpModal from '@/components/HelpModal';
 import { useToast } from '@/components/ToastProvider';
-import { useStats } from '@/app/hook/useStats';
-import { useWorkers } from '@/app/hook/useWorkers';
+
+interface QueueStats {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+}
+
+interface Job {
+  id: string;
+  name: string;
+  data: any;
+  progress: number;
+  attemptsMade: number;
+  timestamp: number;
+  processedOn?: number;
+  finishedOn?: number;
+  failedReason?: string;
+  returnvalue?: any;
+}
+
+interface WorkerInfo {
+  id: string;
+  hostname: string;
+  status: 'online' | 'offline';
+  gpu_index?: number;
+  gpu_name: string;
+  use_cpu: boolean;
+  concurrency: number;
+  start_time: number;
+  uptime: number;
+  last_heartbeat: number;
+  jobs_processed: number;
+  jobs_failed: number;
+  current_job: string | null;
+  cpu_percent: number;
+  ram_percent: number;
+  ram_available_gb: number;
+  gpu_utilization?: number;
+  gpu_memory_used_mb?: number;
+  gpu_temperature?: number;
+}
+
+interface QueueData {
+  stats: QueueStats;
+  jobs: {
+    waiting: Job[];
+    active: Job[];
+    completed: Job[];
+    failed: Job[];
+    delayed: Job[];
+  };
+}
 
 export default function Home() {
-  const { showToast } = useToast();
+  const [queueData, setQueueData] = useState<QueueData | null>(null);
+  const [workers, setWorkers] = useState<WorkerInfo[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const { showToast } = useToast();
 
-  // Use custom hooks for all data and actions
-  const {
-    queueData,
-    isPaused,
-    loading: statsLoading,
-    error: statsError,
-    togglePause,
-    cleanQueue,
-    performJobAction,
-    deleteJob,
-    performBulkAction,
-    refresh: refreshStats,
-  } = useStats();
+  const fetchQueueData = async () => {
+    try {
+      const response = await fetch('/api/admin/queue');
+      const data = await response.json();
+      setQueueData(data);
+    } catch (error) {
+      console.error('Error fetching queue data:', error);
+      showToast('Failed to fetch queue data', 'error');
+    }
+  };
 
-  const {
-    workers,
-    loading: workersLoading,
-    error: workersError,
-    removeWorker,
-    refresh: refreshWorkers,
-  } = useWorkers();
+  const fetchWorkers = async () => {
+    try {
+      const response = await fetch('/api/admin/workers');
+      const data = await response.json();
+      setWorkers(data.workers || []);
+    } catch (error) {
+      console.error('Error fetching workers:', error);
+    }
+  };
 
-  const loading = statsLoading || workersLoading;
+  const fetchPauseStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/pause');
+      const data = await response.json();
+      setIsPaused(data.isPaused);
+    } catch (error) {
+      console.error('Error fetching pause status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Handle actions with toast notifications
+  useEffect(() => {
+    fetchQueueData();
+    fetchWorkers();
+    fetchPauseStatus();
+
+    // Handle page visibility changes
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
   const handlePauseToggle = async () => {
-    const result = await togglePause();
-    showToast(result.message, result.success ? 'success' : 'error');
+    try {
+      const endpoint = '/api/admin/pause';
+      const method = isPaused ? 'DELETE' : 'POST';
+
+      await fetch(endpoint, { method });
+      setIsPaused(!isPaused);
+      showToast(isPaused ? 'Queue resumed' : 'Queue paused', 'success');
+    } catch (error) {
+      console.error('Error toggling pause:', error);
+      showToast('Failed to toggle pause', 'error');
+    }
   };
 
   const handleCleanQueue = async () => {
     if (!confirm('Are you sure you want to clean completed and failed jobs?')) return;
-    const result = await cleanQueue();
-    showToast(result.message, result.success ? 'success' : 'error');
+
+    try {
+      await fetch('/api/admin/clean', { method: 'POST' });
+      fetchQueueData();
+      showToast('Queue cleaned successfully', 'success');
+    } catch (error) {
+      console.error('Error cleaning queue:', error);
+      showToast('Failed to clean queue', 'error');
+    }
   };
 
   const handleJobAction = async (jobId: string, action: string, priority?: number) => {
-    const result = await performJobAction(jobId, action, priority);
-    showToast(result.message, result.success ? 'success' : 'error');
+    try {
+      await fetch('/api/admin/queue', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, action, priority }),
+      });
+      fetchQueueData();
+      showToast(`Job ${action}d successfully`, 'success');
+    } catch (error) {
+      console.error('Error performing job action:', error);
+      showToast('Failed to perform action', 'error');
+    }
   };
 
   const handleDeleteJob = async (jobId: string) => {
     if (!confirm('Are you sure you want to delete this job?')) return;
-    const result = await deleteJob(jobId);
-    showToast(result.message, result.success ? 'success' : 'error');
+
+    try {
+      await fetch(`/api/admin/queue?jobId=${jobId}`, { method: 'DELETE' });
+      fetchQueueData();
+      showToast('Job deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      showToast('Failed to delete job', 'error');
+    }
   };
 
   const handleBulkAction = async (action: string) => {
-    const result = await performBulkAction(action);
-    showToast(result.message, result.success ? 'success' : 'error');
+    try {
+      const response = await fetch('/api/admin/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await response.json();
+      fetchQueueData();
+      showToast(data.message || 'Action completed', 'success');
+    } catch (error) {
+      console.error('Error performing bulk action:', error);
+      showToast('Failed to perform bulk action', 'error');
+    }
   };
 
   const handleRemoveWorker = async (workerId: string) => {
     if (!confirm('Are you sure you want to remove this worker?')) return;
-    const result = await removeWorker(workerId);
-    showToast(result.message, result.success ? 'success' : 'error');
+
+    try {
+      await fetch(`/api/admin/workers?workerId=${workerId}`, { method: 'DELETE' });
+      fetchWorkers();
+      showToast('Worker removed successfully', 'success');
+    } catch (error) {
+      console.error('Error removing worker:', error);
+      showToast('Failed to remove worker', 'error');
+    }
   };
 
-  const handleManualRefresh = () => {
-    refreshStats();
-    refreshWorkers();
-  };
+  useEffect(() => {
+    if (!autoRefresh || !isPageVisible) return;
+
+    const interval = setInterval(() => {
+      fetchQueueData();
+      fetchWorkers();
+      fetchPauseStatus();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, isPageVisible]);
 
   if (loading) {
     return (
@@ -101,7 +240,11 @@ export default function Home() {
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 text-white p-4 md:p-6">
       <KeyboardShortcuts
         onPauseToggle={handlePauseToggle}
-        onRefresh={handleManualRefresh}
+        onRefresh={() => {
+          fetchQueueData();
+          fetchWorkers();
+          fetchPauseStatus();
+        }}
         onCleanQueue={handleCleanQueue}
         onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
       />
@@ -125,7 +268,10 @@ export default function Home() {
               onPauseToggle={handlePauseToggle}
               onCleanQueue={handleCleanQueue}
               onRefreshToggle={() => setAutoRefresh(!autoRefresh)}
-              onManualRefresh={handleManualRefresh}
+              onManualRefresh={() => {
+                fetchQueueData();
+                fetchPauseStatus();
+              }}
             />
           </div>
         </div>
