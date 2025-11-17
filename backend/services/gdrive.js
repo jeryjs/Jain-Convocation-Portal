@@ -113,14 +113,14 @@ const getImageLinks = async (fullPaths) => {
                 const res = await drive.files.list({
                     q: `name = '${image}' and '${batchObj.id}' in parents`,
                     fields: 'files(id, webContentLink, webViewLink)',
-                });
+                }, {headers: {referer: 'jain-convocation-portal.vercel.app'}});
                 const file = res.data.files[0];
                 if (!file) throw new Error('File not found');
                 
                 // Use webContentLink if available, otherwise webViewLink
                 return {
                     name: path,
-                    url: file.webContentLink || file.webViewLink,
+                    url: file.webViewLink,
                 };
             })
         );
