@@ -38,15 +38,15 @@ const updateSettings = async (settings) => {
     const batch = db.batch();
 
     // Update each category
-    Object.entries(settings).forEach(([category, categorySettings]) => {
+    Object.entries(settings).forEach(async ([category, categorySettings]) => {
         const docRef = db.collection("settings").doc(category);
-        invalidateCache(`settings`, category);
+        await invalidateCache(`settings`, category);
         batch.set(docRef, categorySettings);
     });
 
     await batch.commit();
     updateSettingsCache(settings); // Update cache after successful save
-    invalidateCache("settings");
+    await invalidateCache("settings");
     return { success: true };
 };
 

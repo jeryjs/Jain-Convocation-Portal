@@ -1,21 +1,21 @@
 
 const { cache } = require('../config/cache');
 
-const invalidateCache = (type, key = '') => {
+const invalidateCache = async (type, key = '') => {
   switch (type) {
     case 'user':
-      cache.del(`user_${key}`);
+      await cache.del(`user_${key}`);
       break;
     case 'requests':
-      cache.del(`requests_${key}`);
-      cache.del('all_requests');
+      await cache.del(`requests_${key}`);
+      await cache.del('all_requests');
       break;
     case 'settings':
-      cache.del(`settings_${key}`);
-      cache.del('settings_all');
+      await cache.del(`settings_${key}`);
+      await cache.del('settings_all');
       break;
     default:
-      cache.flushAll();
+      await cache.flushAll();
   }
 };
 

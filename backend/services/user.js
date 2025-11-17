@@ -50,7 +50,7 @@ const updateUserFeedback = async (username, feedback) => {
 		feedback,
 		lastUpdated: admin.firestore.Timestamp.now(),
 	});
-	invalidateCache(`user_${username}`);
+	await invalidateCache(`user_${username}`);
 	return { success: true };
 };
 
@@ -87,7 +87,7 @@ const importUsers = async (users) => {
 	});
 
 	await batch.commit();
-	invalidateCache("requests");
+	await invalidateCache("requests");
 	return { success: true };
 };
 
@@ -108,7 +108,7 @@ const deleteUsers = async (usernames) => {
 		const cacheKey = `user_${username}`;
 		cache.del(cacheKey);
 	});
-	invalidateCache("requests");
+	await invalidateCache("requests");
 	return { success: true };
 };
 

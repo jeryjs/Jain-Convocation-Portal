@@ -51,8 +51,8 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 		// Single update operation
 		transaction.update(userRef, updateData);
 
-		invalidateCache("requests", "pending");
-		if (requestType == REQUEST_TYPES.HARDCOPY) invalidateCache();
+		await invalidateCache("requests", "pending");
+		if (requestType == REQUEST_TYPES.HARDCOPY) await invalidateCache();
 
 		const waitingTime = requestType == REQUEST_TYPES.HARDCOPY ? await calculateWaitingTime() : 0;
 
@@ -126,8 +126,8 @@ const updateRequestStatus = async (username, status) => {
 	});
 
 	// Clear user cache
-	invalidateCache("user", username);
-	invalidateCache();	// Clear all cache
+	await invalidateCache("user", username);
+	await invalidateCache();	// Clear all cache
 	return { success: true };
 };
 
