@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface WorkerInfo {
   id: string;
@@ -30,8 +30,50 @@ interface WorkerManagementProps {
   onRemoveWorker: (workerId: string) => void;
 }
 
+const MAX_HISTORY_POINTS = 24;
+
+type PerfSample = {
+  cpu: number;
+  ram: number;
+  gpu: number | null;
+};
+
 export default function WorkerManagement({ workers, onRemoveWorker }: WorkerManagementProps) {
   const [pausingWorker, setPausingWorker] = useState<string | null>(null);
+  const [perfHistory, setPerfHistory] = useState<Record<string, PerfSample[]>>({});
+
+  useEffect(() => {
+    setPerfHistory((prev) => {
+      const next: Record<string, PerfSample[]> = {};
+      workers.forEach((worker) => {
+        const previousPoints = prev[worker.id] ?? [];
+        const newPoint: PerfSample = {
+          cpu: Number.isFinite(worker.cpu_percent) ? worker.cpu_percent : 0,
+          ram: Number.isFinite(worker.ram_percent) ? worker.ram_percent : 0,
+          gpu:
+            worker.gpu_utilization !== undefined && Number.isFinite(worker.gpu_utilization)
+              ? worker.gpu_utilization
+              : null,
+        };
+        const updated = [...previousPoints, newPoint].slice(-MAX_HISTORY_POINTS);
+        next[worker.id] = updated;
+      });
+      return next;
+    });
+  }, [workers]);
+
+  const buildPath = (points: PerfSample[], key: keyof PerfSample) => {
+    if (!points.length) return '';
+    return points
+      .map((point, idx) => {
+        const rawValue = point[key] ?? 0;
+        const value = typeof rawValue === 'number' ? Math.max(0, Math.min(100, rawValue)) : 0;
+        const x = points.length === 1 ? 0 : (idx / (points.length - 1)) * 100;
+        const y = 100 - value;
+        return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+      })
+      .join(' ');
+  };
 
   const onlineWorkers = workers.filter(w => w.status === 'online');
   const offlineWorkers = workers.filter(w => w.status === 'offline');
@@ -166,51 +208,125 @@ export default function WorkerManagement({ workers, onRemoveWorker }: WorkerMana
               )}
             </div>
 
-            {/* Metrics */}
-            <div className="space-y-3 mb-4">
-              {/* CPU */}
-              <div>
-                <div className="flex items-center justify-between text-[11px] mb-2 font-bold">
-                  <span className="text-blue-200">CPU</span>
-                  <span className="text-blue-300">{worker.cpu_percent.toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden border border-blue-400/20">
-                  <div
-                    className={`bg-linear-to-r ${getUtilizationColor(worker.cpu_percent)} h-2 rounded-full transition-all duration-300 shadow-lg shadow-current/40`}
-                    style={{ width: `${Math.min(worker.cpu_percent, 100)}%` }}
-                  ></div>
+            {/* Metrics - Historical Overlay Chart */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-[11px] mb-2 font-bold">
+                <span className="text-blue-200">Performance</span>
+                <div className="flex gap-3 text-[10px]">
+                  <span className="text-purple-300">CPU {worker.cpu_percent.toFixed(1)}%</span>
+                  <span className="text-cyan-300">RAM {worker.ram_percent.toFixed(1)}%</span>
+                  {worker.gpu_utilization !== undefined && (
+                    <span className="text-pink-300">GPU {worker.gpu_utilization}%</span>
+                  )}
                 </div>
               </div>
 
-              {/* RAM */}
-              <div>
-                <div className="flex items-center justify-between text-[11px] mb-2 font-bold">
-                  <span className="text-blue-200">RAM</span>
-                  <span className="text-blue-300">{worker.ram_percent.toFixed(1)}%</span>
+              <div className="relative w-full h-34 bg-slate-950/60 rounded-lg overflow-hidden border border-blue-400/20">
+                <div className="absolute inset-0 grid grid-cols-10 opacity-10 pointer-events-none">
+                  {[...Array(10)].map((_, index) => (
+                    <div key={index} className="border-r border-blue-200/20"></div>
+                  ))}
                 </div>
-                <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden border border-blue-400/20">
-                  <div
-                    className={`bg-linear-to-r ${getUtilizationColor(worker.ram_percent)} h-2 rounded-full transition-all duration-300 shadow-lg shadow-current/40`}
-                    style={{ width: `${Math.min(worker.ram_percent, 100)}%` }}
-                  ></div>
+                <div className="absolute inset-0">
+                  <div className="absolute top-1/4 left-0 right-0 h-px bg-blue-400/10"></div>
+                  <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-400/20"></div>
+                  <div className="absolute top-3/4 left-0 right-0 h-px bg-blue-400/10"></div>
                 </div>
-              </div>
 
-              {/* GPU Utilization */}
-              {worker.gpu_utilization !== undefined && (
-                <div>
-                  <div className="flex items-center justify-between text-[11px] mb-2 font-bold">
-                    <span className="text-blue-200">GPU</span>
-                    <span className="text-blue-300">{worker.gpu_utilization}%</span>
-                  </div>
-                  <div className="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden border border-blue-400/20">
-                    <div
-                      className={`bg-linear-to-r ${getUtilizationColor(worker.gpu_utilization)} h-2 rounded-full transition-all duration-300 shadow-lg shadow-current/40`}
-                      style={{ width: `${Math.min(worker.gpu_utilization, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
+                {(() => {
+                  const history = perfHistory[worker.id] ?? [];
+                  const sanitizedId = worker.id.replace(/[^a-zA-Z0-9]/g, '') || 'worker';
+                  const cpuPath = buildPath(history, 'cpu');
+                  const ramPath = buildPath(history, 'ram');
+                  const hasGpuHistory = history.some((point) => point.gpu !== null);
+                  const gpuPath = hasGpuHistory ? buildPath(history, 'gpu') : '';
+                  const latestPoint = history.length ? history[history.length - 1] : null;
+
+                  return (
+                    <svg
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                      className="absolute inset-0 w-full h-full"
+                    >
+                      <defs>
+                        <linearGradient id={`cpuStroke-${sanitizedId}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#c084fc" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#c084fc" stopOpacity="0.8" />
+                        </linearGradient>
+                        <linearGradient id={`ramStroke-${sanitizedId}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#67e8f9" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#67e8f9" stopOpacity="0.8" />
+                        </linearGradient>
+                        <linearGradient id={`gpuStroke-${sanitizedId}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#f472b6" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#f472b6" stopOpacity="0.8" />
+                        </linearGradient>
+                      </defs>
+
+                      {gpuPath && (
+                        <path
+                          d={gpuPath}
+                          fill="none"
+                          stroke={`url(#gpuStroke-${sanitizedId})`}
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="drop-shadow-[0_0_6px_rgba(244,114,182,0.35)]"
+                        />
+                      )}
+
+                      {ramPath && (
+                        <path
+                          d={ramPath}
+                          fill="none"
+                          stroke={`url(#ramStroke-${sanitizedId})`}
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="drop-shadow-[0_0_6px_rgba(103,232,249,0.35)]"
+                        />
+                      )}
+
+                      {cpuPath && (
+                        <path
+                          d={cpuPath}
+                          fill="none"
+                          stroke={`url(#cpuStroke-${sanitizedId})`}
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="drop-shadow-[0_0_6px_rgba(192,132,252,0.35)]"
+                        />
+                      )}
+
+                      {latestPoint && (
+                        <>
+                          <circle
+                            cx="100"
+                            cy={100 - Math.max(0, Math.min(100, latestPoint.cpu ?? 0))}
+                            r="1.4"
+                            fill="#c084fc"
+                          />
+                          <circle
+                            cx="100"
+                            cy={100 - Math.max(0, Math.min(100, latestPoint.ram ?? 0))}
+                            r="1.2"
+                            fill="#67e8f9"
+                          />
+                          {latestPoint.gpu !== null && (
+                            <circle
+                              cx="100"
+                              cy={100 - Math.max(0, Math.min(100, latestPoint.gpu ?? 0))}
+                              r="1.2"
+                              fill="#f472b6"
+                            />
+                          )}
+                        </>
+                      )}
+                    </svg>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Metrics Summary */}
