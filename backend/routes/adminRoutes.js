@@ -58,6 +58,17 @@ router.get('/admin/settings/:category?', authMiddleware, async (req, res) => {
   }
 });
 
+// Public route for Config config (no auth required)
+router.get('/settings/config', async (req, res) => {
+  try {
+    const settings = await getSettings('config');
+    res.json(settings);
+  } catch (error) {
+    log('error', 'FetchConfigSettingsFailed', { error: error.message });
+    res.status(500).send('Error fetching config settings');
+  }
+});
+
 // Route to update settings
 router.post('/admin/settings', authMiddleware, adminMiddleware, async (req, res) => {
   try {

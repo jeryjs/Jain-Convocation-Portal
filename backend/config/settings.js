@@ -11,6 +11,12 @@ let settingsCache = {
     general: {
         gmailUser: '',
         gmailAppPass: ''
+    },
+    config: {
+        SHOW_UPLOAD_ALERT: null,
+        HARDCOPY_DISABLED: null,
+        REMOVE_HARDCOPY: null,
+        DEMO_MODE: null
     }
 };
 

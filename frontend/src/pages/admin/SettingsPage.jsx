@@ -8,10 +8,13 @@ import {
   Button,
   Snackbar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Switch,
+  FormControlLabel,
+  FormGroup
 } from '@mui/material';
 import PageHeader from '../../components/PageHeader';
-import config from '../../config';
+import config, { refreshConfig, staticConfig } from '../../config';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../config/AuthContext';
 
@@ -19,7 +22,8 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState({
     payment: { upiId: '', amount: '', upiLink: '' },
     courses: { folderId: '' },
-    general: { gmailUser: '', gmailAppPass: '' }
+    general: { gmailUser: '', gmailAppPass: '' },
+    config: staticConfig
   });
   const { getAuthHeaders } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -74,6 +78,9 @@ const SettingsPage = () => {
       });
       
       if (!response.ok) throw new Error('Failed to save settings');
+      
+      // Refresh config after saving
+      await refreshConfig();
       
       setSnackbar({
         open: true,
@@ -167,6 +174,71 @@ const SettingsPage = () => {
                   helperText="Refer this is to generate App Password: https://bit.ly/3YTjwCT"
                 />
               </Stack>
+            </Card>
+
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>Frontend Configuration</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Leave toggles in the middle (null) to use hardcoded defaults. Enable/disable to override.
+              </Typography>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.config?.SHOW_UPLOAD_ALERT ?? false}
+                      indeterminate={settings.config?.SHOW_UPLOAD_ALERT === null}
+                      onChange={(e) => {
+                        const current = settings.config?.SHOW_UPLOAD_ALERT;
+                        const next = current === null ? true : (current === true ? false : null);
+                        handleCategoryChange('config', 'SHOW_UPLOAD_ALERT', next);
+                      }}
+                    />
+                  }
+                  label={`Show Upload Alert: ${settings.config?.SHOW_UPLOAD_ALERT === null ? 'Default' : settings.config?.SHOW_UPLOAD_ALERT ? 'On' : 'Off'}`}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.config?.HARDCOPY_DISABLED ?? false}
+                      indeterminate={settings.config?.HARDCOPY_DISABLED === null}
+                      onChange={(e) => {
+                        const current = settings.config?.HARDCOPY_DISABLED;
+                        const next = current === null ? true : (current === true ? false : null);
+                        handleCategoryChange('config', 'HARDCOPY_DISABLED', next);
+                      }}
+                    />
+                  }
+                  label={`Hardcopy Disabled: ${settings.config?.HARDCOPY_DISABLED === null ? 'Default' : settings.config?.HARDCOPY_DISABLED ? 'On' : 'Off'}`}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.config?.REMOVE_HARDCOPY ?? false}
+                      indeterminate={settings.config?.REMOVE_HARDCOPY === null}
+                      onChange={(e) => {
+                        const current = settings.config?.REMOVE_HARDCOPY;
+                        const next = current === null ? true : (current === true ? false : null);
+                        handleCategoryChange('config', 'REMOVE_HARDCOPY', next);
+                      }}
+                    />
+                  }
+                  label={`Remove Hardcopy: ${settings.config?.REMOVE_HARDCOPY === null ? 'Default' : settings.config?.REMOVE_HARDCOPY ? 'On' : 'Off'}`}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.config?.DEMO_MODE ?? false}
+                      indeterminate={settings.config?.DEMO_MODE === null}
+                      onChange={(e) => {
+                        const current = settings.config?.DEMO_MODE;
+                        const next = current === null ? true : (current === true ? false : null);
+                        handleCategoryChange('config', 'DEMO_MODE', next);
+                      }}
+                    />
+                  }
+                  label={`Demo Mode: ${settings.config?.DEMO_MODE === null ? 'Default' : settings.config?.DEMO_MODE ? 'On' : 'Off'}`}
+                />
+              </FormGroup>
             </Card>
 
             <Button variant="contained" onClick={handleSave} disabled={saving}>
