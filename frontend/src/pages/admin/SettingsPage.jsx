@@ -8,10 +8,7 @@ import {
   Button,
   Snackbar,
   Alert,
-  CircularProgress,
-  Switch,
-  FormControlLabel,
-  FormGroup
+  CircularProgress
 } from '@mui/material';
 import PageHeader from '../../components/PageHeader';
 import config, { refreshConfig, staticConfig } from '../../config';
@@ -146,11 +143,12 @@ const SettingsPage = () => {
                   value={settings.courses?.folderId || ''}
                   onChange={(e) => {
                     const inputValue = e.target.value;
-                    const match = inputValue.match(/\/s!([^\/\?]+)/);
+                    const match = inputValue.match(/\/folders\/([A-Za-z0-9_-]+)/);
                     const folderId = match ? match[1] : inputValue?.replace(/[^A-Za-z0-9_-]/g, '');
                     handleCategoryChange('courses', 'folderId', folderId);
+                    setSnackbar({ open: true, message: `Extracted: ${folderId}`, severity: 'info' });
                   }}
-                  helperText="The share ID from your Google Drive folder URL"
+                  helperText="The share ID from your Google Drive folder URL. For example, https://drive.google.com/drive/folders/1Yr0d0h0yKtmuqaV7qtCHxSCGOmr2OYtO"
                   fullWidth
                 />
               </Stack>
@@ -178,67 +176,66 @@ const SettingsPage = () => {
 
             <Card sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 3 }}>Frontend Configuration</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Leave toggles in the middle (null) to use hardcoded defaults. Enable/disable to override.
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Click toggle to cycle: Default → Enabled → Disabled → Default
               </Typography>
-              <FormGroup>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.config?.SHOW_UPLOAD_ALERT ?? false}
-                      indeterminate={settings.config?.SHOW_UPLOAD_ALERT === null}
-                      onChange={(e) => {
-                        const current = settings.config?.SHOW_UPLOAD_ALERT;
-                        const next = current === null ? true : (current === true ? false : null);
-                        handleCategoryChange('config', 'SHOW_UPLOAD_ALERT', next);
+              <Stack spacing={2}>
+                {Object.keys(staticConfig).filter(key => !key.includes('URL')).map((key) => {
+                  const value = settings.config?.[key];
+                  const displayName = key.split('_').map(word => 
+                    word.charAt(0) + word.slice(1).toLowerCase()
+                  ).join(' ');
+                  
+                  return (
+                    <Card 
+                      key={key} 
+                      variant="outlined" 
+                      sx={{ 
+                        p: 2, 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': { 
+                          bgcolor: 'action.hover',
+                          boxShadow: 1
+                        }
                       }}
-                    />
-                  }
-                  label={`Show Upload Alert: ${settings.config?.SHOW_UPLOAD_ALERT === null ? 'Default' : settings.config?.SHOW_UPLOAD_ALERT ? 'On' : 'Off'}`}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.config?.HARDCOPY_DISABLED ?? false}
-                      indeterminate={settings.config?.HARDCOPY_DISABLED === null}
-                      onChange={(e) => {
-                        const current = settings.config?.HARDCOPY_DISABLED;
-                        const next = current === null ? true : (current === true ? false : null);
-                        handleCategoryChange('config', 'HARDCOPY_DISABLED', next);
+                      onClick={() => {
+                        const next = value === null ? true : (value === true ? false : null);
+                        handleCategoryChange('config', key, next);
                       }}
-                    />
-                  }
-                  label={`Hardcopy Disabled: ${settings.config?.HARDCOPY_DISABLED === null ? 'Default' : settings.config?.HARDCOPY_DISABLED ? 'On' : 'Off'}`}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.config?.REMOVE_HARDCOPY ?? false}
-                      indeterminate={settings.config?.REMOVE_HARDCOPY === null}
-                      onChange={(e) => {
-                        const current = settings.config?.REMOVE_HARDCOPY;
-                        const next = current === null ? true : (current === true ? false : null);
-                        handleCategoryChange('config', 'REMOVE_HARDCOPY', next);
-                      }}
-                    />
-                  }
-                  label={`Remove Hardcopy: ${settings.config?.REMOVE_HARDCOPY === null ? 'Default' : settings.config?.REMOVE_HARDCOPY ? 'On' : 'Off'}`}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.config?.DEMO_MODE ?? false}
-                      indeterminate={settings.config?.DEMO_MODE === null}
-                      onChange={(e) => {
-                        const current = settings.config?.DEMO_MODE;
-                        const next = current === null ? true : (current === true ? false : null);
-                        handleCategoryChange('config', 'DEMO_MODE', next);
-                      }}
-                    />
-                  }
-                  label={`Demo Mode: ${settings.config?.DEMO_MODE === null ? 'Default' : settings.config?.DEMO_MODE ? 'On' : 'Off'}`}
-                />
-              </FormGroup>
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>
+                            {displayName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {value === null ? 'Using default value' : value ? 'Enabled' : 'Disabled'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              px: 2,
+                              py: 0.5,
+                              borderRadius: 1,
+                              bgcolor: value === null ? 'grey.200' : (value ? 'success.light' : 'error.light'),
+                              color: value === null ? 'text.secondary' : (value ? 'success.dark' : 'error.dark'),
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              minWidth: 80,
+                              textAlign: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {value === null ? 'DEFAULT' : value ? 'ON' : 'OFF'}
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Card>
+                  );
+                })}
+              </Stack>
             </Card>
 
             <Button variant="contained" onClick={handleSave} disabled={saving}>
