@@ -6,7 +6,7 @@ Handles BullMQ job processing logic
 import os
 import time
 from typing import Dict, Any, List
-from bullmq import Job
+from bullmq import Job, custom_errors
 
 
 class WorkerPausedError(Exception):
@@ -114,5 +114,7 @@ async def process_job(
     except Exception as e:
         worker_stats['jobs_failed'] += 1
         worker_stats['current_job'] = None
-        logger.error(f"\n❌ Job failed: {e}\n")
-        raise
+        error_message = str(e)
+        logger.error(f"\n❌ Job failed: {error_message}\n")
+        # Re-raise with the error message so BullMQ can capture it as failedReason
+        raise custom_errors.UnrecoverableError(error_message)

@@ -170,7 +170,7 @@ function FaceSearchBanner({
         sx={alertSx}
         action={
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 0.5 }}>
-            {renderAction({ label: 'Clear Results', onClick: onRetry, icon: DeleteSweep, ariaLabel: 'clear results' })}
+            {renderAction({ label: 'Clear Results', onClick: onDismissError, icon: DeleteSweep, ariaLabel: 'clear results' })}
             {/* {renderAction({ label: 'Show All', onClick: onToggleFilter, icon: FilterAltOffIcon, ariaLabel: 'show all' })} */}
           </Stack>
         }
@@ -186,7 +186,7 @@ function FaceSearchBanner({
               )}
             </Typography>
           </Box>
-          {resultCount > 0 && (
+          {/* {resultCount > 0 && (
             <Chip
               label={resultCount}
               size={isXs ? 'small' : 'medium'}
@@ -199,7 +199,7 @@ function FaceSearchBanner({
                 height: isXs ? 24 : 28,
               }}
             />
-          )}
+          )} */}
         </Box>
       </Alert>
     );

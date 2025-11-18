@@ -79,6 +79,7 @@ const ImageCard = memo(({
   onDownload,
   isMatched,
   matchScore,
+  columns,
   selectViaIconOnly = false
 }) => {
   const displayName = getShortName(imgPath);
@@ -169,17 +170,11 @@ const ImageCard = memo(({
           size="small"
           color="success"
           sx={{
-            position: 'absolute',
-            top: 4,
-            left: 4,
-            fontSize: '0.65rem',
-            height: 18,
-            px: 0.5,
-            background: 'rgba(150,255,150,0.25)',
-            backdropFilter: 'blur(6px)',
-            border: '1px solid rgba(100,255,100,0.3)',
-            boxShadow: '0 2px 8px 0 rgba(31,38,135,0.15)',
-            '& .MuiChip-label': { px: 0.75, py: 0, color: '#222' },
+            position: 'absolute', top: 4, left: 4, fontSize: '0.65rem',
+            height: 18, textOverflow: 'revert', background: 'rgba(150,255,150,0.25)',
+            backdropFilter: 'blur(6px)', border: '1px solid rgba(100,255,100,0.3)',
+            boxShadow: '0 2px 8px 0 rgba(31,38,135,0.15)', scale: 1 + (Math.log2(4 - columns) * 0.5),  // via logarithmic formula: scale = 1 + (Math.log2(4 - columns) * 0.5)
+            '& .MuiChip-label': { px: 0.5, py: 0, color: '#FFF' },
           }}
         />
       )}
@@ -324,6 +319,7 @@ export default function ImageGrid({
                 onDownload={onDownload}
                 isMatched={isMatched}
                 matchScore={faceSearchActive ? matchScore : null}
+                columns={localColumns}
                 selectViaIconOnly={selectViaIconOnly}
               />
             </Grid>
