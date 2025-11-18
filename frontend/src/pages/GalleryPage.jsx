@@ -1,9 +1,11 @@
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import {
   Alert,
   Box,
   Button,
   Card,
+  IconButton,
   Stack,
   Typography
 } from '@mui/material';
@@ -294,6 +296,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
 
   const selectedCount = Object.keys(selectedImages).length;
   const handleRemoveImage = (imgPath) => {
+    if (existingImages[imgPath]) return;
     const { [imgPath]: removed, ...rest } = selectedImages;
     updateSelectedImages(rest);
   };
@@ -333,25 +336,45 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
               return (
                 <Box
                   key={path}
-                  component="img"
-                  src={url}
                   sx={{
-                    height: 60,
-                    width: 60,
-                    objectFit: 'cover',
-                    borderRadius: 1,
-                    mr: 1,
+                    position: 'relative',
                     display: 'inline-block',
-                    cursor: isLocked ? 'not-allowed' : 'pointer',
-                    opacity: isLocked ? 0.6 : 1,
-                    border: isLocked ? '2px solid' : 'none',
-                    borderColor: isLocked ? 'warning.main' : 'transparent',
+                    mr: 1,
                   }}
-                  onClick={() => {
-                    if (isLocked) return;
-                    handleRemoveImage(path);
-                  }}
-                />
+                >
+                  <Box
+                    component="img"
+                    src={url}
+                    sx={{
+                      height: 60,
+                      width: 60,
+                      objectFit: 'cover',
+                      borderRadius: 1,
+                      opacity: isLocked ? 0.6 : 1,
+                      border: isLocked ? '2px solid' : 'none',
+                      borderColor: isLocked ? 'warning.main' : 'transparent',
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    disabled={isLocked}
+                    onClick={() => handleRemoveImage(path)}
+                    sx={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      bgcolor: 'background.paper',
+                      borderRadius: '50%',
+                      boxShadow: 1,
+                      color: isLocked ? 'text.disabled' : 'success.light',
+                      '&:hover': {
+                        bgcolor: 'background.paper',
+                      },
+                    }}
+                  >
+                    <CheckCircleIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               );
             })
           ) : (
@@ -410,6 +433,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             availableSlots={availableSlots}
             columns={window.innerWidth < 900 ? "3" : "1"}
             showColumnControls={false}
+            selectViaIconOnly
           />
         </Box>
 

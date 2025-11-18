@@ -78,7 +78,8 @@ const ImageCard = memo(({
   onSelect,
   onDownload,
   isMatched,
-  matchScore
+  matchScore,
+  selectViaIconOnly = false
 }) => {
   const displayName = getShortName(imgPath);
   const [downloading, setDownloading] = useState(false);
@@ -93,12 +94,24 @@ const ImageCard = memo(({
     }
   };
 
+  const canTriggerSelect = !loading && !onDownload && canSelect && typeof onSelect === 'function';
+
+  const handleCardClick = () => {
+    if (selectViaIconOnly) return;
+    if (canTriggerSelect) onSelect(imgPath, imgThumbLink);
+  };
+
+  const handleIconClick = (event) => {
+    event.stopPropagation();
+    if (canTriggerSelect) onSelect(imgPath, imgThumbLink);
+  };
+
   return (
     <Card
-      onClick={() => !loading && !onDownload && canSelect && onSelect && onSelect(imgPath, imgThumbLink)}
+      onClick={handleCardClick}
       style={{
         position: 'relative',
-        cursor: onDownload ? 'default' : (isLocked ? 'default' : 'pointer'),
+        cursor: onDownload ? 'default' : ((isLocked || selectViaIconOnly) ? 'default' : 'pointer'),
         opacity: onDownload ? 1 : (canSelect ? 1 : 0.5),
         transition: '0.3s',
         border: isSelected ? '2px solid #3f51b5' : isMatched ? '2px solid #4caf50' : '2px solid transparent',
@@ -136,7 +149,12 @@ const ImageCard = memo(({
 
       {!loading && onSelect && !onDownload && (
         <CardActions sx={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#ffffffcc', borderRadius: '50%', p: 0, m: 1 }}>
-          <IconButton aria-label="select image" sx={{ p: 0 }} >
+          <IconButton
+            aria-label="select image"
+            sx={{ p: 0 }}
+            onClick={handleIconClick}
+            disabled={!canTriggerSelect}
+          >
             <CheckCircleIcon color={isSelected ? 'primary' : 'disabled'} />
           </IconButton>
         </CardActions>
@@ -184,7 +202,8 @@ export default function ImageGrid({
   faceSearchActive = false,
   faceSearchComplete = false,
   faceMatchMap = {},
-  sx
+  sx,
+  selectViaIconOnly = false
 }) {
   const [localColumns, setLocalColumns] = useState(columns);
   const [searchTerm, setSearchTerm] = useState('');
@@ -246,7 +265,7 @@ export default function ImageGrid({
               </Box>
             )}
             {faceSearchEnabled && (
-              <Tooltip  title={faceSearchActive ? "Face Search is Active" : "Start Face Search"}>
+              <Tooltip title={faceSearchActive ? "Face Search is Active" : "Start Face Search"}>
                 <Button
                   variant={(faceSearchActive || faceSearchComplete) ? 'contained' : 'outlined'}
                   color={faceSearchActive ? 'success' : 'primary'}
@@ -305,6 +324,7 @@ export default function ImageGrid({
                 onDownload={onDownload}
                 isMatched={isMatched}
                 matchScore={faceSearchActive ? matchScore : null}
+                selectViaIconOnly={selectViaIconOnly}
               />
             </Grid>
           );
