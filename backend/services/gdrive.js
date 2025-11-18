@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const { getSettings } = require("../config/settings");
 const { cache, TTL } = require("../config/cache");
+const { limitedMap } = require("../utils/concurrency");
 
 const _getAuth = async () => {
     const auth = new google.auth.GoogleAuth({
@@ -24,6 +25,42 @@ const _getDrive = async () => {
 
 const _getShareId = () => {
     return getSettings("courses").folderId;
+};
+
+const LEVEL_CHILD_KEYS = ['times', 'batches'];
+const TREE_CACHE = new Map();
+
+const _getTreeCacheKey = (parentId, depth) => `${parentId}:${depth}`;
+
+const _fetchFolderTree = async (drive, parentId, depth = 0) => {
+    const cacheKey = _getTreeCacheKey(parentId, depth);
+    if (TREE_CACHE.has(cacheKey)) {
+        return TREE_CACHE.get(cacheKey);
+    }
+
+    const promise = (async () => {
+        const folders = await _getFolders(drive, parentId);
+        if (depth >= LEVEL_CHILD_KEYS.length) {
+            return folders.map(({ name, id }) => ({ name, id }));
+        }
+
+        const childKey = LEVEL_CHILD_KEYS[depth];
+        const children = await limitedMap(folders, async (folder) => {
+                const node = { name: folder.name, id: folder.id };
+                node[childKey] = await _fetchFolderTree(drive, folder.id, depth + 1);
+                return node;
+            },
+            50
+        );
+
+        return children;
+    })().catch((err) => {
+        TREE_CACHE.delete(cacheKey);
+        throw err;
+    });
+
+    TREE_CACHE.set(cacheKey, promise);
+    return promise;
 };
 
 const _getFolders = async (drive, parentId) => {
@@ -52,16 +89,8 @@ const getCourseFolders = async () => {
     const drive = await _getDrive(); // Get drive instance
     const shareId = _getShareId();
 
-    const days = await _getFolders(drive, shareId);
-    const structure = await Promise.all(days.map(async day => ({
-        name: day.name,
-        id: day.id,
-        times: await Promise.all((await _getFolders(drive, day.id)).map(async time => ({
-            name: time.name,
-            id: time.id,
-            batches: (await _getFolders(drive, time.id)).map(batch => ({ name: batch.name, id: batch.id }))
-        })))
-    })));
+    TREE_CACHE.clear();
+    const structure = await _fetchFolderTree(drive, shareId, 0);
 
     await cache.set(cacheKey, structure, TTL.COURSES);
     return structure;
