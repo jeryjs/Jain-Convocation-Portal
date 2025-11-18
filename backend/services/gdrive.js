@@ -3,6 +3,8 @@ const { getSettings } = require("../config/settings");
 const { cache, TTL } = require("../config/cache");
 const { limitedMap } = require("../utils/concurrency");
 
+const EDGE_CACHE_PROXY = "https://cdn.sa-fet.com/edge-cache";
+
 const _getAuth = async () => {
     const auth = new google.auth.GoogleAuth({
         apiKey: process.env.GDRIVE_API_KEY,
@@ -120,7 +122,7 @@ const getCourseImages = async (day, time, batch) => {
     }, { headers: { referer: 'jain-convocation-portal.vercel.app' } });
 
     const images = res.data.files.map(file => ({
-        [`${path}/${file.name}`]: file.thumbnailLink ? file.thumbnailLink.replace(/=s\d+/, '=s480') : '',
+        [`${path}/${file.name}`]: file.thumbnailLink ? `${EDGE_CACHE_PROXY}/${file.thumbnailLink.replace(/=s\d+/, '=s480')}` : `https://drive.google.com/uc?id=${file.id}&export=view`,
     }));
 
     await cache.set(cacheKey, images, TTL.COURSES);
