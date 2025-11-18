@@ -39,6 +39,10 @@ export default function KeyboardShortcuts({
             e.preventDefault();
             onToggleAutoRefresh();
             break;
+          case '/':
+            e.preventDefault();
+            // Could be used to open help modal
+            break;
         }
       }
       

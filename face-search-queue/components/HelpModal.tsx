@@ -17,7 +17,7 @@ export default function HelpModal() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/50 text-blue-300 hover:bg-blue-500/30 transition-all flex items-center justify-center text-xl z-40"
+        className="fixed! bottom-4 right-4 w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/50 text-blue-300 hover:bg-blue-500/30 transition-all flex items-center justify-center text-xl z-40"
         title="Help & Shortcuts (Ctrl+/)"
       >
         ?

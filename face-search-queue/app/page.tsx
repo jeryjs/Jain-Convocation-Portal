@@ -238,18 +238,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-purple-950 to-slate-950 text-white p-4 md:p-6">
-      <KeyboardShortcuts
-        onPauseToggle={handlePauseToggle}
-        onRefresh={() => {
-          fetchQueueData();
-          fetchWorkers();
-          fetchPauseStatus();
-        }}
-        onCleanQueue={handleCleanQueue}
-        onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
-      />
-      <HelpModal />
-
       <div className="max-w-[1920px] mx-auto space-y-4">
         {/* Header */}
         <div className="glass rounded-2xl p-4 md:p-8 border border-blue-500/20 relative overflow-hidden group">
@@ -297,6 +285,18 @@ export default function Home() {
           />
         )}
       </div>
-    </div>
+    
+      <KeyboardShortcuts
+        onPauseToggle={handlePauseToggle}
+        onRefresh={() => {
+          fetchQueueData();
+          fetchWorkers();
+          fetchPauseStatus();
+        }}
+        onCleanQueue={handleCleanQueue}
+        onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+      />
+      <HelpModal />
+</div>
   );
 }
