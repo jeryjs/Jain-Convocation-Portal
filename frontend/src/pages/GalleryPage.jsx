@@ -248,6 +248,7 @@ function GalleryPage() {
             </Stack>
 
             <SelectedImagesPanel
+              variant="sidebar"
               selectedImages={selectedImages}
               existingImages={userData?.requestedImages || {}}
               onRequestPressed={handleRequestPressed}
@@ -260,80 +261,13 @@ function GalleryPage() {
 
       {/* Mobile Selected Images Strip & Request Button */}
       {!isGroupPhotos && (
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            bgcolor: 'background.paper',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            display: { xs: 'block', md: 'none' },
-            zIndex: 1000
-          }}
-        >
-          {/* Horizontal Scrollable Selected Images */}
-          <Box
-            sx={{
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
-              px: 2,
-              pt: 1,
-              pb: 0.5,
-              '&::-webkit-scrollbar': { display: 'none' },
-              msOverflowStyle: 'none',
-              scrollbarWidth: 'none',
-            }}
-          >
-            {Object.entries(selectedImages).length > 0 ? (
-              Object.entries(selectedImages).map(([path, url]) => (
-                <Box
-                  key={path}
-                  component="img"
-                  src={url}
-                  sx={{
-                    height: 60,
-                    width: 60,
-                    objectFit: 'cover',
-                    borderRadius: 1,
-                    mr: 1,
-                    display: 'inline-block',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => {
-                    const { [path]: removed, ...rest } = selectedImages;
-                    updateSelectedImages(rest);
-                  }}
-                />
-              ))
-            ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                No images selected
-              </Typography>
-            )}
-          </Box>
-
-          {/* Request Button Section */}
-          <Box sx={{ p: 2, pt: 1 }}>
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <WarningIcon color="warning" sx={{ fontSize: 16, mr: 1 }} />
-                <Typography variant="caption" sx={{ color: 'warning.main' }}>
-                  You will not be able to change selections after making request.
-                </Typography>
-              </Box>
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleRequestPressed}
-                disabled={Object.keys(selectedImages).length < 0}
-              >
-                Request ({Object.keys(selectedImages).length}/4)
-              </Button>
-            </Stack>
-          </Box>
-        </Box>
+        <SelectedImagesPanel
+          variant="mobile"
+          selectedImages={selectedImages}
+          existingImages={userData?.requestedImages || {}}
+          onRequestPressed={handleRequestPressed}
+          availableSlots={getAvailableSlots()}
+        />
       )}
 
       <FaceSearchDialog
@@ -352,11 +286,103 @@ function GalleryPage() {
 export default GalleryPage;
 
 
-function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx }) {
+function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed, availableSlots, sx, variant = 'sidebar' }) {
   const { updateSelectedImages } = useAuth();
 
   // Transform selectedImages back to array of objects format
   const selectedImagesArray = Object.entries(selectedImages).map(([path, url]) => ({ [path]: url }));
+
+  const selectedCount = Object.keys(selectedImages).length;
+  const handleRemoveImage = (imgPath) => {
+    const { [imgPath]: removed, ...rest } = selectedImages;
+    updateSelectedImages(rest);
+  };
+
+  if (variant === 'mobile') {
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          bgcolor: 'background.paper',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          display: { xs: 'block', md: 'none' },
+          zIndex: 1000,
+          ...sx,
+        }}
+      >
+        {/* Horizontal Scrollable Selected Images */}
+        <Box
+          sx={{
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            px: 2,
+            pt: 1,
+            pb: 0.5,
+            '&::-webkit-scrollbar': { display: 'none' },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {selectedCount > 0 ? (
+            Object.entries(selectedImages).map(([path, url]) => {
+              const isLocked = Boolean(existingImages[path]);
+              return (
+                <Box
+                  key={path}
+                  component="img"
+                  src={url}
+                  sx={{
+                    height: 60,
+                    width: 60,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    mr: 1,
+                    display: 'inline-block',
+                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                    opacity: isLocked ? 0.6 : 1,
+                    border: isLocked ? '2px solid' : 'none',
+                    borderColor: isLocked ? 'warning.main' : 'transparent',
+                  }}
+                  onClick={() => {
+                    if (isLocked) return;
+                    handleRemoveImage(path);
+                  }}
+                />
+              );
+            })
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+              No images selected
+            </Typography>
+          )}
+        </Box>
+
+        {/* Request Button Section */}
+        <Box sx={{ p: 2, pt: 1 }}>
+          <Stack spacing={1}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <WarningIcon color="warning" sx={{ fontSize: 16, mr: 1 }} />
+              <Typography variant="caption" sx={{ color: 'warning.main' }}>
+                You will not be able to change selections after making request.
+              </Typography>
+            </Box>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={onRequestPressed}
+              disabled={selectedCount === 0}
+            >
+              Request ({selectedCount}/4)
+            </Button>
+          </Stack>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Card elevation={2} sx={{ ...sx }}>
@@ -379,9 +405,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
             selectedImages={Object.keys(selectedImages)}
             lockedImages={Object.keys(existingImages)}
             onSelectImage={(imgPath) => {
-              // Deselect images from selected panel
-              const { [imgPath]: removed, ...rest } = selectedImages;
-              updateSelectedImages(rest);
+              handleRemoveImage(imgPath);
             }}
             availableSlots={availableSlots}
             columns={window.innerWidth < 900 ? "3" : "1"}
@@ -400,7 +424,7 @@ function SelectedImagesPanel({ selectedImages, existingImages, onRequestPressed,
           <Button
             variant="contained"
             onClick={onRequestPressed}
-            disabled={Object.keys(selectedImages).length < 0}
+            disabled={selectedCount === 0}
             sx={{
               flex: 1,
               height: { xs: '32px', md: '36px' },
