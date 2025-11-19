@@ -47,7 +47,7 @@ function ImageWithLoader({ imgThumbLink, imgPath }) {
         }} />
       )}
       {!error ? (
-        <CardMedia component="img" height="200" image={imgThumbLink} data-file={imgPath} loading="lazy"
+        <CardMedia component="img" height="200" loading="lazy" image={imgThumbLink} data-file={imgPath}
           sx={{
             objectFit: 'cover', width: '100%', aspectRatio: '3/2', opacity: loading ? 0 : 1,
             transition: 'opacity 0.5s cubic-bezier(.4,0,.2,1)',
