@@ -9,7 +9,7 @@ import {
   Stack,
   Typography
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import DemoPageBanner from '../components/DemoPageBanner';
 import FaceSearchBanner from '../components/FaceSearchBanner';
@@ -20,12 +20,12 @@ import config from '../config';
 import { useAuth } from '../config/AuthContext';
 import { useFaceSearchQueue } from '../hooks/useFaceSearchQueue';
 import { cacheManager } from '../utils/cache';
-import { downloadFile } from '../utils/utils';
 
 
 function GalleryPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const mounted = useRef(false);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pathData, setPathData] = useState({ day: '', time: '', batch: '' });
@@ -69,6 +69,9 @@ function GalleryPage() {
   }, [faceMatchMap, faceSearch.isFiltering, images]);
 
   useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+
     const fetchImages = async (isRetry = false) => {
       setLoading(true);
 
