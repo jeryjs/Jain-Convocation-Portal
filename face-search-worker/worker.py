@@ -39,7 +39,7 @@ GPU_INDEX = int(os.getenv('GPU_INDEX', 0))
 WORKER_CONCURRENCY = int(os.getenv('WORKER_CONCURRENCY', 1))
 USE_CPU = os.getenv('USE_CPU', '0') == '1'
 EXCLUDE_FACES_DIR = os.path.join(os.path.dirname(__file__), 'exclude_faces')
-CONVOCATION_PHOTOS_DIR = "Z:/Downloads/jain 14th convo"
+CONVOCATION_PHOTOS_DIR = "Z:/Downloads/Jain 15th Convocation"
 
 
 def select_engine():

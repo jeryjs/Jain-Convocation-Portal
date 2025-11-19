@@ -117,6 +117,7 @@ const getCourseImages = async (day, time, batch) => {
     const batchId = batchObj.id;
     const path = `${day}/${time}/${batch}`;
     const res = await drive.files.list({
+        pageSize: 1000,
         q: `'${batchId}' in parents and mimeType contains 'image/'`,
         fields: 'files(id, name, thumbnailLink)',
     }, { headers: { referer: 'jain-convocation-portal.vercel.app' } });
