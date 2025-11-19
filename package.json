@@ -7,7 +7,7 @@
 		"start:frontend": "cd frontend && pnpm run dev",
 		"start:backend": "cd backend && pnpm run dev",
 		"start:queue": "cd face-search-queue && pnpm run dev",
-		"dev": "pnpx concurrently -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"pnpm run start:backend\" \"pnpm run start:frontend\" \"pnpm run start:queue\"",
+		"dev": "pnpx concurrently -c \"bgBlue.bold,bgGreen.bold\" \"pnpm run start:backend\" \"pnpm run start:frontend\"",
 		"init": "pnpx concurrently -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"cd backend && pnpm install\" \"cd frontend && pnpm install\" \"cd face-search-queue && pnpm install\""
 	},
 	"keywords": [],
