@@ -179,7 +179,7 @@ export default function ManagePage() {
     }
   };
 
-  // Add selection model to DataGrid
+  // Add selection model to DataGrid did we
   const [selectionModel, setSelectionModel] = useState([]);
 
   const columns = [
@@ -190,6 +190,7 @@ export default function ManagePage() {
     { field: 'password', headerName: 'Password', width: 130 },
     { field: 'role', headerName: 'Role', width: 100 },
     { field: 'phone', headerName: 'Phone', width: 130 },
+    { field: 'day', headerName: 'Day', width: 80 },
     {
       field: 'requestType', headerName: 'Request Type', width: 120,
       renderCell: (params) => REQUEST_TYPE_LABELS[params.value || 0]
