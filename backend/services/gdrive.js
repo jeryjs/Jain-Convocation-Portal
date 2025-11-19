@@ -162,7 +162,8 @@ const getImageLinks = async (fullPaths) => {
                 return {
                     name: path,
                     url: file.webViewLink,
-                    download: file.webContentLink || file.webViewLink,
+                    // download: file.webContentLink || file.webViewLink,
+                    download: `https://lh3.googleusercontent.com/d/${file.id}`,
                 };
             })
         );
