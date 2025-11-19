@@ -29,8 +29,5 @@
             "src": "/(.*)",
             "dest": "/frontend/index.html"
         }
-    ],
-    "git": {
-        "deploymentEnabled": false
-    }
+    ]
 }
