@@ -45,7 +45,7 @@ function GalleryPage() {
   const faceSearch = useFaceSearchQueue({
     stageKey: decodedStage,
     imageCount: images.length,
-    userId: userData?.email,
+    userId: userData?.email || userData?.username,
     enabled: !isGroupPhotos && Boolean(userData) && !loading,
   });
 
