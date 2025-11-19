@@ -81,13 +81,13 @@ function GalleryPage() {
 
       try {
         // Try to get from cache first
-        const cacheKey = `gallery-${sessionId}`;
-        const cached = !isRetry && cacheManager.get(cacheKey);
-        if (cached) {
-          setImages(cached);
-          setLoading(false);
-          return;
-        }
+        // const cacheKey = `gallery-${sessionId}`;
+        // const cached = !isRetry && cacheManager.get(cacheKey);
+        // if (cached) {
+        //   setImages(cached);
+        //   setLoading(false);
+        //   return;
+        // }
 
         const response = await fetch(`${config.API_BASE_URL}/courses/${day}/${time}/${batch}`);
         const data = await response.json();
