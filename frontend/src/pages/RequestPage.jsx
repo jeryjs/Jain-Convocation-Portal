@@ -384,7 +384,7 @@ export default function RequestPage() {
                       <Chip
                         key={link.name}
                         component='a'
-                        label={link.name.match(/\/(\w+\.\w+)$/)[1]}
+                        label={link.name.match(/\/([A-Za-z0-9 ]+\.\w+)$/)[1]}
                         href={link.url}
                         icon={<DownloadIcon />}
                         color="secondary"
@@ -471,6 +471,7 @@ const UserForm = React.memo(({ userData, userFormData, onFormChange, requestType
           label="USN"
           value={userData.username}
           aria-readonly="true"
+          disabled
         />
         <TextField
           label="Email"

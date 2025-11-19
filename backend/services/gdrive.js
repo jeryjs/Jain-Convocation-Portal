@@ -48,10 +48,10 @@ const _fetchFolderTree = async (drive, parentId, depth = 0) => {
 
         const childKey = LEVEL_CHILD_KEYS[depth];
         const children = await limitedMap(folders, async (folder) => {
-                const node = { name: folder.name, id: folder.id };
-                node[childKey] = await _fetchFolderTree(drive, folder.id, depth + 1);
-                return node;
-            },
+            const node = { name: folder.name, id: folder.id };
+            node[childKey] = await _fetchFolderTree(drive, folder.id, depth + 1);
+            return node;
+        },
             50
         );
 
@@ -162,6 +162,7 @@ const getImageLinks = async (fullPaths) => {
                 return {
                     name: path,
                     url: file.webViewLink,
+                    download: file.webContentLink || file.webViewLink,
                 };
             })
         );
