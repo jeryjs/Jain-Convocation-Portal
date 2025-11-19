@@ -3,9 +3,9 @@ export const staticConfig = {
   QUEUE_API_BASE_URL: (process.env.NODE_ENV === 'development' ? location.origin.replace(/:\d+/, ':4102') : "https://face-search." + location.host) + '/api',
 
   // ==== Server Configurable Settings with Static Defaults ====
-  SHOW_UPLOAD_ALERT: false,
-  HARDCOPY_DISABLED: false,
-  REMOVE_HARDCOPY: false,
+  SHOW_UPLOAD_ALERT: true,
+  HARDCOPY_DISABLED: true,
+  REMOVE_HARDCOPY: true,
   DEMO_MODE: false,
 };
 
