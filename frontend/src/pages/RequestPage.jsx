@@ -386,6 +386,7 @@ export default function RequestPage() {
                         component='a'
                         label={link.name.match(/\/([A-Za-z0-9 ]+\.\w+)$/)[1]}
                         href={link.url}
+                        target="_blank"
                         icon={<DownloadIcon />}
                         color="secondary"
                         variant="outlined"
