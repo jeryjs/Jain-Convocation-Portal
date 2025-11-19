@@ -1,6 +1,6 @@
 const CACHE_CONFIG = {
-  courses: { ttl: 10 * 60 * 1000 }, // 10 minutes
-  gallery: { ttl: 20 * 60 * 1000 }  // 20 minutes
+  courses: { ttl: 1 * 60 * 1000 }, // 1 minute
+  gallery: { ttl: 1 * 60 * 1000 }  // 1 minute
 };
 
 export const cacheManager = {
