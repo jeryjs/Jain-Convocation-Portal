@@ -153,7 +153,8 @@ function GalleryPage() {
       // Find and download the requested image
       const link = links.links.find(l => l.name === imagePath);
       if (link) {
-        await downloadFile(link.download, imagePath.split('/').pop());
+        // await downloadFile(link.download, imagePath.split('/').pop());
+        await window.open(link.download, '_self');
       }
     } catch (error) {
       console.error('Error downloading image:', error);
