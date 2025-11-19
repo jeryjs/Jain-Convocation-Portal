@@ -65,10 +65,9 @@ root.innerHTML = `
 `;
 
 // Wait for config to load before rendering
-waitForConfig().then(() => {
-  createRoot(root).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
-});
+waitForConfig()
+createRoot(root).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
