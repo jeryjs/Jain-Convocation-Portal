@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
         setToken(null);
         setSelectedImages({});
         secureStorage.clear();
+        localStorage.clear();
     };
 
     // Simple setter for selected images
