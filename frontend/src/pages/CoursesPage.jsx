@@ -11,23 +11,38 @@ import UploadingAlertBanner from '../components/UploadingAlertBanner';
 
 // Utility function for handling file name in the format "10AM to 11AM"
 const convertTimeToMinutes = (timeStr) => {
-  const [time, period] = timeStr.match(/(\d+(?:AM|PM))/gi)[0].split(/(AM|PM)/);
-  let hours = parseInt(time);
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  return hours * 60;
+  // Extract the start time (e.g., "02PM" in "02PM to 04.30PM")
+  const match = timeStr.match(/^(\d{1,2}(?:[.:]\d{1,2})?)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let [ , hourPart, period ] = match;
+  let [hours, minutes] = hourPart.includes('.') || hourPart.includes(':')
+    ? hourPart.split(/[.:]/).map(Number)
+    : [parseInt(hourPart, 10), 0];
+  if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+  if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + (minutes || 0);
 };
 
 // Utility function for handling file name in the format "10AM to 11AM"
 const sortTimeSlots = (data) => {
-  return data.map(day => ({
-    ...day,
-    times: day.times.sort((a, b) => {
-      const timeA = convertTimeToMinutes(a.name);
-      const timeB = convertTimeToMinutes(b.name);
-      return timeA - timeB;
-    })
-  }));
+  // Helper to parse "DD-MM-YYYY" to Date object
+  const parseDayNameToDate = (name) => {
+    const [day, month, year] = name.split('-').map(i=>Number(i.split(' ')[0]));
+    return new Date(year, month - 1, day);
+  };
+
+  // Sort days by date, then sort times within each day
+  return data
+    .slice()
+    .sort((a, b) => parseDayNameToDate(a.name) - parseDayNameToDate(b.name))
+    .map(day => ({
+      ...day,
+      times: day.times.sort((a, b) => {
+        const timeA = convertTimeToMinutes(a.name);
+        const timeB = convertTimeToMinutes(b.name);
+        return timeA - timeB;
+      })
+    }));
 };
 
 const loadSavedUiState = () => {
