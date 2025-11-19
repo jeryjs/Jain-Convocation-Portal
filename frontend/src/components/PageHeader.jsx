@@ -1,48 +1,35 @@
 // components/PageHeader.jsx
-import React, { useState } from 'react';
+import {
+  ArrowBack,
+  QuestionAnswer as FaqIcon,
+  Feedback as FeedbackIcon,
+  Home,
+  Info as InfoIcon,
+  KeyboardArrowDown,
+  Logout as LogoutIcon,
+  NavigateNext
+} from '@mui/icons-material';
 import {
   AppBar,
-  Toolbar,
-  Box,
-  IconButton,
-  Typography,
   Avatar,
-  Popover,
+  Box,
+  Breadcrumbs,
+  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Breadcrumbs,
+  Popover,
   Stack,
-  Rating,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  ListItemButton,
+  Toolbar,
+  Typography
 } from '@mui/material';
-import {
-  ArrowBack,
-  KeyboardArrowDown,
-  Logout as LogoutIcon,
-  Home,
-  NavigateNext,
-  Info as InfoIcon,
-  QuestionAnswer as FaqIcon,
-  Feedback as FeedbackIcon,
-  Favorite,
-  FavoriteBorder,
-} from '@mui/icons-material';
-import JGIBanner from '../assets/jain.webp';
-import JGILogo from '../assets/jain1.webp';
-import { useAuth } from '../config/AuthContext';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LoadingButton } from '@mui/lab';
-import StarIcon from '@mui/icons-material/Star';
-import config from '../config';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../config/AuthContext';
 import FeedbackDialog from './FeedbackDialog';
+import JGIBanner from '/jain.webp';
+import JGILogo from '/jain1.webp';
 
 function PageHeader({
   pageTitle,

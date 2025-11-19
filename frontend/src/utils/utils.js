@@ -152,7 +152,7 @@ export const sendRequestEmail = async (userData, requestType, imageLinks = null,
       <div style="font-family: Arial, sans-serif; margin: 0 auto;">
         <p>Dear Graduate,</p>
         <p>Heartfelt congratulations on your remarkable achievement! We're proud to have played a part in your educational journey. Your request for hardcopy prints of your convocation photos has been received.</p>
-        <p><strong>Our team will process your request within ${waitingTime??90} minutes.</strong> We'll contact you once your prints are ready for collection.</p>
+        <p><strong>Our team will process your request within ${waitingTime??90} minutes.</strong> Please head to the hardcopy area once your prints are ready for collection.</p>
         <p>Wishing you continued success and a bright future.</p>
         <p>Best regards,<br>JAIN (Deemed-to-be)University</p>
       </div>

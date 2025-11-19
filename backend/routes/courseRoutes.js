@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/onedrive');
+const { getCourseFolders, getCourseImages, getImageLinks } = require('../services/gdrive');
 const { log } = require('../utils/logUtils');
 
 // Route to get list of courses (OneDrive folders)
@@ -8,12 +8,10 @@ router.get('/courses', async (req, res) => {
   try {
     log('info', 'FetchingStructure', { message: 'Starting folder structure fetch' });
     const courses = await getCourseFolders();
-    log('success', 'FetchStructure', { 
-      days: courses.length,
-      times: courses.reduce((acc, day) => acc + day.times.length, 0),
-      batches: courses.reduce((acc, day) => 
-        acc + day.times.reduce((tacc, time) => tacc + time.batches.length, 0), 0)
-    });
+    const days = courses.length;
+    const times = courses.reduce((acc, day) => acc + day.times.length, 0);
+    const batches = courses.reduce((acc, day) => acc + day.times.reduce((tacc, time) => tacc + time.batches.length, 0), 0);
+    log('success', 'FetchStructure', `days=${days}, times=${times}, batches=${batches}`);
     res.json(courses);
   } catch (error) {
     log('error', 'FetchStructureFailed', { error: error.message });

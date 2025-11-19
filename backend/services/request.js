@@ -4,7 +4,7 @@ const { cache, TTL } = require("../config/cache");
 const { REQUEST_TYPES } = require("../constants");
 const { invalidateCache } = require("../utils/cache.utils");
 
-const COLLECTION_NAME = "2024";
+const COLLECTION_NAME = "2025";
 
 // Calculate waiting time for hardcopy requests
 const calculateWaitingTime = async () => {
@@ -51,8 +51,8 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 		// Single update operation
 		transaction.update(userRef, updateData);
 
-		invalidateCache("requests", "pending");
-		if (requestType == REQUEST_TYPES.HARDCOPY) invalidateCache();
+		await invalidateCache("requests", "pending");
+		if (requestType == REQUEST_TYPES.HARDCOPY) await invalidateCache();
 
 		const waitingTime = requestType == REQUEST_TYPES.HARDCOPY ? await calculateWaitingTime() : 0;
 
@@ -69,7 +69,7 @@ const handleImageRequest = async (userdata, requestedImages, requestType, paymen
 // Function to get all requests with status > 0 
 const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'], limit = 100, includeSoftcopy = false) => {
   const cacheKey = `requests_${statusFilter.sort().join('_')}_${includeSoftcopy}`;
-  const cachedRequests = cache.get(cacheKey);
+  const cachedRequests = await cache.get(cacheKey);
 
   if (cachedRequests) {
     console.log("📦 Serving cached requests");
@@ -87,7 +87,7 @@ const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'],
     const snapshot = await query.get();
     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    cache.set(cacheKey, requests, TTL.REQUESTS);
+    await cache.set(cacheKey, requests, TTL.REQUESTS);
     return requests;
 
   } catch (error) {
@@ -99,7 +99,7 @@ const getAllRequests = async (statusFilter = ['pending', 'approved', 'printed'],
       });
     }
     
-    const expiredCache = cache.get(cacheKey, true);
+    const expiredCache = await cache.get(cacheKey, true);
     if (expiredCache) {
       console.log("⚠️ Serving expired cache due to error");
       return expiredCache;
@@ -126,8 +126,8 @@ const updateRequestStatus = async (username, status) => {
 	});
 
 	// Clear user cache
-	invalidateCache("user", username);
-	invalidateCache();	// Clear all cache
+	await invalidateCache("user", username);
+	await invalidateCache();	// Clear all cache
 	return { success: true };
 };
 

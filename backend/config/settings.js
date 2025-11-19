@@ -11,6 +11,12 @@ let settingsCache = {
     general: {
         gmailUser: '',
         gmailAppPass: ''
+    },
+    config: {
+        SHOW_UPLOAD_ALERT: null,
+        HARDCOPY_DISABLED: null,
+        REMOVE_HARDCOPY: null,
+        DEMO_MODE: null
     }
 };
 
@@ -35,7 +41,7 @@ const getSettings = (category) => {
         }
         if (category === 'courses' && !settingsCache.courses.folderId) {
             return {
-                folderId: settingsCache.courses.folderId || process.env.ONEDRIVE_SHAREID
+                folderId: settingsCache.courses.folderId || process.env.GDRIVE_SHAREID
             };
         }
         return settingsCache[category] || {};

@@ -1,11 +1,11 @@
-import { Card, CardContent, TextField, Button, Typography, CircularProgress, Snackbar, Alert, Box, IconButton, InputAdornment } from "@mui/material";
-import React, { useState } from "react";
+import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
+import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import JGILogo from "../assets/JGI.webp";
-import ConvocationBanner from "../assets/banner.webp";
 import config from "../config";
 import { useAuth } from '../config/AuthContext';
-import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
+import JGILogo from "/JGI.webp";
+import CONVOCATION_BANNER from "/banner.webp";
 
 function LoginPage() {
   const [username, setUsername] = useState("");
@@ -15,7 +15,14 @@ function LoginPage() {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, userData } = useAuth();
+
+  // redirect to /sessions if already logged in
+  useEffect(() => {
+    if (userData && userData.role) {
+      navigate("/sessions");
+    }
+  }, [userData, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -56,7 +63,8 @@ function LoginPage() {
     // - Must start with 9 for Nepal
     // - Optional country codes: 91 for India, 977 for Nepal
     const regex = /^(91|977)?[6-9]\d{9}(\d{3})?$/;
-    return regex.test(password);
+    const sanitized = String(password).replace(/\s+/g, '');
+    return regex.test(sanitized);
   };
 
   const handleCloseSnackbar = () => {
@@ -68,8 +76,8 @@ function LoginPage() {
       <Card variant='outlined' sx={{ borderRadius: '12px', p: { xs: 0, md: 3 }, maxWidth: '600px' }}>
         <CardContent>
           <div style={{ backgroundColor: '#001b54', borderRadius: '8px', marginBottom: '40px', position: 'relative' }}>
-            <img src={ConvocationBanner} alt="Profile" style={{ height: 'auto', mixBlendMode: 'lighten' }} />
-            <div style={{ height: '60px', width: '60px', position: 'absolute', bottom: '-30px', left: '40px',transform: 'translateX(-50%)', borderRadius: '50%', background: '#fff',display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={CONVOCATION_BANNER} alt="Banner" style={{ height: 'auto', mixBlendMode: 'lighten' }} />
+            <div style={{ height: '60px', width: '60px', position: 'absolute', bottom: '-30px', left: '40px', transform: 'translateX(-50%)', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <img src={JGILogo} alt="JGI Logo" style={{ width: '80%', height: 'auto' }} />
             </div>
           </div>

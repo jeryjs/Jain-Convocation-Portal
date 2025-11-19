@@ -6,7 +6,9 @@ const { log } = require('../utils/logUtils');
 
 // Route to authenticate user and generate jwt token
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  let { username, password } = req.body;
+  username = username.toUpperCase().trim();
+  password = password.trim();
   
   log('info', 'LoginAttempt', { username, ip: req.ip });
 

@@ -1,17 +1,16 @@
 {
 	"name": "jain-convocation-portal",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"description": "A web portal for managing Jain University Convocation Images.",
 	"main": "index.js",
 	"scripts": {
-		"start:frontend": "cd frontend && npm run dev",
-		"start:backend": "cd backend && npm run dev",
-		"dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
+		"start:frontend": "cd frontend && pnpm run dev",
+		"start:backend": "cd backend && pnpm run dev",
+		"start:queue": "cd face-search-queue && pnpm run dev",
+		"dev": "pnpx concurrently -c \"bgBlue.bold,bgGreen.bold\" \"pnpm run start:backend\" \"pnpm run start:frontend\"",
+		"init": "pnpx concurrently -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"cd backend && pnpm install\" \"cd frontend && pnpm install\" \"cd face-search-queue && pnpm install\""
 	},
 	"keywords": [],
 	"author": "Jery",
-	"license": "MIT",
-	"dependencies": {
-		"concurrently": "^8.2.2"
-	}
+	"license": "MIT"
 }

@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "2024",
+      "collectionGroup": "2025",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "requestType", "order": "ASCENDING" },
@@ -10,7 +10,7 @@
       ]
     },
     {
-      "collectionGroup": "2024",
+      "collectionGroup": "2025",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "requestType", "mode": "NOT_EQUAL" },

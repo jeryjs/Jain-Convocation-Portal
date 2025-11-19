@@ -6,7 +6,7 @@ const { invalidateCache } = require("../utils/cache.utils");
 // Function to get settings from firestore
 const getSettings = async (category = "all") => {
     const cacheKey = `settings_${category}`;
-    const cachedSettings = cache.get(cacheKey);
+    const cachedSettings = await cache.get(cacheKey);
 
     if (cachedSettings) {
         console.log(`📦 Serving cached settings for category: ${category}`);
@@ -24,7 +24,7 @@ const getSettings = async (category = "all") => {
             settings = { [category]: doc.exists ? doc.data() : {} };
         }
         
-        cache.set(cacheKey, settings, TTL.SETTINGS);
+        await cache.set(cacheKey, settings, TTL.SETTINGS);
         updateSettingsCache(settings); // Update in-memory cache as well
         return settings;
     } catch (error) {
@@ -38,15 +38,15 @@ const updateSettings = async (settings) => {
     const batch = db.batch();
 
     // Update each category
-    Object.entries(settings).forEach(([category, categorySettings]) => {
+    for (const [category, categorySettings] of Object.entries(settings)) {
         const docRef = db.collection("settings").doc(category);
-        invalidateCache(`settings`, category);
+        await invalidateCache(`settings`, category);
         batch.set(docRef, categorySettings);
-    });
+    }
 
     await batch.commit();
     updateSettingsCache(settings); // Update cache after successful save
-    invalidateCache("settings");
+    // await invalidateCache("settings");
     return { success: true };
 };
 

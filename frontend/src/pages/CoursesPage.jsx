@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useRef, memo } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, Typography, Grid, Collapse, IconButton, Box, Paper, Chip, useTheme, alpha, LinearProgress, Alert } from '@mui/material';
+import { Card, CardContent, Typography, Grid, Collapse, IconButton, Box, Paper, Chip, useTheme, alpha, LinearProgress } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon, AccessTime as TimeIcon, Groups as GroupsIcon, Event as EventIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import config from '../config';
 import PageHeader from '../components/PageHeader';
 import { cacheManager } from '../utils/cache';
 import DemoPageBanner from '../components/DemoPageBanner';
+import UploadingAlertBanner from '../components/UploadingAlertBanner';
 
 // Utility function for handling file name in the format "10AM to 11AM"
 const convertTimeToMinutes = (timeStr) => {
@@ -29,13 +30,41 @@ const sortTimeSlots = (data) => {
   }));
 };
 
+const loadSavedUiState = () => {
+  if (typeof window === 'undefined') return { expandedSlotKey: null, expandedDay: null };
+  try {
+    const raw = sessionStorage.getItem('courses-page-ui');
+    if (!raw) return { expandedSlotKey: null, expandedDay: null };
+    const parsed = JSON.parse(raw);
+    return {
+      expandedSlotKey: typeof parsed?.expandedSlotKey === 'string' ? parsed.expandedSlotKey : null,
+      expandedDay: typeof parsed?.expandedDay === 'number' ? parsed.expandedDay : null,
+    };
+  } catch {
+    return { expandedSlotKey: null, expandedDay: null };
+  }
+};
+
 function CoursesPage() {
   const [structure, setStructure] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState({});
-  const [expandedDay, setExpandedDay] = useState(null);
+  const initialUiState = useMemo(loadSavedUiState, []);
+  const [expandedSlotKey, setExpandedSlotKey] = useState(initialUiState.expandedSlotKey);
+  const [expandedDay, setExpandedDay] = useState(initialUiState.expandedDay);
   const mounted = useRef(false);
   const navigate = useNavigate();
+
+  const persistUiState = useCallback((nextExpandedDay, nextExpandedSlotKey) => {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.setItem(
+        'courses-page-ui',
+        JSON.stringify({ expandedDay: nextExpandedDay, expandedSlotKey: nextExpandedSlotKey })
+      );
+    } catch {
+      // Ignore storage errors (private mode, etc.)
+    }
+  }, []);
 
   useEffect(() => {
     if (mounted.current) return;
@@ -43,26 +72,21 @@ function CoursesPage() {
 
     const fetchCourses = async (isRetry = false) => {
       setLoading(true);
+      let data = null;
       try {
         // Try to get from cache first
         const cached = !isRetry && cacheManager.get('courses');
-        if (cached) {
-          setStructure(sortTimeSlots(cached)); // Apply sorting to cached data
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(`${config.API_BASE_URL}/courses`);
-        const data = await response.json();
-        
-        const sortedData = sortTimeSlots(data);
-        setStructure(sortedData);
-        cacheManager.set('courses', sortedData, isRetry);
+        if (cached) return data = cached;
+        data = await fetch(`${config.API_BASE_URL}/courses`).then(r => r.json());
       } catch (error) {
         console.error('Error fetching courses:', error);
-        // Retry with cache invalidation
-        if (!isRetry) fetchCourses(true);
+        if (!isRetry) fetchCourses(true); // Retry with cache invalidation
       } finally {
+        const sortedData = data ? sortTimeSlots(data) : null;   // Apply sorting to cached data
+        if (sortedData && sortedData.length > 0) {
+          setStructure(sortedData);
+          cacheManager.set('courses', sortedData, isRetry);
+        }
         setLoading(false);
       }
     };
@@ -80,6 +104,7 @@ function CoursesPage() {
       />
 
       <DemoPageBanner />
+      <UploadingAlertBanner />
 
       {loading ? (
         <Box sx={{ width: '100%', px: 3, mb: 3 }}>
@@ -89,10 +114,20 @@ function CoursesPage() {
         <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ width: {md: '80vw'} }}>
           {structure.map((day, dayIndex) => (
             <Grid item xs={12} key={day.name}>
-              <DayCard day={day} index={dayIndex} isExpanded={expandedDay === dayIndex} onExpand={() => {
-                setExpandedDay(expandedDay === dayIndex ? null : dayIndex);
-                setExpanded({});
-              }} />
+              <DayCard
+                day={day}
+                index={dayIndex}
+                isExpanded={expandedDay === dayIndex}
+                onExpand={() => {
+                  setExpandedDay((prev) => {
+                    const nextDay = prev === dayIndex ? null : dayIndex;
+                    const nextSlotKey = null;
+                    setExpandedSlotKey(nextSlotKey);
+                    persistUiState(nextDay, nextSlotKey);
+                    return nextDay;
+                  });
+                }}
+              />
               <Collapse in={expandedDay === dayIndex}>
                 <Box sx={{ mt: 2, pl: { sm: 4 } }}>
                   <Grid container spacing={2}>
@@ -100,8 +135,15 @@ function CoursesPage() {
                       <Grid item xs={12} sm={6} md={4} key={time.name}>
                         <TimeSlot
                           time={time}
-                          isExpanded={expanded[`${dayIndex}-${timeIndex}`]}
-                          onExpand={() => setExpanded(prev => ({ ...prev, [`${dayIndex}-${timeIndex}`]: !prev[`${dayIndex}-${timeIndex}`] }))}
+                          isExpanded={expandedSlotKey === `${dayIndex}-${timeIndex}`}
+                          onExpand={() => {
+                            const key = `${dayIndex}-${timeIndex}`;
+                            setExpandedSlotKey((prev) => {
+                              const next = prev === key ? null : key;
+                              persistUiState(expandedDay, next);
+                              return next;
+                            });
+                          }}
                           onStageSelect={(stage) => navigate(`/gallery/${btoa(`${day.name}/${time.name}/${stage}`)}`)}
                         />
                       </Grid>
@@ -198,9 +240,9 @@ const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
           </Box>
           <Grid container spacing={1}>
             {time.batches.map(stage => (
-              <Grid item xs={12} key={stage}>
+              <Grid item xs={12} key={stage.name}>
                 <Card 
-                  onClick={() => onStageSelect(stage)} 
+                  onClick={() => onStageSelect(stage.name)} 
                   sx={{ 
                     p: { xs: 1, sm: 1.5 },
                     cursor: 'pointer',
@@ -211,7 +253,7 @@ const TimeSlot = memo(({ time, isExpanded, onExpand, onStageSelect }) => {
                   }}
                 >
                   <Typography sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {stage}
+                    {stage.name}
                   </Typography>
                 </Card>
               </Grid>

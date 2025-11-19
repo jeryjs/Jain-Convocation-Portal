@@ -8,6 +8,7 @@ const courseRoutes = require("./routes/courseRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const emailRoutes = require("./routes/emailRoutes");
+const cacheRoutes = require("./routes/cacheRoutes");
 
 const app = express();
 
@@ -23,9 +24,10 @@ app.use("/api", courseRoutes);
 app.use("/api", requestRoutes);
 app.use("/api", adminRoutes);
 app.use("/api", emailRoutes);
+app.use("/api/cache", cacheRoutes);
 
 const PORT = process.env.PORT;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
 async function initializeSettings() {
     const { getSettings } = require("./services/settings");

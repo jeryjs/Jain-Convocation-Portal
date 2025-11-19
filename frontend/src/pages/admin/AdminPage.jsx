@@ -169,7 +169,7 @@ const AdminPage = () => {
       
       // Cache the links
       data.links.forEach(link => {
-        localStorage.setItem(`img_${link.name}`, link.url);
+        localStorage.setItem(`img_${link.name}`, link.download);
       });
       
       return data.links;
@@ -190,7 +190,7 @@ const AdminPage = () => {
         // If not in cache, fetch all images for this request
         const links = await getImageLinks(Object.keys(requestImages));
         const link = links.find(l => l.name === path);
-        if (link) await downloadFile(link.url, path);
+        if (link) await downloadFile(link.download, path);
       }
     } catch (error) {
       setSnackbar({ open: true, message: 'Error downloading image', severity: 'error' });

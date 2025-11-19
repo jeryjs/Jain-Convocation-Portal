@@ -3,7 +3,7 @@ const db = require("../config/firebase");
 const { cache, TTL } = require("../config/cache");
 const { invalidateCache } = require("../utils/cache.utils");
 
-const COLLECTION_NAME = "2024";
+const COLLECTION_NAME = "2025";
 
 // Function to authenticate user
 const authenticateUser = async (username, password) => {
@@ -26,7 +26,7 @@ const authenticateUser = async (username, password) => {
 // Get user data by username
 const getUserData = async (username) => {
 	const cacheKey = `user_${username}`;
-	const cachedData = cache.get(cacheKey);
+	const cachedData = await cache.get(cacheKey);
 
 	if (cachedData) return cachedData;
 
@@ -39,7 +39,7 @@ const getUserData = async (username) => {
 		requestedImages: snapshot.data().requestedImages || {},
 	};
 
-	cache.set(cacheKey, data, TTL.USER_DATA);
+	await cache.set(cacheKey, data, TTL.USER_DATA);
 	return data;
 };
 
@@ -50,7 +50,7 @@ const updateUserFeedback = async (username, feedback) => {
 		feedback,
 		lastUpdated: admin.firestore.Timestamp.now(),
 	});
-	invalidateCache(`user_${username}`);
+	await invalidateCache(`user_${username}`);
 	return { success: true };
 };
 
@@ -87,7 +87,7 @@ const importUsers = async (users) => {
 	});
 
 	await batch.commit();
-	invalidateCache("requests");
+	await invalidateCache("requests");
 	return { success: true };
 };
 
@@ -108,7 +108,7 @@ const deleteUsers = async (usernames) => {
 		const cacheKey = `user_${username}`;
 		cache.del(cacheKey);
 	});
-	invalidateCache("requests");
+	await invalidateCache("requests");
 	return { success: true };
 };
 
