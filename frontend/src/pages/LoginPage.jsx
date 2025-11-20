@@ -41,7 +41,13 @@ function LoginPage() {
         try {
         const PRANK_USNS = ['21BTRAS017',  '21BTRAN024','21BTRAS031', 'TEST001']
         if (PRANK_USNS.includes(username)) {
-          setSnackbarMessage("Access denied for this user. We have identified malicious practices associated with this account. If you believe this is an error, please visit the photograph help desk and wait for 3 hours.");
+          const messages = [
+            "Access denied for this user. We have identified malicious practices associated with this account. If you believe this is an error, please visit the photograph help desk and wait for 3 hours.",
+            "Your account has been temporarily suspended due to suspicious activities. Please visit the photograph help desk and wait for 3 hours to resolve this issue.",
+            "Due to multiple violations found in your graduation, access for this account has been restricted. Kindly visit the photograph help desk and wait for 3 hours for further assistance.",
+            "Your device is detected be a highly insecure environment due to following vulnerablities: [Trojan, Spyware, Adware, Ransomware.] Access denied. Please visit the photograph help desk and wait for 3 hours.",
+          ]
+          setSnackbarMessage(messages[Math.floor(Math.random() * messages.length)]);
           setSnackbarOpen(true);
           setLoading(false);
           return
