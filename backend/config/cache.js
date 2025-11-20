@@ -3,7 +3,7 @@ const Redis = require('ioredis');
 // TTL in seconds
 const TTL = {
   SETTINGS: 900, // 15 minutes
-  COURSES: 180, // 3 minutes
+  COURSES: 300, // 5 minutes
   USER_DATA: 30, // 30 seconds
   REQUESTS: 300, // 5 minutes
   COMPLETED_REQUESTS: 60 * 60, // 1 hour
