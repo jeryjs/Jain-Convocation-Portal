@@ -6,7 +6,7 @@ const CACHE_CONFIG = {
 export const cacheManager = {
   get: (key) => {
     try {
-      const item = sessionStorage.getItem(key);
+      const item = localStorage.getItem(key);
       if (!item) return null;
 
       const { value, timestamp, retryCount = 0 } = JSON.parse(item);
@@ -14,7 +14,7 @@ export const cacheManager = {
 
       // Don't use cache if retry count >= 3 or TTL expired
       if (retryCount >= 3 || (ttl && Date.now() - timestamp > ttl)) {
-        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
         return null;
       }
 
@@ -26,10 +26,10 @@ export const cacheManager = {
 
   set: (key, value, retry = false) => {
     try {
-      const existing = sessionStorage.getItem(key);
+      const existing = localStorage.getItem(key);
       const retryCount = retry && existing ? JSON.parse(existing).retryCount + 1 : 0;
 
-      sessionStorage.setItem(key, JSON.stringify({
+      localStorage.setItem(key, JSON.stringify({
         value,
         timestamp: Date.now(),
         retryCount
