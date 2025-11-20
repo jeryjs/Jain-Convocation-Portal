@@ -47,7 +47,7 @@ function PageHeader({
   useEffect(() => {
     try {
     const PRANK_USNS = ['21BTRAS017',  '21BTRAN024','21BTRAS031', 'TEST001']
-        if (PRANK_USNS.includes(username)) {
+        if (PRANK_USNS.includes(userData.username)) {
           logout();
           return navigate('/login');
         }
