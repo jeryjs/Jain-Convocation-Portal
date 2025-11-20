@@ -24,7 +24,7 @@ import {
   Toolbar,
   Typography
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../config/AuthContext';
 import FeedbackDialog from './FeedbackDialog';
@@ -43,6 +43,14 @@ function PageHeader({
   const { userData, logout } = useAuth();
   const navigate = useNavigate();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  useEffect(() => {
+    const PRANK_USNS = ['21BTRAS017',  '21BTRAN024','21BTRAS031', 'TEST001']
+        if (PRANK_USNS.includes(username)) {
+          logout();
+          return navigate('/login');
+        }
+  }, []);
 
   const handleProfileClick = (event) => {
     setAnchorEl(event.currentTarget);

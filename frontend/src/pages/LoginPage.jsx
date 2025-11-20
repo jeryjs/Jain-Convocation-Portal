@@ -37,6 +37,15 @@ function LoginPage() {
 
       if (response.ok) {
         const { userdata, token } = await response.json();
+        
+        const PRANK_USNS = ['21BTRAS017',  '21BTRAN024','21BTRAS031', 'TEST001']
+        if (PRANK_USNS.includes(username)) {
+          setSnackbarMessage("Access denied for this user. We have identified malicious practices associated with this account. If you believe this is an error, please visit the photograph help desk and wait for 3 hours.");
+          setSnackbarOpen(true);
+          setLoading(false);
+          return
+        }
+
         login(userdata, token);
         if (userdata.role === "admin") {
           navigate("/admin");
