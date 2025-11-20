@@ -47,12 +47,13 @@ const _fetchFolderTree = async (drive, parentId, depth = 0) => {
         }
 
         const childKey = LEVEL_CHILD_KEYS[depth];
+        // Increase concurrency for faster parallel fetching
         const children = await limitedMap(folders, async (folder) => {
             const node = { name: folder.name, id: folder.id };
             node[childKey] = await _fetchFolderTree(drive, folder.id, depth + 1);
             return node;
         },
-            50
+            100  // Increased from 50 to 100 for faster parallel execution
         );
 
         return children;
@@ -73,8 +74,10 @@ const _getFolders = async (drive, parentId) => {
         return cached;
     }
     const res = await drive.files.list({
-        q: `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder'`,
+        q: `'${parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
         fields: 'files(id, name)',
+        pageSize: 100, // Fetch more folders at once
+        orderBy: 'name', // Sort by name for consistency
     }, { headers: { referer: 'jain-convocation-portal.vercel.app' } });
     await cache.set(cacheKey, res.data.files, TTL.COURSES);
     return res.data.files;
@@ -91,8 +94,17 @@ const getCourseFolders = async () => {
     const drive = await _getDrive(); // Get drive instance
     const shareId = _getShareId();
 
+    // Only clear cache if we're doing a fresh fetch
     TREE_CACHE.clear();
-    const structure = await _fetchFolderTree(drive, shareId, 0);
+    
+    // Set a timeout to prevent hanging
+    const timeoutMs = 8000; // 8 seconds (leaving 2s buffer for Vercel's 10s limit)
+    const fetchPromise = _fetchFolderTree(drive, shareId, 0);
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Folder fetch timeout - try again or check cache')), timeoutMs)
+    );
+    
+    const structure = await Promise.race([fetchPromise, timeoutPromise]);
 
     await cache.set(cacheKey, structure, TTL.COURSES);
     return structure;
