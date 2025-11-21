@@ -25,7 +25,8 @@ REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
 
-CONVOCATION_PHOTOS_DIR = r"Z:\Downloads\jain 14th convo"
+# CONVOCATION_PHOTOS_DIR = r"Z:\Downloads\jain 14th convo"
+CONVOCATION_PHOTOS_DIR = r"Z:\Downloads\Jain 15th Convocation"
 TEST_SELFIE = os.path.dirname(__file__) + r"\selfie_images\selfie.jpg"
 EXCLUDE_IMAGES_DIR = os.path.dirname(__file__) + r"\exclude_faces"
 
@@ -266,7 +267,7 @@ def test_deepface_engine():
     print("\n🤖 Test 4: DeepFace Engine (Real Images)")
     print("-" * 60)
     
-    stage = "18-11-2025 Day 1/09AM to 01PM/Stage 2 (Center)"
+    stage = "21-11-2025 Day 3/Faculty of Applied Computing/Station 2 (Center)"
     
     try:
         # Prepare data

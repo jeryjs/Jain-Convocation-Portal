@@ -105,7 +105,7 @@ class BaseEngine(ABC):
     def _load_and_preprocess_image(self, img_path_or_base64: str) -> np.ndarray:
         """Load image from path or base64 and preprocess"""
         # Load image from path or decode from base64
-        if isinstance(img_path_or_base64, str) and (img_path_or_base64.strip().startswith('data:image') or len(img_path_or_base64.strip()) > 100):
+        if isinstance(img_path_or_base64, str) and (img_path_or_base64.strip().startswith('data:image') or len(img_path_or_base64.strip()) > 500):
             # It's base64
             img = self.decode_base64_image(img_path_or_base64)
         else:
