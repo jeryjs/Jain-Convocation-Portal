@@ -1,4 +1,4 @@
-import { Cameraswitch } from '@mui/icons-material';
+import { AddPhotoAlternate, BrowseGallery, Cameraswitch } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -61,14 +61,15 @@ function FaceSearchDialog({
   const [devices, setDevices] = useState([]);
   const [deviceId, setDeviceId] = useState(() => getStoredCameraId());
   const [hasConsented, setHasConsented] = useState(false);
+
   const videoConstraints = useMemo(
-    () => (
+    () =>
       deviceId
         ? { ...BASE_CONSTRAINTS, deviceId: { exact: deviceId } }
-        : { ...BASE_CONSTRAINTS, facingMode: 'user' }
-    ),
+        : { ...BASE_CONSTRAINTS, facingMode: 'user' },
     [deviceId]
   );
+
   const isFrontCamera = useMemo(() => {
     if (!deviceId) return true;
     const match = devices.find((cam) => cam.deviceId === deviceId);
@@ -111,6 +112,7 @@ function FaceSearchDialog({
     } else if (open) {
       handleEnableCamera();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -243,6 +245,22 @@ function FaceSearchDialog({
                     <Cameraswitch fontSize="large" sx={{ color: 'white' }} />
                   </IconButton>
                 )}
+                
+                    <IconButton
+                      onClick={() => document.getElementById('face-media-picker-inline')?.click()}
+                      disabled={creating || isCapturing}
+                      sx={{
+                      position: 'absolute',
+                      top: 68,
+                      right: 8,
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                      },
+                    }}
+                    >
+                      <AddPhotoAlternate fontSize="large" sx={{ color: 'white' }} />
+                    </IconButton>
                 <Box
                   sx={{
                     position: 'absolute',
@@ -265,6 +283,122 @@ function FaceSearchDialog({
               </Stack>
             )}
           </Box>
+
+          {/* --- MEDIA PICKER (NO NEW NAMED FUNCTIONS — handlers inline) --- */}
+          <Box>
+            <input
+              id="face-media-picker-inline"
+              type="file"
+              accept="image/*,video/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                clearCreateError?.();
+                setValidationError(null);
+                const file = e?.target?.files?.[0];
+                if (!file) return;
+
+                setIsCapturing(true);
+                const url = URL.createObjectURL(file);
+                try {
+                  const canvas = canvasRef.current || document.createElement('canvas');
+                  canvasRef.current = canvas;
+
+                  if (file.type.startsWith('video/')) {
+                    // draw first frame of video
+                    await new Promise((resolve, reject) => {
+                      const videoEl = document.createElement('video');
+                      videoEl.preload = 'auto';
+                      videoEl.muted = true;
+                      videoEl.playsInline = true;
+                      videoEl.src = url;
+
+                      const cleanup = () => {
+                        try {
+                          videoEl.pause();
+                          videoEl.src = '';
+                        } catch (e) {
+                          /* ignore */
+                        }
+                      };
+
+                      videoEl.addEventListener('loadedmetadata', () => {
+                        canvas.width = videoEl.videoWidth || BASE_CONSTRAINTS.width.ideal;
+                        canvas.height = videoEl.videoHeight || BASE_CONSTRAINTS.height.ideal;
+
+                        const onCanPlay = () => {
+                          try {
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                            cleanup();
+                            resolve();
+                          } catch (err) {
+                            cleanup();
+                            reject(err);
+                          }
+                        };
+
+                        if (videoEl.readyState >= 2) {
+                          onCanPlay();
+                        } else {
+                          videoEl.addEventListener('canplay', onCanPlay, { once: true });
+                          setTimeout(() => {
+                            if (videoEl.readyState < 2) {
+                              cleanup();
+                              reject(new Error('Unable to load video frame.'));
+                            }
+                          }, 2000);
+                        }
+                      }, { once: true });
+
+                      videoEl.addEventListener('error', () => {
+                        cleanup();
+                        reject(new Error('Failed to load'));
+                      });
+
+                      videoEl.load();
+                    });
+                  } else {
+                    // image
+                    await new Promise((resolve, reject) => {
+                      const img = new Image();
+                      img.crossOrigin = 'anonymous';
+                      img.onload = () => {
+                        try {
+                          canvas.width = img.naturalWidth;
+                          canvas.height = img.naturalHeight;
+                          const ctx = canvas.getContext('2d');
+                          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                          resolve();
+                        } catch (err) {
+                          reject(err);
+                        }
+                      };
+                      img.onerror = () => reject(new Error('Failed to load image.'));
+                      img.src = url;
+                    });
+                  }
+
+                  const prepared = await prepareImage(canvas);
+                  await createJob(prepared);
+                  // cleanup and close
+                  URL.revokeObjectURL(url);
+                  handleClose();
+                } catch (err) {
+                  URL.revokeObjectURL(url);
+                  setValidationError(err?.message || 'Unable to process selected media. Please try another file.');
+                } finally {
+                  setIsCapturing(false);
+                  // reset input value so same file can be selected again
+                  try {
+                    e.target.value = null;
+                  } catch (ex) {
+                    /* ignore */
+                  }
+                }
+              }}
+            />
+          </Box>
+          {/* --- end MEDIA PICKER --- */}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
