@@ -89,7 +89,7 @@ const useJobStream = ({ stageKey, jobState, syncState, enabled = true }) => {
       eventSourceRef.current = null;
     }
 
-    const url = `${config.QUEUE_API_BASE_URL}/get-job?id=${jobState.jobId}&limit=60`;
+    const url = `${config.QUEUE_API_BASE_URL}/get-job?id=${jobState.jobId}&limit=30`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
     activeJobIdRef.current = jobState.jobId;
