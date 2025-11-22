@@ -384,7 +384,7 @@ export default function RequestPage() {
                       <Chip
                         key={link.name}
                         component='a'
-                        label={link.name.match(/\/([A-Za-z0-9 ]+\.\w+)$/)[1]}
+                        label={link.name.match(/\/([A-Za-z0-9_ ]+\.\w+)$/)[1]}
                         href={link.url}
                         target="_blank"
                         icon={<DownloadIcon />}
