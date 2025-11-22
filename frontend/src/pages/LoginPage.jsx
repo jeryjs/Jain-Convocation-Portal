@@ -31,7 +31,7 @@ function LoginPage() {
   }
 
   const isEmail = (username) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^.*$/;
     return emailRegex.test(username);
   }
 
