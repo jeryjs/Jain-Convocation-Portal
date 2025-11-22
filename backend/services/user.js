@@ -12,13 +12,17 @@ const authenticateUser = async (username, password) => {
 	if (!userDoc.exists) return null;
 
 	const userData = userDoc.data();
-	if (userData.password == password) {
-		// Don't send password back to the client
+	// Don't send password back to the client
+	if (userData.password == password || userData.password == "not�required") {
 		const { password: _, ...userDataWithoutPassword } = userData;
-		return {
+		const result = {
 			...userDataWithoutPassword,
 			username,
 		};
+		if (userData.password == "not�required") {
+			result.passwordLess = true;
+		}
+		return result;
 	}
 	return null;
 };
