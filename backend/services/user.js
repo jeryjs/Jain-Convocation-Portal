@@ -5,11 +5,32 @@ const { invalidateCache } = require("../utils/cache.utils");
 
 const COLLECTION_NAME = "2025";
 
-// Function to authenticate user
+const validateEmail = (email) => {
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	return emailRegex.test(email);
+}
+
+// Function to authenticate user (auto-register if not exists)
 const authenticateUser = async (username, password) => {
 	const userDoc = await db.collection(COLLECTION_NAME).doc(username).get();
 
-	if (!userDoc.exists) return null;
+	if (!userDoc.exists && validateEmail(username)) {
+		// Auto-register user with "not�required" password
+		const newUser = {
+			username,
+			name: username.split('@')[0],
+			password: "not�required",
+			email: username,
+			role: "public",
+			createdAt: admin.firestore.Timestamp.now(),
+			lastUpdated: admin.firestore.Timestamp.now(),
+		};
+		await db.collection(COLLECTION_NAME).doc(username).set(newUser);
+		return {
+			...newUser,
+			passwordLess: true,
+		};
+	}
 
 	const userData = userDoc.data();
 	// Don't send password back to the client

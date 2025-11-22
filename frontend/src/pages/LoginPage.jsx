@@ -1,5 +1,5 @@
 import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
-import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Collapse, CircularProgress, IconButton, InputAdornment, Snackbar, TextField, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import config from "../config";
@@ -14,6 +14,7 @@ function LoginPage() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showPhoneField, setShowPhoneField] = useState(false);
   const navigate = useNavigate();
   const { login, userData } = useAuth();
 
@@ -24,15 +25,41 @@ function LoginPage() {
     }
   }, [userData, navigate]);
 
+  const isUSN = (username) => {
+    const usnRegex = /^\d{2}\d?[A-Z]+\d{2}\d?\d?$/;
+    return usnRegex.test(username.toUpperCase());
+  }
+
+  const isEmail = (username) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(username);
+  }
+
+  const handleUsernameChange = (value) => {
+    const sanitized = value.toUpperCase().replace(/\s+/g, '');
+    setUsername(sanitized);
+    
+    // Show phone field only if it's a valid USN
+    if (isUSN(sanitized)) {
+      setShowPhoneField(true);
+    } else {
+      setShowPhoneField(false);
+      setPassword(''); // Clear password when switching back
+    }
+  }
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // If email, send empty password
+      const loginPassword = isEmail(username) ? '' : password;
+      
       const response = await fetch(`${config.API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username, password }),
+        body: JSON.stringify({ username: username, password: loginPassword }),
       });
 
       if (response.ok) {
@@ -105,37 +132,41 @@ function LoginPage() {
 
           <form onSubmit={handleLogin}>
             <TextField
-              label='UAN/USN'
+              label='USN / Email'
               variant='outlined'
               fullWidth
               value={username}
-              onChange={(e) => setUsername(e.target.value.toUpperCase().replace(' ', ''))} // Convert to uppercase and remove spaces
+              onChange={(e) => handleUsernameChange(e.target.value)}
               required
               margin='normal'
-              placeholder="Enter your UAN/USN in caps"
+              placeholder="Enter your USN or Email"
+              helperText={username && !isUSN(username) && !isEmail(username) ? "Please enter a valid USN or Email" : ""}
+              error={username.length > 0 && !isUSN(username) && !isEmail(username)}
             />
-            <TextField
-              label='Phone Number'
-              type={showPassword ? 'text' : 'password'}
-              variant='outlined'
-              fullWidth
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              margin='normal'
-              placeholder="Enter your registered phone number"
-              error={!validatePassword(password) && password.length > 0}
-              helperText={"For any assistance with logging in, please visit the help desk near the entrance."}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <VisibilityOutlined /> : <VisibilityOffOutlined />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <Collapse in={showPhoneField} timeout={300}>
+              <TextField
+                label='Phone Number'
+                type={showPassword ? 'text' : 'password'}
+                variant='outlined'
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required={showPhoneField}
+                margin='normal'
+                placeholder="Enter your registered phone number"
+                error={!validatePassword(password) && password.length > 0}
+                helperText={"For any assistance with logging in, please visit the help desk near the entrance."}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <VisibilityOutlined /> : <VisibilityOffOutlined />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Collapse>
             <Button type='submit' variant='contained' color='primary' fullWidth disabled={loading} sx={{ mt: 2, borderRadius: '25px', fontSize: '1.2rem' }}>
               {loading ? <CircularProgress size={24} /> : "Login"}
             </Button>
